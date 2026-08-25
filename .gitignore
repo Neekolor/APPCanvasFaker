@@ -1,0 +1,15 @@
+*.iml
+.gradle
+.idea
+.kotlin
+.DS_Store
+build
+captures
+.cxx
+local.properties
+*.jks
+*.keystore
+*.pem
+*.p12
+sign.*.properties
+sign.properties
