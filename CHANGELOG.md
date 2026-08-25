@@ -5,6 +5,24 @@
 格式基于 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.1.0/)，
 版本号遵循 [语义化版本](https://semver.org/lang/zh-CN/)（迭代期带 `-dev` 后缀）。
 
+## [0.6.0-dev] - 2026-08-25
+
+### 新增
+
+- 三条新 Hook 链，堵住像素读取之外的指纹逃逸口：
+  - **单点读取**（`Bitmap.getPixel`）：与整图读取同源噪声，同一物理像素在
+    整图与单点两种读法下扰动一致；
+  - **文本度量族**（Paint 12 个度量重载）：施加确定性微扰，同输入恒同输出，
+    不引发布局抖动；
+  - **GPU 直读**（`glReadPixels`，**默认关闭**）：避免影响目标应用自身的
+    GL 读回场景（游戏录像 / 推流等）。
+- 上述功能均有独立开关（默认：单点读取开、文本度量开、GPU 直读关）。
+
+### 修复
+
+- libxposed API 依赖方式纠正：修复模块在新版 LSPosed 上完全无法加载的问题
+  （"The Xposed API classes are compiled into the module's APK"）。
+
 ## [0.5.0] - 2026-08-23
 
 ### 新增

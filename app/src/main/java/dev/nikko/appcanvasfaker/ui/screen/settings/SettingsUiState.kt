@@ -20,6 +20,9 @@ data class SettingsUiState(
     val enableFloatingBottomBarBlur: Boolean = false,
     val pageScale: Float = 1.0f,
     val enableLogging: Boolean = true,
+    val hookGetPixel: Boolean = true,
+    val hookTextMetrics: Boolean = true,
+    val hookGlReadPixels: Boolean = false,
 )
 
 @Immutable
@@ -28,6 +31,9 @@ data class SettingsScreenActions(
     val onOpenTheme: () -> Unit,
     val onSetUiModeIndex: (Int) -> Unit,
     val onSetEnableLogging: (Boolean) -> Unit,
+    val onSetHookGetPixel: (Boolean) -> Unit,
+    val onSetHookTextMetrics: (Boolean) -> Unit,
+    val onSetHookGlReadPixels: (Boolean) -> Unit,
     val onOpenTools: () -> Unit,
     val onOpenLog: () -> Unit,
     val onOpenAbout: () -> Unit,

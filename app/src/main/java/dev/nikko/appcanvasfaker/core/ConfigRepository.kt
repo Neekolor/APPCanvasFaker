@@ -20,7 +20,8 @@ import java.util.Locale
 
 /**
  * UI 进程数据源：模块 SharedPreferences（app_canvas_faker）。
- * 配置 JSON 结构：{ mode, enable_logging, rules: { pkg: {enabled, seed} } }
+ * 配置 JSON 结构：{ mode, enable_logging, hook_getpixel, hook_text_metrics,
+ * hook_glreadpixels, rules: { pkg: {enabled, seed} } }
  * 统计（hook 计数/日志/哈希）存同文件独立 key，由 StatsProvider 经 ContentProvider 回写。
  */
 class ConfigRepository(private val context: Context) {
@@ -197,6 +198,41 @@ class ConfigRepository(private val context: Context) {
         synchronized(writeLock) {
             val c = config()
             c.put("enable_logging", enabled)
+            saveConfig(c)
+        }
+    }
+
+    // ---------- v0.6.0 Hook 扩展开关（全局项，随 read_config 最小下发） ----------
+
+    /** A2 getPixel 单点读取：现存裸露缺口（scanner A2），默认开。 */
+    fun hookGetPixel(): Boolean = config().optBoolean("hook_getpixel", true)
+
+    fun setHookGetPixel(enabled: Boolean) {
+        synchronized(writeLock) {
+            val c = config()
+            c.put("hook_getpixel", enabled)
+            saveConfig(c)
+        }
+    }
+
+    /** E1 Paint 文本度量族：结构性逃逸口（scanner E1），默认开；排版异常时可关。 */
+    fun hookTextMetrics(): Boolean = config().optBoolean("hook_text_metrics", true)
+
+    fun setHookTextMetrics(enabled: Boolean) {
+        synchronized(writeLock) {
+            val c = config()
+            c.put("hook_text_metrics", enabled)
+            saveConfig(c)
+        }
+    }
+
+    /** D1 GLES20.glReadPixels GPU 直读（scanner D1）：默认关——会扰动目标应用自身的 GL 读回（游戏录像/推流等）。 */
+    fun hookGlReadPixels(): Boolean = config().optBoolean("hook_glreadpixels", false)
+
+    fun setHookGlReadPixels(enabled: Boolean) {
+        synchronized(writeLock) {
+            val c = config()
+            c.put("hook_glreadpixels", enabled)
             saveConfig(c)
         }
     }
@@ -387,6 +423,9 @@ class ConfigRepository(private val context: Context) {
     private fun defaultConfig(): JSONObject = JSONObject().apply {
         put("mode", ProtectionMode.NOISE.name)
         put("enable_logging", true)
+        put("hook_getpixel", true)
+        put("hook_text_metrics", true)
+        put("hook_glreadpixels", false)
         put("rules", JSONObject())
     }
 

@@ -169,6 +169,12 @@
     <string name="settings_selinux_hide_failed">Error: %d</string>
     <string name="settings_sulog">Enable log recording</string>
     <string name="settings_sulog_summary">Description TBD</string>
+    <string name="settings_hook_getpixel">Intercept single-pixel reads</string>
+    <string name="settings_hook_getpixel_summary">Randomize Bitmap.getPixel(x,y) reads to cover the A2 escape hatch</string>
+    <string name="settings_hook_text_metrics">Randomize text metrics</string>
+    <string name="settings_hook_text_metrics_summary">Apply ≤0.7% deterministic perturbation to Paint text metrics; turn off if a self-drawn layout looks off</string>
+    <string name="settings_hook_glreadpixels">Randomize GPU framebuffer reads</string>
+    <string name="settings_hook_glreadpixels_summary">Hook GLES20.glReadPixels direct read; may affect apps\' own GL readback such as game recording or live streaming, off by default</string>
     <string name="feature_status_unsupported_summary">Kernel does not support this feature</string>
     <string name="feature_status_managed_summary">This feature is managed by a module</string>
     <string name="settings_mode_enable_by_default">Enable (Default)</string>

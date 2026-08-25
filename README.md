@@ -6,7 +6,7 @@
 |---|---|
 | **应用名** | APPCanvasFaker |
 | **包名** | `dev.nikko.appcanvasfaker` |
-| **当前版本** | v0.5.0 (versionCode 32) |
+| **当前版本** | v0.6.0-dev (versionCode 33) |
 | **运行形态** | LSPosed / libxposed 模块（后续计划适配 Root、Zygisk 版） |
 | **语言/框架** | Kotlin · Jetpack Compose · Navigation3 · Miuix + Material3 双皮肤 |
 | **Hook 框架** | libxposed API 102（[api](https://github.com/libxposed/api) / [service](https://github.com/libxposed/service)） |
@@ -23,6 +23,7 @@ Canvas 指纹是网页/应用通过 `<canvas>` 绘制后读取像素计算哈希
 ## 核心特性
 
 - 🎯 **精准 Hook**：拦截 `Bitmap.getPixels` / `copyPixelsToBuffer` / `compress(PNG/JPEG)` 三大读取路径（A1/A3/A4/A4b），覆盖绝大多数 Canvas 指纹算法的取值方式
+- 🕳️ **逃逸口封堵（v0.6.0）**：`getPixel` 单点读取（A2）、Paint 文本度量族（E1）、GPU `glReadPixels` 直读（D1，默认关）三条新链，均有独立开关
 - 🔒 **确定性伪装**：噪声由 `SplitMix64(seed, x, y)` 按位图绝对坐标生成，同 seed 下任意路径、任意区域读取结果一致；通道抖动带非零偏置，抵抗零均值噪声统计检测
 - #️⃣ **16 位折叠哈希**：SHA-256 四块 XOR 折叠为 16 位短哈希，与配套测试应用 canvas-fingerprint-scanner 同方法，可直接比对
 - 🧪 **内置哈希测试页**：A/B/C/D/E/F 六组 21 个采集面（像素读取、离屏渲染、截图抓取、GPU 直读、元信息、参考基准），一键验证 Hook 效果
@@ -40,7 +41,11 @@ Canvas 指纹是网页/应用通过 `<canvas>` 绘制后读取像素计算哈希
 │   └─ 已启用 → BitmapHooks.install()                │
 │        ├─ hook Bitmap.getPixels          (A1)      │
 │        ├─ hook Bitmap.copyPixelsToBuffer (A3)     │
-│        └─ hook Bitmap.compress           (A4/A4b) │
+│        ├─ hook Bitmap.compress           (A4/A4b) │
+│        ├─ hook Bitmap.getPixel   │
+│        ├─ hook Paint 文本度量族 ×12   │
+│        └─ hook GLES20.glReadPixels       (D1,   │
+│                 默认关)                            │
 │              ↓ proceed 后                          │
 │        FingerprintEngine.applyPixels()             │
 │        = 原始像素 ⊕ SplitMix64(seed,x,y) 偏置噪声   │

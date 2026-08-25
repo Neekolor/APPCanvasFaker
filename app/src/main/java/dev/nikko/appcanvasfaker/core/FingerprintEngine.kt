@@ -1,7 +1,10 @@
 package dev.nikko.appcanvasfaker.core
 
+import java.nio.ByteBuffer
+
 /**
  * 伪装算法：与读取路径无关，只依赖位图绝对坐标 (x, y) + seed，保证 A1/A3/A4/A4b 结果一致。
+ * v0.6.0 扩展：A2 单点读取（getPixel）、D1 GL 帧缓冲直读、E1 文本度量微扰。
  */
 object FingerprintEngine {
 
@@ -18,6 +21,78 @@ object FingerprintEngine {
     ) {
         if (width <= 0 || height <= 0 || stride <= 0 || pixels.isEmpty()) return
         applyBiasNoise(pixels, width, height, offset, stride, originX, originY, seed)
+    }
+
+    /**
+     * A2 单点扰动（getPixel）：与 A1 同源算法按绝对坐标取噪，
+     * 保证"同一物理像素在整图读取与单点读取下扰动一致"的坐标绑定性质。
+     */
+    fun perturbPoint(color: Int, x: Int, y: Int, seed: Long): Int {
+        val n = stableNoise(seed, y, x)
+        val dR = ((n ushr 16) and 0x07).toInt() - 1
+        val dG = ((n ushr 24) and 0x07).toInt() - 1
+        val dB = ((n ushr 32) and 0x07).toInt() - 1
+        return perturb(color, dR, dG, dB)
+    }
+
+    /**
+     * E1 文本度量相对微扰因子：输入键 = seed ⊕ 文本内容哈希 ⊕ textSize（0.1px 离散），
+     * 同输入恒同输出（否则自定义布局会在帧间抖动）；幅度 ∈ ±[0.3%, 0.7%]，符号由哈希派生。
+     */
+    fun textFactor(seed: Long, textHash: Long, textSizePx: Float): Float {
+        val tsKey = (textSizePx * 10f).toInt()
+        var z = seed xor textHash xor (tsKey.toLong() * 0x9E3779B97F4A7C15uL.toLong())
+        z = (z xor (z ushr 30)) * 0xBF58476D1CE4E5B9uL.toLong()
+        z = (z xor (z ushr 27)) * 0x94D049BB133111EBuL.toLong()
+        z = z xor (z ushr 31)
+        val milli = ((z ushr 8) % 5).toInt() + 3   // 千分之 3~7
+        val negative = ((z ushr 40) and 0x01).toInt() == 1
+        val f = milli / 1000f
+        return if (negative) -f else f
+    }
+
+    /** E1 度量值统一施加方式：原值 × (1 + factor)。 */
+    fun scaleMetric(value: Float, factor: Float): Float = value * (1f + factor)
+
+    /** E1 文本边界框：以左上角为锚点缩放宽高，保持确定性。 */
+    fun scaleBounds(rect: android.graphics.Rect, factor: Float) {
+        val w = rect.width()
+        val h = rect.height()
+        rect.right = rect.left + Math.round(w * (1f + factor))
+        rect.bottom = rect.top + Math.round(h * (1f + factor))
+    }
+
+    /**
+     * D1 GL 帧缓冲直读扰动：对 RGBA/UNSIGNED_BYTE 直接缓冲按像素序号均匀施加偏置噪声。
+     * 该通道与位图通道本就没有对齐承诺，故噪声键用线性序号而非坐标；
+     * 仅处理直接 ByteBuffer，其余布局宁可放过不伪装。
+     *
+     * @return 实际扰动的字节数（0 表示未处理）
+     */
+    fun applyGlPixels(
+        buffer: ByteBuffer,
+        startPosition: Int,
+        width: Int,
+        height: Int,
+        seed: Long
+    ): Int {
+        val need = width * height * 4
+        if (need <= 0 || !buffer.isDirect) return 0
+        if (startPosition < 0 || startPosition + need > buffer.capacity()) return 0
+        val glSeed = seed xor GL_DOMAIN_SALT
+        var i = 0
+        while (i < width * height) {
+            val o = startPosition + i * 4
+            val n = stableNoise(glSeed, i, 0)
+            val dR = ((n ushr 16) and 0x07).toInt() - 1
+            val dG = ((n ushr 24) and 0x07).toInt() - 1
+            val dB = ((n ushr 32) and 0x07).toInt() - 1
+            buffer.put(o, ((buffer.get(o).toInt() and 0xFF) + dR).coerceIn(0, 255).toByte())
+            buffer.put(o + 1, ((buffer.get(o + 1).toInt() and 0xFF) + dG).coerceIn(0, 255).toByte())
+            buffer.put(o + 2, ((buffer.get(o + 2).toInt() and 0xFF) + dB).coerceIn(0, 255).toByte())
+            i++
+        }
+        return need
     }
 
     /**
@@ -69,4 +144,7 @@ object FingerprintEngine {
         z = (z xor (z ushr 27)) * 0x94D049BB133111EBuL.toLong()
         return z xor (z ushr 31)
     }
+
+    /** D1 GL Domain Separation Salt：避免 GL 序号噪声与位图坐标噪声同键。 */
+    private val GL_DOMAIN_SALT: Long = 0x1B873593L
 }

@@ -33,6 +33,9 @@ fun SettingPager(
             viewModel.setUiMode(if (index == 0) UiMode.Miuix.value else UiMode.Material.value)
         },
         onSetEnableLogging = viewModel::setEnableLogging,
+        onSetHookGetPixel = viewModel::setHookGetPixel,
+        onSetHookTextMetrics = viewModel::setHookTextMetrics,
+        onSetHookGlReadPixels = viewModel::setHookGlReadPixels,
         onOpenTools = { navigator.push(Route.Tools) },
         onOpenLog = { navigator.push(Route.Log) },
         onOpenAbout = { navigator.push(Route.About) },

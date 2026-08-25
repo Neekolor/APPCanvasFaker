@@ -109,7 +109,9 @@ base {
 }
 
 dependencies {
-    implementation(libs.libxposed.api)
+    // libxposed api 由框架在运行时注入 Hook 进程，严禁打包（LSPosed 拒绝加载内嵌 API 类的模块）；
+    // service 是模块自身 UI 进程的 IPC 客户端库，框架不提供，必须随包分发
+    compileOnly(libs.libxposed.api)
     implementation(libs.libxposed.service)
 
     implementation(libs.androidx.activity.compose)

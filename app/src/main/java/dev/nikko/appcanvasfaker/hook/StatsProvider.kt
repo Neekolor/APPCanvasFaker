@@ -101,6 +101,10 @@ class StatsProvider : ContentProvider() {
         return JSONObject()
             .put("mode", full.optString("mode", ProtectionMode.NOISE.name))
             .put("enable_logging", full.optBoolean("enable_logging", true))
+            // v0.6.0 扩展开关：与 ConfigRepository 默认值保持一致（D1 默认关）
+            .put("hook_getpixel", full.optBoolean("hook_getpixel", true))
+            .put("hook_text_metrics", full.optBoolean("hook_text_metrics", true))
+            .put("hook_glreadpixels", full.optBoolean("hook_glreadpixels", false))
             .put("rules", rules)
             .toString()
     }

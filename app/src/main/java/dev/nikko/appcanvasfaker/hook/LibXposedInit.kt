@@ -180,10 +180,21 @@ class LibXposedInit : XposedModule() {
             ProtectionMode.valueOf(config.optString("mode", ProtectionMode.NOISE.name))
         }.getOrDefault(ProtectionMode.NOISE)
         val enableLogging = config.optBoolean("enable_logging", true)
+        // v0.6.0 扩展开关（全局项）：A2 默认开、E1 默认开、D1 默认关（副作用大）
+        val hookGetPixel = config.optBoolean("hook_getpixel", true)
+        val hookTextMetrics = config.optBoolean("hook_text_metrics", true)
+        val hookGlReadPixels = config.optBoolean("hook_glreadpixels", false)
 
-        BitmapHooks.install(this, packageName, mode, seed, context, enableLogging, param)
+        BitmapHooks.install(
+            this, packageName, mode, seed, context, enableLogging, param,
+            hookGetPixel, hookTextMetrics, hookGlReadPixels
+        )
         settled.add(packageName)
-        HookLog.i(TAG, "hooks installed for $packageName mode=$mode seed=$seed")
+        HookLog.i(
+            TAG,
+            "hooks installed for $packageName mode=$mode seed=$seed " +
+                "h01=$hookGetPixel h05=$hookTextMetrics h02=$hookGlReadPixels"
+        )
     }
 
     /** 宿主 App 的 Application 上下文：仅用于取得 contentResolver 发起跨进程 call。 */
