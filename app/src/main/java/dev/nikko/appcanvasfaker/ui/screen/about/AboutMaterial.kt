@@ -22,6 +22,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.rememberTopAppBarState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -29,6 +30,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.layout.FixedScale
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import dev.nikko.appcanvasfaker.R
@@ -37,12 +39,15 @@ import dev.nikko.appcanvasfaker.ui.component.material.SegmentedColumn
 import dev.nikko.appcanvasfaker.ui.component.material.SegmentedListItem
 import dev.nikko.appcanvasfaker.ui.component.material.TopBarBackButton
 import dev.nikko.appcanvasfaker.ui.component.material.expressiveTopAppBarColors
+import kotlinx.coroutines.launch
 
 @Composable
 fun AboutScreenMaterial(
     state: AboutUiState,
     actions: AboutScreenActions,
 ) {
+    val eggHolder = rememberEasterEggHolder()
+    val scope = rememberCoroutineScope()
     val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior(rememberTopAppBarState())
 
     ExpressiveScaffold(
@@ -78,11 +83,18 @@ fun AboutScreenMaterial(
                             .clip(RoundedCornerShape(16.dp))
                             .background(Color.White)
                     ) {
-                        Image(
-                            painter = painterResource(id = R.drawable.ic_launcher_foreground),
-                            contentDescription = null,
-                            contentScale = FixedScale(1f)
-                        )
+                        if (eggHolder.currentRes == null) {
+                            Image(
+                                painter = painterResource(id = R.drawable.ic_launcher_foreground),
+                                contentDescription = null,
+                                contentScale = FixedScale(1f)
+                            )
+                        } else {
+                            EasterEggLogoImage(
+                                holder = eggHolder,
+                                modifier = Modifier.size(80.dp)
+                            )
+                        }
                     }
                     Text(
                         modifier = Modifier.padding(top = 12.dp),
@@ -117,6 +129,18 @@ fun AboutScreenMaterial(
                             )
                         }
                     }
+                )
+                // 隐藏交互入口：表面无动作，连点触发（见 EasterEgg.kt）
+                SegmentedColumn(
+                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
+                    content = listOf(
+                        {
+                            SegmentedListItem(
+                                onClick = { eggHolder.onClick(scope) },
+                                headlineContent = { Text(stringResource(R.string.about_easter_egg)) }
+                            )
+                        }
+                    )
                 )
                 Spacer(
                     Modifier.height(

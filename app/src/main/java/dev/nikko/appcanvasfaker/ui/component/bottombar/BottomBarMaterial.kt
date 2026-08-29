@@ -9,12 +9,12 @@ import androidx.compose.foundation.layout.union
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Extension
 import androidx.compose.material.icons.filled.Home
-import androidx.compose.material.icons.filled.Fingerprint
+import androidx.compose.material.icons.filled.HourglassEmpty
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Shield
 import androidx.compose.material.icons.outlined.Extension
 import androidx.compose.material.icons.outlined.Home
-import androidx.compose.material.icons.outlined.Fingerprint
+import androidx.compose.material.icons.outlined.HourglassEmpty
 import androidx.compose.material.icons.outlined.Settings
 import androidx.compose.material.icons.outlined.Shield
 import androidx.compose.material3.Icon
@@ -36,7 +36,7 @@ fun BottomBarMaterial() {
     val items = listOf(
         Triple(R.string.home, Icons.Filled.Home, Icons.Outlined.Home),
         Triple(R.string.superuser, Icons.Filled.Shield, Icons.Outlined.Shield),
-        Triple(R.string.nav_cfc, Icons.Filled.Fingerprint, Icons.Outlined.Fingerprint),
+        Triple(R.string.nav_pending, Icons.Filled.HourglassEmpty, Icons.Outlined.HourglassEmpty),
         Triple(R.string.settings, Icons.Filled.Settings, Icons.Outlined.Settings)
     )
 

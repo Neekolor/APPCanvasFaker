@@ -10,6 +10,9 @@ import android.graphics.Color
 import android.graphics.Paint
 import dev.nikko.appcanvasfaker.AppCanvasFakerApplication
 import dev.nikko.appcanvasfaker.BuildConfig
+import dev.nikko.appcanvasfaker.scanner.fingerprint.HardwareReaders
+import dev.nikko.appcanvasfaker.scanner.fingerprint.NonPixelSignals
+import dev.nikko.appcanvasfaker.scanner.fingerprint.PixelReaders
 import dev.nikko.appcanvasfaker.util.HashUtils
 import org.json.JSONArray
 import org.json.JSONObject
@@ -147,24 +150,53 @@ class ConfigRepository(private val context: Context) {
     }
 
     /**
-     * 按固定方法计算 4 种标准化指纹，覆盖常见的 Canvas 指纹读取路径：
-     * - A1：getPixels 像素数组直读
-     * - A3：copyPixelsToBuffer 按字节缓冲拷贝
-     * - A4：compress 压缩后字节（PNG 编码字节）
+     * 按固定方法计算 7 种标准化指纹，与 hook 链一一对应（方法复用 scanner 采集器，
+     * 保证与配套扫描器应用、哈希页三方互比）：
+     * - A1：getPixels 像素数组直读（链 A1）
+     * - A3：copyPixelsToBuffer 按字节缓冲拷贝（链 A3）
+     * - A4：compress 压缩后字节（PNG 编码字节）（链 A4/A4b）
      * - A4b：getImageSizes 尺寸 + 抽样像素
+     * - A2：getPixel 单点采样（A2）
+     * - E1：Paint 文本度量（E1）
+     * - D1：glReadPixels GPU 直读（D1）
      */
     private fun fingerprintValues(pixels: IntArray): List<FingerprintValue> {
         val a1 = HashUtils.ofIntArray(pixels)
         val a3 = HashUtils.ofBytes(IntArrayToRgba(pixels))
         val a4 = HashUtils.ofBytes(compressPng(pixels))
         val a4b = HashUtils.ofString("$STD_W:$STD_H:" + HashUtils.foldHash16(a1))
+        // H 链方法直接复用 scanner 采集器：A2/E1 纯 CPU，D1 需要离屏 EGL 上下文，
+        // 失败时返回错误文本原样展示（不折叠，避免把失败伪装成正常哈希）
+        val stdBitmap = runCatching {
+            dev.nikko.appcanvasfaker.scanner.core.StandardCanvas.createBitmap()
+        }.getOrNull()
+        val a2 = stdBitmap?.let { bmp ->
+            runCatching { PixelReaders.getPixel(bmp) }
+                .getOrElse { "异常: ${it.javaClass.simpleName}" }
+        } ?: "标准画布创建失败"
+        stdBitmap?.recycle()
+        val e1 = runCatching { NonPixelSignals.fontMetrics() }
+            .getOrElse { "异常: ${it.javaClass.simpleName}" }
+        val d1 = runCatching { HardwareReaders.glReadPixels() }
+            .getOrElse { "异常: ${it.javaClass.simpleName}" }
         return listOf(
             FingerprintValue("A1", "像素直读（getPixels）", HashUtils.foldHash16(a1)),
             FingerprintValue("A3", "缓冲拷贝（copyPixelsToBuffer）", HashUtils.foldHash16(a3)),
             FingerprintValue("A4", "压缩读取（compress）", HashUtils.foldHash16(a4)),
             FingerprintValue("A4b", "尺寸采样（getImageSizes）", HashUtils.foldHash16(a4b)),
+            FingerprintValue("A2", "单点读取（getPixel）", foldIfHash(a2)),
+            FingerprintValue("E1", "文本度量（Paint）", foldIfHash(e1)),
+            FingerprintValue("D1", "GL 直读（glReadPixels）", foldIfHash(d1)),
         )
     }
+
+    /** scanner 采集器成功时返回 64 位 SHA-256 hex，折叠为 16 位；失败文本原样透出。 */
+    private fun foldIfHash(raw: String): String =
+        if (raw.length == 64 && raw.all { it in "0123456789abcdef" }) {
+            HashUtils.foldHash16(raw)
+        } else {
+            raw
+        }
 
     /** ARGB8888 像素 → RGBA 字节序（模拟 copyPixelsToBuffer 的落盘格式）。 */
     private fun IntArrayToRgba(pixels: IntArray): ByteArray {

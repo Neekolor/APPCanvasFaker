@@ -35,6 +35,7 @@ import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
@@ -47,6 +48,7 @@ import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.layout.positionInWindow
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.res.painterResource
@@ -55,7 +57,9 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.onEach
+import kotlinx.coroutines.launch
 import dev.nikko.appcanvasfaker.R
 import dev.nikko.appcanvasfaker.ui.component.miuix.effect.BgEffectBackground
 import dev.nikko.appcanvasfaker.ui.component.miuix.effect.ColorBlendToken
@@ -95,6 +99,8 @@ fun AboutScreenMiuix(
     val topAppBarScrollBehavior = MiuixScrollBehavior()
     val lazyListState = rememberLazyListState()
     var logoHeightPx by remember { mutableIntStateOf(0) }
+    val eggHolder = rememberEasterEggHolder()
+    val scope = rememberCoroutineScope()
 
     val scrollProgress by remember {
         derivedStateOf {
@@ -157,6 +163,8 @@ fun AboutScreenMiuix(
                 lazyListState = lazyListState,
                 scrollProgress = scrollProgress,
                 onLogoHeightChanged = { logoHeightPx = it },
+                eggHolder = eggHolder,
+                scope = scope,
             )
         }
     }
@@ -171,6 +179,8 @@ private fun AboutContent(
     lazyListState: LazyListState,
     scrollProgress: Float,
     onLogoHeightChanged: (Int) -> Unit,
+    eggHolder: EasterEggHolder,
+    scope: CoroutineScope,
 ) {
     val layoutDirection = LocalLayoutDirection.current
     val density = LocalDensity.current
@@ -294,25 +304,46 @@ private fun AboutContent(
                         iconY = y + size.height
                     },
             ) {
-                Image(
-                    modifier = Modifier
-                        .requiredSize(245.dp)
-                        .then(
-                            if (enableBlur) {
-                                Modifier.textureBlur(
-                                    backdrop = backdrop,
-                                    shape = RoundedCornerShape(0.dp),
-                                    blurRadius = 150f,
-                                    colors = BlurColors(blendColors = logoBlend),
-                                    contentBlendMode = ComposeBlendMode.DstIn,
-                                    enabled = true,
-                                )
-                            } else Modifier
-                        ),
-                    painter = painterResource(id = R.drawable.ic_launcher_foreground),
-                    colorFilter = ColorFilter.tint(colorScheme.onBackground),
-                    contentDescription = null,
-                )
+                if (eggHolder.currentRes == null) {
+                    Image(
+                        modifier = Modifier
+                            .requiredSize(245.dp)
+                            .then(
+                                if (enableBlur) {
+                                    Modifier.textureBlur(
+                                        backdrop = backdrop,
+                                        shape = RoundedCornerShape(0.dp),
+                                        blurRadius = 150f,
+                                        colors = BlurColors(blendColors = logoBlend),
+                                        contentBlendMode = ComposeBlendMode.DstIn,
+                                        enabled = true,
+                                    )
+                                } else Modifier
+                            ),
+                        painter = painterResource(id = R.drawable.ic_launcher_foreground),
+                        colorFilter = ColorFilter.tint(colorScheme.onBackground),
+                        contentDescription = null,
+                    )
+                } else {
+                    // 隐藏交互激活：logo 替换为替换图（保留原有 blur/淡出效果，去掉单色 tint）
+                    EasterEggLogoImage(
+                        holder = eggHolder,
+                        modifier = Modifier
+                            .requiredSize(245.dp)
+                            .then(
+                                if (enableBlur) {
+                                    Modifier.textureBlur(
+                                        backdrop = backdrop,
+                                        shape = RoundedCornerShape(0.dp),
+                                        blurRadius = 150f,
+                                        colors = BlurColors(blendColors = logoBlend),
+                                        contentBlendMode = ComposeBlendMode.DstIn,
+                                        enabled = true,
+                                    )
+                                } else Modifier
+                            )
+                    )
+                }
             }
             Text(
                 modifier = Modifier
@@ -459,6 +490,18 @@ private fun AboutContent(
                                 }
                             )
                         }
+                    }
+
+                    // 隐藏交互入口：表面无动作，连点触发（见 EasterEgg.kt）
+                    Card(
+                        modifier = Modifier
+                            .padding(top = 12.dp)
+                            .fillMaxWidth(),
+                    ) {
+                        ArrowPreference(
+                            title = stringResource(R.string.about_easter_egg),
+                            onClick = { eggHolder.onClick(scope) }
+                        )
                     }
                     Spacer(
                         Modifier.height(

@@ -1,9 +1,12 @@
 package dev.nikko.appcanvasfaker.ui.screen.appprofile
 
 import android.app.Application
+import android.util.Log
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import dev.nikko.appcanvasfaker.core.ConfigRepository
+import dev.nikko.appcanvasfaker.core.SsaidManager
+import dev.nikko.appcanvasfaker.util.RootShell
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -59,6 +62,71 @@ class AppProfileViewModel(application: Application) : AndroidViewModel(applicati
         _uiState.update { it.copy(fingerprints = fingerprints) }
     }.isSuccess
 
+    /**
+     * 随机化 SSAID：先强制停止目标应用（避免其进程缓存旧值），再真实改写
+     * settings_ssaid.xml，成功后回读刷新展示。全程 IO 线程。
+     */
+    suspend fun randomizeSsaid(packageName: String): Boolean = withContext(Dispatchers.IO) {
+        runCatching {
+            forceStopRaw(packageName)
+            val ok = SsaidManager.randomize(packageName)
+            if (ok) reloadSsaid(packageName)
+            ok
+        }.getOrElse {
+            Log.w(TAG, "randomize ssaid failed", it)
+            false
+        }
+    }
+
+    /** 删除 SSAID 条目：同样先强制停止目标应用。 */
+    suspend fun deleteSsaid(packageName: String): Boolean = withContext(Dispatchers.IO) {
+        runCatching {
+            forceStopRaw(packageName)
+            val ok = SsaidManager.delete(packageName)
+            if (ok) reloadSsaid(packageName)
+            ok
+        }.getOrElse {
+            Log.w(TAG, "delete ssaid failed", it)
+            false
+        }
+    }
+
+    /** 菜单操作：启动应用（root，与 KSU 同路径）。 */
+    suspend fun launchApp(packageName: String) = withContext(Dispatchers.IO) {
+        RootShell.exec(
+            "cmd package resolve-activity --brief $packageName | tail -n 1 | xargs cmd activity start-activity -n"
+        )
+    }
+
+    /** 菜单操作：强制停止应用。 */
+    suspend fun forceStopApp(packageName: String) = withContext(Dispatchers.IO) {
+        forceStopRaw(packageName)
+    }
+
+    /** 菜单操作：重启应用（强制停止 + 启动）。 */
+    suspend fun restartApp(packageName: String) = withContext(Dispatchers.IO) {
+        forceStopRaw(packageName)
+        RootShell.exec(
+            "cmd package resolve-activity --brief $packageName | tail -n 1 | xargs cmd activity start-activity -n"
+        )
+    }
+
+    private fun forceStopRaw(packageName: String) {
+        RootShell.exec("am force-stop $packageName")
+    }
+
+    private suspend fun reloadSsaid(packageName: String) {
+        val value = readSsaidRaw(packageName)
+        _uiState.update {
+            if (value == null) it.copy(ssaidLoadFailed = true) else it.copy(ssaid = value, ssaidLoadFailed = false)
+        }
+    }
+
+    private fun readSsaidRaw(packageName: String): String? {
+        if (!RootShell.isAvailable()) return null
+        return SsaidManager.readSsaid(packageName)
+    }
+
     private suspend fun buildState(packageName: String): AppProfileUiState = withContext(Dispatchers.Default) {
         val appInfo = runCatching { pm.getApplicationInfo(packageName, 0) }.getOrNull()
         val label = appInfo?.let {
@@ -66,6 +134,7 @@ class AppProfileViewModel(application: Application) : AndroidViewModel(applicati
         }
         val version = runCatching { pm.getPackageInfo(packageName, 0) }.getOrNull()
         val rule = repo.getRule(packageName)
+        val ssaid = runCatching { readSsaidRaw(packageName) }.getOrNull()
         AppProfileUiState(
             packageName = packageName,
             label = label,
@@ -74,6 +143,12 @@ class AppProfileViewModel(application: Application) : AndroidViewModel(applicati
             applicationInfo = appInfo,
             enabled = rule.enabled,
             fingerprints = repo.simulatedFingerprints(packageName),
+            ssaid = ssaid,
+            ssaidLoadFailed = ssaid == null,
         )
+    }
+
+    private companion object {
+        const val TAG = "AppProfileViewModel"
     }
 }

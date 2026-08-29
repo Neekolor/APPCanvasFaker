@@ -64,7 +64,7 @@
     <string name="reboot_to_apply">Reboot to take effect</string>
     <string name="module_magisk_conflict">Modules are unavailable due to a conflict with Magisk!</string>
     <string name="home_learn_app">Learn APPCanvasFaker</string>
-    <string name="home_learn_app_url">https://github.com</string>
+    <string name="home_learn_app_url">https://github.com/Neekolor/APPCanvasFaker</string>
     <string name="home_click_to_learn_app">Learn how to use APPCanvasFaker.</string>
     <string name="home_support_title">Support Us</string>
     <string name="home_gki_warning">Starting from v3.0.0, the GKI work mode will be used only in testing environments. We do not recommend it for daily use, and image files will no longer be provided.</string>
@@ -102,8 +102,8 @@
     <string name="failed_to_update_sepolicy">Failed to update SELinux rules for %s</string>
     <string name="su_not_allowed">Couldn\'t grant Superuser access to %s</string>
     <string name="module_changelog">Changelog</string>
-    <string name="settings_profile_template">Tools</string>
-    <string name="settings_profile_template_summary">Description TBD</string>
+    <string name="settings_profile_template">Experimental</string>
+    <string name="settings_profile_template_summary">Experimental hooks under test. Enable only if needed.</string>
     <string name="app_profile_template_create">Create template</string>
     <string name="app_profile_template_edit">Edit template</string>
     <string name="app_profile_template_id">ID</string>
@@ -131,6 +131,7 @@
     <string name="home_pr_build_warning">This is a PR debug build. Do NOT use it in production!</string>
     <string name="home_pr_kernel_warning">The kernel was built with PR signature support. This is not a production kernel!</string>
     <string name="action">Action</string>
+    <string name="delete">Delete</string>
     <string name="open">Open</string>
     <string name="close">Close</string>
     <string name="enable_web_debugging">WebView debugging</string>
@@ -168,9 +169,7 @@
     <string name="settings_selinux_hide_reboot_required">Reboot to take effect</string>
     <string name="settings_selinux_hide_failed">Error: %d</string>
     <string name="settings_sulog">Enable log recording</string>
-    <string name="settings_sulog_summary">Description TBD</string>
-    <string name="settings_hook_getpixel">Intercept single-pixel reads</string>
-    <string name="settings_hook_getpixel_summary">Randomize Bitmap.getPixel(x,y) reads to cover the A2 escape hatch</string>
+    <string name="settings_sulog_summary">Record hook and randomization activity for the log page and troubleshooting.</string>
     <string name="settings_hook_text_metrics">Randomize text metrics</string>
     <string name="settings_hook_text_metrics_summary">Apply ≤0.7% deterministic perturbation to Paint text metrics; turn off if a self-drawn layout looks off</string>
     <string name="settings_hook_glreadpixels">Randomize GPU framebuffer reads</string>
@@ -277,7 +276,15 @@
     <string name="randomize_confirm_message">Are you sure you want to randomize this app\'s hash seed? The fingerprint will be changed after the next read.</string>
     <string name="randomize_success">Hash seed randomized</string>
     <string name="randomized_values">Randomized Fingerprint Values</string>
-    <string name="enable_feature">Enable Feature</string>
+    <string name="randomize_ssaid">Randomize SSAID</string>
+    <string name="ssaid_empty">Empty</string>
+    <string name="ssaid_read_failed">Failed to read SSAID</string>
+    <string name="ssaid_randomize_confirm">Randomize this app\'s SSAID? The target app will be force-stopped, and the change is written directly to system settings.</string>
+    <string name="ssaid_delete_confirm">Delete this app\'s SSAID? The target app will be force-stopped, and the change is written directly to system settings.</string>
+    <string name="ssaid_randomize_success">SSAID randomized</string>
+    <string name="ssaid_delete_success">SSAID deleted</string>
+    <string name="ssaid_operation_failed">Operation failed. Root permission is required.</string>
+    <string name="enable_feature">Enable Randomization</string>
     <string name="enable_feature_summary">Enable canvas fingerprint spoofing for this app.</string>
     <string name="settings_log">Log</string>
     <string name="settings_log_summary">View Hook and randomization logs.</string>
@@ -289,19 +296,13 @@
     <string name="log_clear">Clear log</string>
     <string name="log_clear_confirm">Are you sure you want to clear all logs?</string>
     <string name="log_empty">No logs yet</string>
-    <string name="tools_title">Tools</string>
-    <string name="tools_empty">Under construction</string>
+    <string name="tools_title">Experimental</string>
     <string name="app_search_hint">Search apps</string>
     <string name="search_no_result">No matching apps</string>
     <string name="app_detail_title">App Detail</string>
-    <string name="nav_cfc">CFC</string>
-    <string name="cfc_title">CanvasFingerprintScanner</string>
-    <string name="cfc_collect_all">{}</string>
-    <string name="cfc_collecting">{}</string>
-    <string name="cfc_not_collected">{}</string>
+    <string name="nav_pending">TBD</string>
     <string name="home_checking">{}</string>
-    <string name="cfc_randomize">Randomize</string>
-    <string name="cfc_randomized_toast">Randomized. Restart the app to take effect.</string>
+    <string name="about_easter_egg" translatable="false">ACF-© 2026 Neekolor</string>
     <string name="log_disabled_banner">Logging is disabled. Hook activity is not being recorded.</string>
     <string name="log_disabled_action">Enable</string>
 </resources>

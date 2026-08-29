@@ -58,7 +58,7 @@ import dev.nikko.appcanvasfaker.ui.screen.appprofile.AppProfileScreen
 import dev.nikko.appcanvasfaker.ui.screen.colorpalette.ColorPaletteScreen
 import dev.nikko.appcanvasfaker.ui.screen.home.HomePager
 import dev.nikko.appcanvasfaker.ui.screen.log.LogScreen
-import dev.nikko.appcanvasfaker.ui.screen.cfc.CfcScreen
+import dev.nikko.appcanvasfaker.ui.screen.pending.PendingScreen
 import dev.nikko.appcanvasfaker.ui.screen.settings.SettingPager
 import dev.nikko.appcanvasfaker.ui.screen.applist.AppListPager
 import dev.nikko.appcanvasfaker.ui.screen.tools.ToolsScreen
@@ -147,7 +147,6 @@ class MainActivity : ComponentActivity() {
                                 entry<Route.AppProfile> { key -> AppProfileScreen(key.packageName) }
                                 entry<Route.Home> { mainScreenEntry() }
                                 entry<Route.AppList> { mainScreenEntry() }
-                                entry<Route.Cfc> { mainScreenEntry() }
                                 entry<Route.Settings> { mainScreenEntry() }
                             }
                         )
@@ -225,7 +224,7 @@ fun MainScreen(
                     when (page) {
                         0 -> if (isCurrentPage || contentReady) HomePager(navController, bottomInnerPadding, isCurrentPage)
                         1 -> if (isCurrentPage || contentReady) AppListPager(navController, bottomInnerPadding, isCurrentPage)
-                        2 -> if (isCurrentPage || contentReady) CfcScreen(bottomInnerPadding, isCurrentPage)
+                        2 -> if (isCurrentPage || contentReady) PendingScreen(bottomInnerPadding, isCurrentPage)
                         3 -> if (isCurrentPage || contentReady) SettingPager(navController, bottomInnerPadding)
                     }
                 }

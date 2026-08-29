@@ -18,12 +18,9 @@ import androidx.compose.material.icons.automirrored.rounded.Article
 import androidx.compose.material.icons.rounded.ContactPage
 import androidx.compose.material.icons.rounded.Dashboard
 import androidx.compose.material.icons.rounded.Fence
-import androidx.compose.material.icons.rounded.Grain
 import androidx.compose.material.icons.rounded.History
 import androidx.compose.material.icons.rounded.Palette
-import androidx.compose.material.icons.rounded.TextFields
 import androidx.compose.material.icons.rounded.Update
-import androidx.compose.material.icons.rounded.ViewInAr
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -166,59 +163,6 @@ fun SettingPagerMiuix(
                             },
                             checked = uiState.enableLogging,
                             onCheckedChange = actions.onSetEnableLogging
-                        )
-                    }
-
-                    // v0.6.0 Hook 扩展：A2 单点读取 / E1 文本度量 / D1 GL 直读（默认关）
-                    Card(
-                        modifier = Modifier
-                            .padding(top = 12.dp)
-                            .fillMaxWidth(),
-                    ) {
-                        val hookGetPixel = stringResource(id = R.string.settings_hook_getpixel)
-                        SwitchPreference(
-                            title = hookGetPixel,
-                            summary = stringResource(id = R.string.settings_hook_getpixel_summary),
-                            startAction = {
-                                Icon(
-                                    Icons.Rounded.Grain,
-                                    modifier = Modifier.padding(end = 6.dp),
-                                    contentDescription = hookGetPixel,
-                                    tint = colorScheme.onBackground
-                                )
-                            },
-                            checked = uiState.hookGetPixel,
-                            onCheckedChange = actions.onSetHookGetPixel
-                        )
-                        val hookTextMetrics = stringResource(id = R.string.settings_hook_text_metrics)
-                        SwitchPreference(
-                            title = hookTextMetrics,
-                            summary = stringResource(id = R.string.settings_hook_text_metrics_summary),
-                            startAction = {
-                                Icon(
-                                    Icons.Rounded.TextFields,
-                                    modifier = Modifier.padding(end = 6.dp),
-                                    contentDescription = hookTextMetrics,
-                                    tint = colorScheme.onBackground
-                                )
-                            },
-                            checked = uiState.hookTextMetrics,
-                            onCheckedChange = actions.onSetHookTextMetrics
-                        )
-                        val hookGlReadPixels = stringResource(id = R.string.settings_hook_glreadpixels)
-                        SwitchPreference(
-                            title = hookGlReadPixels,
-                            summary = stringResource(id = R.string.settings_hook_glreadpixels_summary),
-                            startAction = {
-                                Icon(
-                                    Icons.Rounded.ViewInAr,
-                                    modifier = Modifier.padding(end = 6.dp),
-                                    contentDescription = hookGlReadPixels,
-                                    tint = colorScheme.onBackground
-                                )
-                            },
-                            checked = uiState.hookGlReadPixels,
-                            onCheckedChange = actions.onSetHookGlReadPixels
                         )
                     }
 

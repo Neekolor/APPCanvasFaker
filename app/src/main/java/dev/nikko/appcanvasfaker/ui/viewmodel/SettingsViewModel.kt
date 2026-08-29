@@ -43,7 +43,6 @@ class SettingsViewModel(
                     colorStyle = repo.colorStyle,
                     colorSpec = repo.colorSpec,
                     enableLogging = configRepo.enableLogging(),
-                    hookGetPixel = configRepo.hookGetPixel(),
                     hookTextMetrics = configRepo.hookTextMetrics(),
                     hookGlReadPixels = configRepo.hookGlReadPixels(),
                 )
@@ -89,11 +88,6 @@ class SettingsViewModel(
     fun setEnableLogging(enabled: Boolean) {
         configRepo.setEnableLogging(enabled)
         _uiState.update { it.copy(enableLogging = enabled) }
-    }
-
-    fun setHookGetPixel(enabled: Boolean) {
-        configRepo.setHookGetPixel(enabled)
-        _uiState.update { it.copy(hookGetPixel = enabled) }
     }
 
     fun setHookTextMetrics(enabled: Boolean) {

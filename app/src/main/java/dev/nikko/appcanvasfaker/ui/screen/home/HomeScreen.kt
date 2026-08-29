@@ -38,7 +38,6 @@ fun HomePager(
 
     val actions = HomeActions(
         onOpenHookedApps = { mainPagerState.animateToPage(1) },
-        onOpenCfc = { mainPagerState.animateToPage(2) },
         onOpenUrl = uriHandler::openUri,
     )
 

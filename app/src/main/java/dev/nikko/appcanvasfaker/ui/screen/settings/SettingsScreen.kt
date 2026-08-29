@@ -27,13 +27,12 @@ fun SettingPager(
 
     val actions = SettingsScreenActions(
         onSetCheckUpdate = viewModel::setCheckUpdate,
-    
+
         onOpenTheme = { navigator.push(Route.ColorPalette) },
         onSetUiModeIndex = { index ->
             viewModel.setUiMode(if (index == 0) UiMode.Miuix.value else UiMode.Material.value)
         },
         onSetEnableLogging = viewModel::setEnableLogging,
-        onSetHookGetPixel = viewModel::setHookGetPixel,
         onSetHookTextMetrics = viewModel::setHookTextMetrics,
         onSetHookGlReadPixels = viewModel::setHookGlReadPixels,
         onOpenTools = { navigator.push(Route.Tools) },

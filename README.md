@@ -58,7 +58,7 @@ Canvas 指纹是网页/应用通过 `<canvas>` 绘制后读取像素计算哈希
 
 ```bash
 # 环境要求：JDK 17+、Android SDK（compileSdk 见 gradle/libs.versions.toml）、Android Studio 或命令行
-git clone https://github.com/nikko885/APPCanvasFaker.git
+git clone https://github.com/Neekolor/APPCanvasFaker.git
 cd APPCanvasFaker
 ./gradlew :app:assembleDebug
 # 产物：app/build/outputs/apk/debug/APPCanvasFaker_<version>_debug.apk

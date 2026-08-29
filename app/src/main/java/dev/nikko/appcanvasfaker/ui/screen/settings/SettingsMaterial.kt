@@ -15,12 +15,9 @@ import androidx.compose.material.icons.automirrored.filled.Article
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.ContactPage
 import androidx.compose.material.icons.filled.Fence
-import androidx.compose.material.icons.filled.Grain
 import androidx.compose.material.icons.filled.History
 import androidx.compose.material.icons.filled.Palette
-import androidx.compose.material.icons.filled.TextFields
 import androidx.compose.material.icons.filled.Update
-import androidx.compose.material.icons.filled.ViewInAr
 import androidx.compose.material.icons.rounded.Dashboard
 import androidx.compose.material3.Icon
 import androidx.compose.material3.LargeFlexibleTopAppBar
@@ -123,43 +120,6 @@ fun SettingPagerMaterial(
                             summary = stringResource(id = R.string.settings_sulog_summary),
                             checked = uiState.enableLogging,
                             onCheckedChange = actions.onSetEnableLogging
-                        )
-                    }
-                )
-            )
-
-            // v0.6.0 Hook 扩展：A2 单点读取 / E1 文本度量 / D1 GL 直读（默认关）
-            val hookGetPixel = stringResource(id = R.string.settings_hook_getpixel)
-            val hookTextMetrics = stringResource(id = R.string.settings_hook_text_metrics)
-            val hookGlReadPixels = stringResource(id = R.string.settings_hook_glreadpixels)
-            SegmentedColumn(
-                modifier = Modifier.padding(start = 16.dp, end = 16.dp, bottom = 13.dp),
-                content = listOf(
-                    {
-                        SegmentedSwitchItem(
-                            icon = Icons.Filled.Grain,
-                            title = hookGetPixel,
-                            summary = stringResource(id = R.string.settings_hook_getpixel_summary),
-                            checked = uiState.hookGetPixel,
-                            onCheckedChange = actions.onSetHookGetPixel
-                        )
-                    },
-                    {
-                        SegmentedSwitchItem(
-                            icon = Icons.Filled.TextFields,
-                            title = hookTextMetrics,
-                            summary = stringResource(id = R.string.settings_hook_text_metrics_summary),
-                            checked = uiState.hookTextMetrics,
-                            onCheckedChange = actions.onSetHookTextMetrics
-                        )
-                    },
-                    {
-                        SegmentedSwitchItem(
-                            icon = Icons.Filled.ViewInAr,
-                            title = hookGlReadPixels,
-                            summary = stringResource(id = R.string.settings_hook_glreadpixels_summary),
-                            checked = uiState.hookGlReadPixels,
-                            onCheckedChange = actions.onSetHookGlReadPixels
                         )
                     }
                 )

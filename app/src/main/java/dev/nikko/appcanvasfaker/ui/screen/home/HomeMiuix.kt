@@ -264,7 +264,7 @@ private fun StatusCard(
                     .weight(1f),
                 title = stringResource(R.string.hook_count),
                 count = state.totalHookCount.toString(),
-                onClick = actions.onOpenCfc,
+                onClick = {},
             )
         }
     }
@@ -336,7 +336,7 @@ private fun InfoCard(state: HomeUiState) {
         ) {
             InfoText(
                 title = stringResource(R.string.app_version),
-                content = "${stringResource(R.string.version_channel)}/v${state.versionName}"
+                content = "${stringResource(R.string.version_channel)}/${state.versionName}"
             )
             state.standardFingerprints.forEachIndexed { index, fingerprint ->
                 InfoText(
@@ -386,11 +386,11 @@ private val previewState = HomeUiState(
 @Preview(name = "Home Activated", showBackground = true)
 @Composable
 private fun HomeActivatedPreview() {
-    StatusCard(state = previewState, actions = HomeActions({}, {}, {}))
+    StatusCard(state = previewState, actions = HomeActions({}, {}))
 }
 
 @Preview(name = "Home Not Activated", showBackground = true)
 @Composable
 private fun HomeNotActivatedPreview() {
-    StatusCard(state = previewState.copy(moduleActive = false), actions = HomeActions({}, {}, {}))
+    StatusCard(state = previewState.copy(moduleActive = false), actions = HomeActions({}, {}))
 }

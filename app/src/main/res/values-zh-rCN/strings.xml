@@ -62,7 +62,7 @@
     <string name="reboot_to_apply">重启生效</string>
     <string name="module_magisk_conflict">因与 Magisk 有冲突，所有模块不可用！</string>
     <string name="home_learn_app">了解 APPCanvasFaker</string>
-    <string name="home_learn_app_url">https://github.com</string>
+    <string name="home_learn_app_url">https://github.com/Neekolor/APPCanvasFaker</string>
     <string name="home_click_to_learn_app">了解如何使用 APPCanvasFaker</string>
     <string name="home_support_title">支持开发</string>
     <string name="home_gki_warning">自 v3.0.0 起 GKI 工作模式将仅用于测试环境，我们不建议用于日常使用，也不再提供镜像文件</string>
@@ -98,8 +98,8 @@
     <string name="failed_to_update_sepolicy">为 %s 更新 SELinux 策略失败</string>
     <string name="su_not_allowed">无法授予 %s 超级用户权限</string>
     <string name="module_changelog">更新日志</string>
-    <string name="settings_profile_template">工具</string>
-    <string name="settings_profile_template_summary">描述文字待定</string>
+    <string name="settings_profile_template">实验性功能</string>
+    <string name="settings_profile_template_summary">尚在验证中的实验性 Hook 开关，按需启用。</string>
     <string name="app_profile_template_create">创建模板</string>
     <string name="app_profile_template_edit">编辑模板</string>
     <string name="app_profile_template_id">模板 ID</string>
@@ -127,6 +127,7 @@
     <string name="home_pr_build_warning">当前为 PR 调试构建，请勿在生产环境中使用！</string>
     <string name="home_pr_kernel_warning">当前内核包含 PR 签名支持，这不是一个生产内核！</string>
     <string name="action">执行</string>
+    <string name="delete">删除</string>
     <string name="open">打开</string>
     <string name="close">关闭</string>
     <string name="enable_web_debugging">WebView 调试</string>
@@ -253,9 +254,7 @@
     <string name="install_force_backup">备份为原厂镜像</string>
     <string name="install_force_backup_summary">请确保你选择的 boot 镜像是原厂镜像</string>
     <string name="settings_sulog">启用日志记录</string>
-    <string name="settings_sulog_summary">描述文字待定</string>
-    <string name="settings_hook_getpixel">拦截单点像素读取</string>
-    <string name="settings_hook_getpixel_summary">随机化 Bitmap.getPixel(x,y) 单点读取，补齐像素漏斗的 A2 逃逸口</string>
+    <string name="settings_sulog_summary">记录 Hook 与随机化活动，供日志页查看与问题排查。</string>
     <string name="settings_hook_text_metrics">随机化文本度量</string>
     <string name="settings_hook_text_metrics_summary">对 Paint 文本度量施加 ≤0.7% 确定性微扰；若个别应用自绘排版异常可临时关闭</string>
     <string name="settings_hook_glreadpixels">随机化 GPU 帧缓冲读取</string>
@@ -274,7 +273,15 @@
     <string name="randomize_confirm_message">确定要随机化该应用的哈希seed吗？随机化后将改变其画布指纹哈希值。</string>
     <string name="randomize_success">已随机化哈希seed</string>
     <string name="randomized_values">随机化后的各项指纹值</string>
-    <string name="enable_feature">功能启用</string>
+    <string name="randomize_ssaid">随机化 SSAID</string>
+    <string name="ssaid_empty">空</string>
+    <string name="ssaid_read_failed">SSAID 读取失败</string>
+    <string name="ssaid_randomize_confirm">确定要随机化该应用的 SSAID 吗？操作前将强制停止目标应用，更改会直接写入系统设置。</string>
+    <string name="ssaid_delete_confirm">确定要删除该应用的 SSAID 吗？操作前将强制停止目标应用，更改会直接写入系统设置。</string>
+    <string name="ssaid_randomize_success">SSAID 已随机化</string>
+    <string name="ssaid_delete_success">SSAID 已删除</string>
+    <string name="ssaid_operation_failed">操作失败，需要 root 授权。</string>
+    <string name="enable_feature">随机化功能启用</string>
     <string name="enable_feature_summary">对该应用启用画布指纹伪装</string>
     <string name="settings_log">日志</string>
     <string name="settings_log_summary">查看 Hook 与随机化日志记录</string>
@@ -286,19 +293,13 @@
     <string name="log_clear">清空日志</string>
     <string name="log_clear_confirm">确定要清空所有日志吗？</string>
     <string name="log_empty">暂无日志</string>
-    <string name="tools_title">工具</string>
-    <string name="tools_empty">敬请期待</string>
+    <string name="tools_title">实验性功能</string>
     <string name="app_search_hint">搜索应用</string>
     <string name="search_no_result">未找到匹配的应用</string>
     <string name="app_detail_title">应用详情</string>
-    <string name="nav_cfc">CFC</string>
-    <string name="cfc_title">CanvasFingerprintScanner</string>
-    <string name="cfc_collect_all">{}</string>
-    <string name="cfc_collecting">{}</string>
-    <string name="cfc_not_collected">{}</string>
+    <string name="nav_pending">待定</string>
     <string name="home_checking">{}</string>
-    <string name="cfc_randomize">随机化</string>
-    <string name="cfc_randomized_toast">已随机化，重启应用后生效</string>
+    <string name="about_easter_egg" translatable="false">ACF-© 2026 Neekolor</string>
     <string name="log_disabled_banner">日志记录功能已关闭，Hook 活动不会被记录。</string>
     <string name="log_disabled_action">去开启</string>
 </resources>

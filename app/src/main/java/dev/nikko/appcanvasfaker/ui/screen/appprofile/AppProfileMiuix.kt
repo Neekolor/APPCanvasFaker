@@ -29,6 +29,7 @@ import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.rounded.Badge
 import androidx.compose.material.icons.rounded.Fingerprint
 import androidx.compose.material.icons.rounded.PlayArrow
 import androidx.compose.material.icons.rounded.Security
@@ -36,6 +37,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -50,15 +52,19 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import dev.nikko.appcanvasfaker.R
 import dev.nikko.appcanvasfaker.ui.component.AppIconImage
+import dev.nikko.appcanvasfaker.ui.component.ListPopupDefaults
 import dev.nikko.appcanvasfaker.ui.theme.LocalEnableBlur
 import dev.nikko.appcanvasfaker.ui.theme.isInDarkTheme
 import dev.nikko.appcanvasfaker.ui.util.BlurredBar
 import dev.nikko.appcanvasfaker.ui.util.rememberBlurBackdrop
 import top.yukonga.miuix.kmp.basic.BasicComponent
 import top.yukonga.miuix.kmp.basic.Card
+import top.yukonga.miuix.kmp.basic.DropdownImpl
 import top.yukonga.miuix.kmp.basic.Icon
 import top.yukonga.miuix.kmp.basic.IconButton
+import top.yukonga.miuix.kmp.basic.ListPopupColumn
 import top.yukonga.miuix.kmp.basic.MiuixScrollBehavior
+import top.yukonga.miuix.kmp.basic.PopupPositionProvider
 import top.yukonga.miuix.kmp.basic.Scaffold
 import top.yukonga.miuix.kmp.basic.SmallTitle
 import top.yukonga.miuix.kmp.basic.Text
@@ -66,6 +72,8 @@ import top.yukonga.miuix.kmp.basic.TopAppBar
 import top.yukonga.miuix.kmp.blur.layerBackdrop
 import top.yukonga.miuix.kmp.icon.MiuixIcons
 import top.yukonga.miuix.kmp.icon.extended.Back
+import top.yukonga.miuix.kmp.icon.extended.MoreCircle
+import top.yukonga.miuix.kmp.overlay.OverlayListPopup
 import top.yukonga.miuix.kmp.preference.SwitchPreference
 import top.yukonga.miuix.kmp.theme.MiuixTheme.colorScheme
 import top.yukonga.miuix.kmp.utils.overScrollVertical
@@ -87,7 +95,7 @@ fun AppProfileScreenMiuix(
             BlurredBar(backdrop) {
                 TopAppBar(
                     color = barColor,
-                    title = state.displayLabel,
+                    title = stringResource(R.string.profile),
                     navigationIcon = {
                         IconButton(
                             onClick = actions.onBack,
@@ -102,6 +110,9 @@ fun AppProfileScreenMiuix(
                                 tint = colorScheme.onBackground
                             )
                         }
+                    },
+                    actions = {
+                        ProfileOverflowMenu(actions = actions)
                     },
                     scrollBehavior = scrollBehavior
                 )
@@ -142,6 +153,12 @@ private fun AppProfileContent(
     state: AppProfileUiState,
     actions: AppProfileActions,
 ) {
+    val ssaidDisplay = when {
+        state.ssaidLoadFailed -> stringResource(R.string.ssaid_read_failed)
+        state.ssaid == null -> "…"
+        state.ssaid.isEmpty() -> stringResource(R.string.ssaid_empty)
+        else -> state.ssaid
+    }
     Column {
         Card(
             modifier = Modifier
@@ -268,6 +285,52 @@ private fun AppProfileContent(
             }
         }
 
+        Card(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 12.dp)
+                .padding(bottom = 12.dp),
+        ) {
+            Row(
+                modifier = Modifier.padding(start = 16.dp, end = 16.dp, top = 12.dp, bottom = 12.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Column(
+                    modifier = Modifier.weight(1f),
+                ) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Icon(
+                            imageVector = Icons.Rounded.Badge,
+                            contentDescription = null,
+                            modifier = Modifier.size(20.dp).padding(end = 4.dp),
+                            tint = colorScheme.onBackground
+                        )
+                        Text(
+                            text = stringResource(R.string.randomize_ssaid),
+                            color = colorScheme.onSurface,
+                            fontWeight = FontWeight.Medium,
+                            maxLines = 1,
+                            softWrap = false
+                        )
+                    }
+                    Spacer(Modifier.height(4.dp))
+                    Text(
+                        text = ssaidDisplay,
+                        fontSize = 12.sp,
+                        color = colorScheme.onSurfaceVariantSummary,
+                        fontWeight = FontWeight.Medium,
+                        maxLines = 2
+                    )
+                }
+                Spacer(Modifier.width(12.dp))
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    DeleteButton(onClick = actions.onDeleteSsaid)
+                    Spacer(Modifier.width(8.dp))
+                    ExecuteButton(onClick = actions.onRandomizeSsaid)
+                }
+            }
+        }
+
         SmallTitle(
             text = stringResource(R.string.randomized_values),
             modifier = Modifier.padding(top = 4.dp)
@@ -329,6 +392,87 @@ private fun AppProfileContent(
                 Spacer(Modifier.height(3.dp))
             }
         }
+    }
+}
+
+/** 顶栏 MoreCircle 菜单：启动 / 强制停止 / 重启（与原版 KSU 的 App Profile 一致）。 */
+@Composable
+private fun ProfileOverflowMenu(actions: AppProfileActions) {
+    val showPopup = remember { mutableStateOf(false) }
+    OverlayListPopup(
+        show = showPopup.value,
+        popupPositionProvider = ListPopupDefaults.MenuPositionProvider,
+        alignment = PopupPositionProvider.Align.TopEnd,
+        onDismissRequest = { showPopup.value = false },
+        content = {
+            ListPopupColumn {
+                DropdownImpl(
+                    text = stringResource(R.string.launch_app),
+                    isSelected = false,
+                    optionSize = 3,
+                    onSelectedIndexChange = {
+                        showPopup.value = false
+                        actions.onLaunchApp()
+                    },
+                    index = 0
+                )
+                DropdownImpl(
+                    text = stringResource(R.string.force_stop_app),
+                    isSelected = false,
+                    optionSize = 3,
+                    onSelectedIndexChange = {
+                        showPopup.value = false
+                        actions.onForceStopApp()
+                    },
+                    index = 1
+                )
+                DropdownImpl(
+                    text = stringResource(R.string.restart_app),
+                    isSelected = false,
+                    optionSize = 3,
+                    onSelectedIndexChange = {
+                        showPopup.value = false
+                        actions.onRestartApp()
+                    },
+                    index = 2
+                )
+            }
+        }
+    )
+    IconButton(
+        onClick = { showPopup.value = true },
+        holdDownState = showPopup.value
+    ) {
+        Icon(
+            imageVector = MiuixIcons.MoreCircle,
+            tint = colorScheme.onSurface,
+            contentDescription = null
+        )
+    }
+}
+
+@Composable
+private fun DeleteButton(
+    onClick: () -> Unit,
+) {
+    val isDark = isInDarkTheme()
+    val bg = if (isDark) Color(0xFF4A2222) else Color(0xFFFBE9E9)
+    val fg = if (isDark) Color(0xFFF2B8B5) else Color(0xFFB3261E)
+    Row(
+        modifier = Modifier
+            .heightIn(min = 35.dp)
+            .clip(CircleShape)
+            .background(bg)
+            .clickable(onClick = onClick)
+            .padding(start = 10.dp, end = 10.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Text(
+            text = stringResource(R.string.delete),
+            color = fg,
+            fontWeight = FontWeight.Medium,
+            fontSize = 15.sp,
+        )
     }
 }
 

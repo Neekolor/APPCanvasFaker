@@ -37,19 +37,50 @@ fun AppProfileScreen(packageName: String) {
     val confirmTitle = stringResource(R.string.confirm)
     val confirmMessage = stringResource(R.string.randomize_confirm_message)
     val actionText = stringResource(R.string.action)
+    val deleteText = stringResource(R.string.delete)
     val successText = stringResource(R.string.randomize_success)
+    val ssaidRandomizeConfirmText = stringResource(R.string.ssaid_randomize_confirm)
+    val ssaidDeleteConfirmText = stringResource(R.string.ssaid_delete_confirm)
+    val ssaidRandomizeSuccessText = stringResource(R.string.ssaid_randomize_success)
+    val ssaidDeleteSuccessText = stringResource(R.string.ssaid_delete_success)
+    val ssaidFailedText = stringResource(R.string.ssaid_operation_failed)
+
+    // 统一结果提示：Material 走 snackbar，Miuix 走 toast（沿用既有页面约定）
+    fun showResult(successMessage: String, ok: Boolean) {
+        if (ok) {
+            if (uiMode == UiMode.Material) {
+                scope.launch { snackbarHost.showSnackbar(successMessage) }
+            } else {
+                Toast.makeText(context, successMessage, Toast.LENGTH_SHORT).show()
+            }
+        } else {
+            if (uiMode == UiMode.Material) {
+                scope.launch { snackbarHost.showSnackbar(ssaidFailedText) }
+            } else {
+                Toast.makeText(context, ssaidFailedText, Toast.LENGTH_SHORT).show()
+            }
+        }
+    }
 
     val confirmDialog = rememberConfirmDialog(
         onConfirm = {
             scope.launch {
                 if (viewModel.randomize(packageName)) {
-                    if (uiMode == UiMode.Material) {
-                        snackbarHost.showSnackbar(successText)
-                    } else {
-                        Toast.makeText(context, successText, Toast.LENGTH_SHORT).show()
-                    }
+                    showResult(successText, true)
                 }
             }
+        }
+    )
+
+    val ssaidRandomizeDialog = rememberConfirmDialog(
+        onConfirm = {
+            scope.launch { showResult(ssaidRandomizeSuccessText, viewModel.randomizeSsaid(packageName)) }
+        }
+    )
+
+    val ssaidDeleteDialog = rememberConfirmDialog(
+        onConfirm = {
+            scope.launch { showResult(ssaidDeleteSuccessText, viewModel.deleteSsaid(packageName)) }
         }
     )
 
@@ -63,6 +94,23 @@ fun AppProfileScreen(packageName: String) {
                 confirm = actionText,
             )
         },
+        onRandomizeSsaid = {
+            ssaidRandomizeDialog.showConfirm(
+                title = confirmTitle,
+                content = ssaidRandomizeConfirmText,
+                confirm = actionText,
+            )
+        },
+        onDeleteSsaid = {
+            ssaidDeleteDialog.showConfirm(
+                title = confirmTitle,
+                content = ssaidDeleteConfirmText,
+                confirm = deleteText,
+            )
+        },
+        onLaunchApp = { scope.launch { viewModel.launchApp(packageName) } },
+        onForceStopApp = { scope.launch { viewModel.forceStopApp(packageName) } },
+        onRestartApp = { scope.launch { viewModel.restartApp(packageName) } },
     )
 
     when (uiMode) {

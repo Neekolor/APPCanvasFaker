@@ -4,6 +4,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.WindowInsetsSides
 import androidx.compose.foundation.layout.fillMaxHeight
@@ -14,23 +15,36 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawing
 import androidx.compose.foundation.layout.safeDrawingPadding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Badge
 import androidx.compose.material.icons.filled.Fingerprint
+import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.outlined.PlayArrow
 import androidx.compose.material.icons.filled.Security
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.DropdownMenuGroup
+import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.DropdownMenuPopup
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.LargeFlexibleTopAppBar
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.MenuDefaults
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.rememberTopAppBarState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.res.stringResource
@@ -59,13 +73,16 @@ fun AppProfileScreenMaterial(
             LargeFlexibleTopAppBar(
                 title = {
                     Text(
-                        text = state.displayLabel,
+                        text = stringResource(R.string.profile),
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis,
                     )
                 },
                 navigationIcon = {
                     TopBarBackButton(onClick = actions.onBack)
+                },
+                actions = {
+                    ProfileOverflowMenu(actions = actions)
                 },
                 colors = expressiveTopAppBarColors(),
                 windowInsets = WindowInsets.safeDrawing.only(WindowInsetsSides.Top + WindowInsetsSides.Horizontal),
@@ -93,6 +110,12 @@ private fun AppProfileContent(
     state: AppProfileUiState,
     actions: AppProfileActions,
 ) {
+    val ssaidDisplay = when {
+        state.ssaidLoadFailed -> stringResource(R.string.ssaid_read_failed)
+        state.ssaid == null -> "…"
+        state.ssaid.isEmpty() -> stringResource(R.string.ssaid_empty)
+        else -> state.ssaid
+    }
     Column(modifier = modifier) {
         val header: @Composable () -> Unit = {
             SegmentedListItem(
@@ -172,6 +195,31 @@ private fun AppProfileContent(
                             ExecuteButton(onClick = actions.onRandomize)
                         },
                     )
+                },
+                {
+                    SegmentedListItem(
+                        headlineContent = {
+                            Text(stringResource(R.string.randomize_ssaid))
+                        },
+                        supportingContent = {
+                            Text(
+                                text = ssaidDisplay,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis,
+                            )
+                        },
+                        leadingContent = {
+                            Icon(Icons.Filled.Badge, contentDescription = null)
+                        },
+                        trailingContent = {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                DeleteButton(onClick = actions.onDeleteSsaid)
+                                Spacer(Modifier.width(8.dp))
+                                ExecuteButton(onClick = actions.onRandomizeSsaid)
+                            }
+                        },
+                    )
                 }
             )
         )
@@ -213,6 +261,60 @@ private fun AppProfileContent(
                 }
             )
         }
+    }
+}
+
+@Composable
+private fun ProfileOverflowMenu(actions: AppProfileActions) {
+    var expanded by remember { mutableStateOf(false) }
+    Box {
+        IconButton(onClick = { expanded = true }) {
+            Icon(
+                imageVector = Icons.Filled.MoreVert,
+                contentDescription = null
+            )
+        }
+        DropdownMenuPopup(
+            expanded = expanded,
+            onDismissRequest = { expanded = false }
+        ) {
+            DropdownMenuGroup(shapes = MenuDefaults.groupShapes()) {
+                DropdownMenuItem(
+                    text = { Text(stringResource(R.string.launch_app)) },
+                    onClick = { expanded = false; actions.onLaunchApp() }
+                )
+                DropdownMenuItem(
+                    text = { Text(stringResource(R.string.force_stop_app)) },
+                    onClick = { expanded = false; actions.onForceStopApp() }
+                )
+                DropdownMenuItem(
+                    text = { Text(stringResource(R.string.restart_app)) },
+                    onClick = { expanded = false; actions.onRestartApp() }
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun DeleteButton(
+    onClick: () -> Unit,
+) {
+    Button(
+        onClick = onClick,
+        modifier = Modifier,
+        shape = ButtonDefaults.filledTonalShape,
+        colors = ButtonDefaults.buttonColors(
+            containerColor = MaterialTheme.colorScheme.errorContainer,
+            contentColor = MaterialTheme.colorScheme.onErrorContainer
+        ),
+        contentPadding = ButtonDefaults.TextButtonContentPadding,
+    ) {
+        Text(
+            text = stringResource(R.string.delete),
+            fontFamily = MaterialTheme.typography.labelMedium.fontFamily,
+            fontSize = MaterialTheme.typography.labelMedium.fontSize,
+        )
     }
 }
 
