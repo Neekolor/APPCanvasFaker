@@ -2,6 +2,7 @@ package dev.nikko.appcanvasfaker.ui.screen.ssaid
 
 import android.widget.Toast
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -65,14 +66,15 @@ import dev.nikko.appcanvasfaker.ui.UiMode
 import dev.nikko.appcanvasfaker.ui.component.AppIconImage
 import dev.nikko.appcanvasfaker.ui.component.dialog.rememberConfirmDialog
 import dev.nikko.appcanvasfaker.ui.component.material.ExpressiveScaffold
+import dev.nikko.appcanvasfaker.ui.component.material.SegmentedColumn
+import dev.nikko.appcanvasfaker.ui.component.material.SegmentedListItem
 import dev.nikko.appcanvasfaker.ui.component.material.SnackBarHost
-import dev.nikko.appcanvasfaker.ui.component.material.TonalCard
 import dev.nikko.appcanvasfaker.ui.component.material.TopBarBackButton
 import dev.nikko.appcanvasfaker.ui.component.material.expressiveTopAppBarColors
 import dev.nikko.appcanvasfaker.ui.navigation3.LocalNavigator
 import dev.nikko.appcanvasfaker.ui.theme.isInDarkTheme
 import kotlinx.coroutines.launch
-import top.yukonga.miuix.kmp.basic.Card
+import top.yukonga.miuix.kmp.basic.BasicComponent
 import top.yukonga.miuix.kmp.basic.Icon
 import top.yukonga.miuix.kmp.basic.IconButton
 import top.yukonga.miuix.kmp.basic.MiuixScrollBehavior
@@ -207,28 +209,28 @@ private fun SsaidScreenMiuix(
             SsaidLoadState.LOADING -> LoadingBox(Modifier.padding(innerPadding))
             SsaidLoadState.UNAVAILABLE -> UnavailableBox(Modifier.padding(innerPadding), onRetry = actions.onRetry)
             SsaidLoadState.FAILED -> FailedBox(Modifier.padding(innerPadding), onRetry = actions.onRetry)
-            SsaidLoadState.READY -> {
-                if (state.items.isEmpty()) {
-                    EmptyBox(Modifier.padding(innerPadding))
-                } else {
-                    LazyColumn(
-                        modifier = Modifier.fillMaxSize(),
-                        contentPadding = PaddingValues(
-                            top = innerPadding.calculateTopPadding() + 8.dp,
-                            bottom = innerPadding.calculateBottomPadding() + 16.dp,
-                        ),
-                    ) {
-                        items(state.items, key = { it.packageName }) { item ->
-                            SsaidItemCard(
-                                item = item,
-                                enabled = buttonsEnabled(state.busyPkg),
-                                onRandomize = { actions.onRandomize(item.packageName) },
-                                onDelete = { actions.onDelete(item.packageName) },
-                            )
+                SsaidLoadState.READY -> {
+                    if (state.items.isEmpty()) {
+                        EmptyBox(Modifier.padding(innerPadding))
+                    } else {
+                        LazyColumn(
+                            modifier = Modifier.fillMaxSize(),
+                            contentPadding = PaddingValues(
+                                top = innerPadding.calculateTopPadding() + 8.dp,
+                                bottom = innerPadding.calculateBottomPadding() + 16.dp,
+                            ),
+                        ) {
+                            items(state.items, key = { it.packageName }) { item ->
+                                SsaidListRow(
+                                    item = item,
+                                    enabled = buttonsEnabled(state.busyPkg),
+                                    onRandomize = { actions.onRandomize(item.packageName) },
+                                    onDelete = { actions.onDelete(item.packageName) },
+                                )
+                            }
                         }
                     }
                 }
-            }
         }
     }
 }
@@ -265,21 +267,42 @@ private fun SsaidScreenMaterial(
                 if (state.items.isEmpty()) {
                     EmptyBox(Modifier.padding(paddingValues))
                 } else {
-                    LazyColumn(
+                    // 对齐 AppList/指纹值的列表风格：SegmentedColumn 平铺（非卡片）
+                    SegmentedColumn(
                         modifier = Modifier
-                            .fillMaxSize()
-                            .padding(paddingValues),
-                    ) {
-                        items(state.items, key = { it.packageName }) { item ->
-                            SsaidItemCard(
-                                item = item,
-                                enabled = buttonsEnabled(state.busyPkg),
-                                onRandomize = { actions.onRandomize(item.packageName) },
-                                onDelete = { actions.onDelete(item.packageName) },
-                            )
-                        }
-                        item { Spacer(Modifier.height(24.dp)) }
-                    }
+                            .fillMaxWidth()
+                            .padding(horizontal = 16.dp, vertical = 8.dp),
+                        content = state.items.map { item ->
+                            {
+                                SegmentedListItem(
+                                    onClick = {},
+                                    headlineContent = {
+                                        Text(
+                                            text = item.displayName,
+                                            maxLines = 1,
+                                            overflow = TextOverflow.Ellipsis,
+                                        )
+                                    },
+                                    supportingContent = { Text(item.value) },
+                                    leadingContent = { SsaidIcon(item) },
+                                    trailingContent = {
+                                        Row(verticalAlignment = Alignment.CenterVertically) {
+                                            MaterialDeleteButton(
+                                                enabled = buttonsEnabled(state.busyPkg),
+                                                onClick = { actions.onDelete(item.packageName) },
+                                            )
+                                            Spacer(Modifier.width(8.dp))
+                                            MaterialRandomizeButton(
+                                                enabled = buttonsEnabled(state.busyPkg),
+                                                onClick = { actions.onRandomize(item.packageName) },
+                                            )
+                                        }
+                                    },
+                                )
+                            }
+                        },
+                    )
+                    Spacer(Modifier.height(24.dp))
                 }
             }
         }
@@ -288,89 +311,74 @@ private fun SsaidScreenMaterial(
 
 // ========================= 共享组件 =========================
 
+/** 条目图标：有 PackageManager 信息用真实图标，否则显示应用名首字母占位。 */
 @Composable
-private fun SsaidItemCard(
+fun SsaidIcon(item: SsaidItemUi, size: Int = 40) {
+    if (item.applicationInfo != null) {
+        AppIconImage(
+            applicationInfo = item.applicationInfo,
+            label = item.displayName,
+            modifier = Modifier.size(size.dp),
+        )
+    } else {
+        Box(
+            modifier = Modifier
+                .size(size.dp)
+                .clip(CircleShape)
+                .background(MaterialTheme.colorScheme.surfaceVariant),
+            contentAlignment = Alignment.Center,
+        ) {
+            Text(
+                text = item.displayName.take(1).uppercase(),
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                fontSize = 16.sp,
+                fontWeight = FontWeight.Medium,
+            )
+        }
+    }
+}
+
+/**
+ * Miuix 列表行：对齐 AppList/AppProfile 指纹列表的 BasicComponent 平铺风格
+ * （应用名 + SSAID 值 + 右侧操作按钮），非卡片。
+ */
+@Composable
+private fun SsaidListRow(
     item: SsaidItemUi,
     enabled: Boolean,
     onRandomize: () -> Unit,
     onDelete: () -> Unit,
 ) {
-    TonalCard(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = 12.dp, vertical = 6.dp),
-    ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(start = 16.dp, end = 16.dp, top = 14.dp),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            if (item.applicationInfo != null) {
-                AppIconImage(
-                    applicationInfo = item.applicationInfo,
-                    label = item.displayName,
-                    modifier = Modifier.size(44.dp),
-                )
-            } else {
-                Box(
-                    modifier = Modifier
-                        .size(44.dp)
-                        .clip(CircleShape)
-                        .background(MaterialTheme.colorScheme.surfaceVariant),
-                    contentAlignment = Alignment.Center,
-                ) {
-                    Text(
-                        text = item.displayName.take(1).uppercase(),
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        fontSize = 18.sp,
-                        fontWeight = FontWeight.Medium,
-                    )
-                }
+    BasicComponent(
+        startAction = {
+            Box(modifier = Modifier.padding(end = 6.dp)) {
+                SsaidIcon(item, 38)
             }
-            Spacer(Modifier.width(14.dp))
-            Column(modifier = Modifier.weight(1f)) {
-                Text(
-                    text = item.displayName,
-                    fontWeight = FontWeight.SemiBold,
-                    fontSize = 15.sp,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                )
-                if (item.label != null) {
-                    Text(
-                        text = item.packageName,
-                        fontSize = 11.sp,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
-                    )
-                }
-                Text(
-                    text = item.value,
-                    fontSize = 12.sp,
-                    color = MaterialTheme.colorScheme.primary,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                )
-            }
-        }
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(end = 12.dp, bottom = 12.dp, top = 6.dp),
-            horizontalArrangement = Arrangement.End,
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            DeleteButton(enabled = enabled, onClick = onDelete)
+        },
+        title = item.displayName,
+        summary = item.value,
+        endActions = {
+            MiuixSsaidButton(
+                text = stringResource(R.string.delete),
+                enabled = enabled,
+                isDelete = true,
+                onClick = onDelete,
+            )
             Spacer(Modifier.width(8.dp))
-            RandomizeButton(enabled = enabled, onClick = onRandomize)
-        }
-    }
+            MiuixSsaidButton(
+                text = stringResource(R.string.action_randomize),
+                enabled = enabled,
+                isDelete = false,
+                onClick = onRandomize,
+            )
+        },
+        insideMargin = PaddingValues(horizontal = 16.dp, vertical = 10.dp),
+    )
 }
 
+/** Miuix 风格胶囊按钮（与 App Profile 执行按钮同款观感）。 */
 @Composable
-private fun RandomizeButton(enabled: Boolean, onClick: () -> Unit) {
+private fun MaterialRandomizeButton(enabled: Boolean, onClick: () -> Unit) {
     Button(
         onClick = onClick,
         enabled = enabled,
@@ -380,14 +388,14 @@ private fun RandomizeButton(enabled: Boolean, onClick: () -> Unit) {
             contentColor = MaterialTheme.colorScheme.onSecondaryContainer,
         ),
         contentPadding = ButtonDefaults.TextButtonContentPadding,
-        modifier = Modifier.heightIn(min = 34.dp),
+        modifier = Modifier.heightIn(min = 32.dp),
     ) {
-        Text(text = stringResource(R.string.action_randomize), fontSize = 13.sp)
+        Text(text = stringResource(R.string.action_randomize), fontSize = 12.sp)
     }
 }
 
 @Composable
-private fun DeleteButton(enabled: Boolean, onClick: () -> Unit) {
+private fun MaterialDeleteButton(enabled: Boolean, onClick: () -> Unit) {
     val isDark = isInDarkTheme()
     Button(
         onClick = onClick,
@@ -398,9 +406,40 @@ private fun DeleteButton(enabled: Boolean, onClick: () -> Unit) {
             contentColor = if (isDark) Color(0xFFF2B8B5) else Color(0xFFB3261E),
         ),
         contentPadding = ButtonDefaults.TextButtonContentPadding,
-        modifier = Modifier.heightIn(min = 34.dp),
+        modifier = Modifier.heightIn(min = 32.dp),
     ) {
-        Text(text = stringResource(R.string.delete), fontSize = 13.sp)
+        Text(text = stringResource(R.string.delete), fontSize = 12.sp)
+    }
+}
+
+@Composable
+private fun MiuixSsaidButton(
+    text: String,
+    enabled: Boolean,
+    isDelete: Boolean,
+    onClick: () -> Unit,
+) {
+    val isDark = isInDarkTheme()
+    val bg = when {
+        !enabled -> MiuixTheme.colorScheme.secondaryContainer.copy(alpha = 0.3f)
+        isDelete -> if (isDark) Color(0xFF4A2222) else Color(0xFFFBE9E9)
+        else -> MiuixTheme.colorScheme.secondaryContainer.copy(alpha = 0.8f)
+    }
+    val fg = when {
+        !enabled -> MiuixTheme.colorScheme.onSurfaceVariantSummary.copy(alpha = 0.5f)
+        isDelete -> if (isDark) Color(0xFFF2B8B5) else Color(0xFFB3261E)
+        else -> MiuixTheme.colorScheme.onSurface.copy(alpha = if (isDark) 0.7f else 0.9f)
+    }
+    Row(
+        modifier = Modifier
+            .heightIn(min = 32.dp)
+            .clip(CircleShape)
+            .background(bg)
+            .clickable(enabled = enabled, onClick = onClick)
+            .padding(horizontal = 14.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Text(text = text, fontSize = 13.sp, color = fg, fontWeight = FontWeight.Medium)
     }
 }
 

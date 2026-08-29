@@ -90,10 +90,10 @@ fun AboutScreenMaterial(
                                 contentScale = FixedScale(1f)
                             )
                         } else {
+                            // 替换图完整适配白底容器（Fit，不放大不裁切——用户反馈）
                             EasterEggLogoImage(
                                 holder = eggHolder,
-                                // 108dp 对齐原 adaptive 前景 FixedScale(1f) 的视觉尺寸，避免替换图偏小
-                                modifier = Modifier.size(108.dp)
+                                modifier = Modifier.matchParentSize()
                             )
                         }
                     }

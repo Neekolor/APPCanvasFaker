@@ -325,23 +325,16 @@ private fun AboutContent(
                         contentDescription = null,
                     )
                 } else {
-                    // 隐藏交互激活：logo 替换为替换图（保留原有 blur/淡出效果，去掉单色 tint）
+                    // 隐藏交互激活：logo 替换为替换图。
+                    // textureBlur 是为透明矢量前景设计的（DstIn 遮罩混合），套在不透明
+                    // JPG 上会异常放大/裁切（实测），故替换图不走 blur，只保留淡出。
                     EasterEggLogoImage(
                         holder = eggHolder,
                         modifier = Modifier
                             .requiredSize(245.dp)
-                            .then(
-                                if (enableBlur) {
-                                    Modifier.textureBlur(
-                                        backdrop = backdrop,
-                                        shape = RoundedCornerShape(0.dp),
-                                        blurRadius = 150f,
-                                        colors = BlurColors(blendColors = logoBlend),
-                                        contentBlendMode = ComposeBlendMode.DstIn,
-                                        enabled = true,
-                                    )
-                                } else Modifier
-                            )
+                            .graphicsLayer {
+                                alpha = 1 - iconProgress
+                            },
                     )
                 }
             }
