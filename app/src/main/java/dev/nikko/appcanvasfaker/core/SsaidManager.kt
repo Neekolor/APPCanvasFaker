@@ -47,7 +47,12 @@ object SsaidManager {
     suspend fun listEntries(): List<SsaidEntry>? = mutex.withLock {
         readFile()?.let { content ->
             SETTING_LINE.findAll(content).map { m ->
-                SsaidEntry(m.groupValues[1], VALUE_LINE.find(m.value)?.groupValues?.get(1).orEmpty())
+                // MIUI 等定制 ROM 的条目 name 可能是数字 userId（双开/用户映射），
+                // 真实包名在 package 属性——优先取 package，缺失回退 name
+                val name = m.groupValues[1]
+                val pkg = Regex("""package="([^"]*)"""").find(m.value)?.groupValues?.get(1).orEmpty()
+                val value = VALUE_LINE.find(m.value)?.groupValues?.get(1).orEmpty()
+                SsaidEntry(packageName = pkg.ifEmpty { name }, value = value)
             }.toList()
         }
     }
@@ -67,9 +72,7 @@ object SsaidManager {
             val original = readFile()
                 ?: return@withLock WriteResult(written = false, reloaded = false)
             val lines = original.lines().toMutableList()
-            val index = lines.indexOfFirst { line ->
-                SETTING_LINE.find(line)?.groupValues?.get(1) == packageName
-            }
+            val index = lines.indexOfFirst { lineMatches(it, packageName) }
             when {
                 // 已有条目：原位替换或整行删除
                 index >= 0 && isDelete -> lines.removeAt(index)
@@ -93,7 +96,7 @@ object SsaidManager {
             }
             // 内存层自查：目标行必须存在（删除时必须不存在）且位于 </settings> 之前
             val closeIdx = lines.indexOfFirst { it.trim() == CLOSE_TAG }
-            val targetIdx = lines.indexOfFirst { SETTING_LINE.find(it)?.groupValues?.get(1) == packageName }
+            val targetIdx = lines.indexOfFirst { lineMatches(it, packageName) }
             val targetValid = if (isDelete) targetIdx < 0 else targetIdx in 0..(closeIdx - 1)
             if (!targetValid || closeIdx < 0) {
                 Log.w(TAG, "mutate self-check failed for $packageName")
@@ -104,6 +107,14 @@ object SsaidManager {
             }
             WriteResult(written = true, reloaded = reloadProvider())
         }
+
+    /** 条目匹配：name 属性或 package 属性任一命中即可（MIUI 数字 name / 标准 name 两形态）。 */
+    private fun lineMatches(line: String, packageName: String): Boolean {
+        val name = SETTING_LINE.find(line)?.groupValues?.get(1) ?: return false
+        if (name == packageName) return true
+        val pkg = Regex("""package="([^"]*)"""").find(line)?.groupValues?.get(1)
+        return pkg == packageName && pkg.isNotEmpty()
+    }
 
     private fun newSsaid(): String {
         val bytes = ByteArray(8)

@@ -2,6 +2,7 @@ package dev.nikko.appcanvasfaker.ui.screen.ssaid
 
 import android.widget.Toast
 import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -300,7 +301,9 @@ private fun SsaidItemCard(
             .padding(horizontal = 12.dp, vertical = 6.dp),
     ) {
         Row(
-            modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp),
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(start = 16.dp, end = 16.dp, top = 14.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
             if (item.applicationInfo != null) {
@@ -315,38 +318,53 @@ private fun SsaidItemCard(
                         .size(44.dp)
                         .clip(CircleShape)
                         .background(MaterialTheme.colorScheme.surfaceVariant),
-                )
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Text(
+                        text = item.displayName.take(1).uppercase(),
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        fontSize = 18.sp,
+                        fontWeight = FontWeight.Medium,
+                    )
+                }
             }
-            Spacer(Modifier.width(12.dp))
+            Spacer(Modifier.width(14.dp))
             Column(modifier = Modifier.weight(1f)) {
                 Text(
                     text = item.displayName,
-                    fontWeight = FontWeight.Medium,
+                    fontWeight = FontWeight.SemiBold,
                     fontSize = 15.sp,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                 )
-                Text(
-                    text = item.packageName,
-                    fontSize = 11.sp,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                )
+                if (item.label != null) {
+                    Text(
+                        text = item.packageName,
+                        fontSize = 11.sp,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                }
                 Text(
                     text = item.value,
-                    fontSize = 11.sp,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    fontSize = 12.sp,
+                    color = MaterialTheme.colorScheme.primary,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                 )
             }
-            Spacer(Modifier.width(10.dp))
-            Column(horizontalAlignment = Alignment.End) {
-                RandomizeButton(enabled = enabled, onClick = onRandomize)
-                Spacer(Modifier.height(6.dp))
-                DeleteButton(enabled = enabled, onClick = onDelete)
-            }
+        }
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(end = 12.dp, bottom = 12.dp, top = 6.dp),
+            horizontalArrangement = Arrangement.End,
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            DeleteButton(enabled = enabled, onClick = onDelete)
+            Spacer(Modifier.width(8.dp))
+            RandomizeButton(enabled = enabled, onClick = onRandomize)
         }
     }
 }
@@ -362,9 +380,9 @@ private fun RandomizeButton(enabled: Boolean, onClick: () -> Unit) {
             contentColor = MaterialTheme.colorScheme.onSecondaryContainer,
         ),
         contentPadding = ButtonDefaults.TextButtonContentPadding,
-        modifier = Modifier.heightIn(min = 30.dp),
+        modifier = Modifier.heightIn(min = 34.dp),
     ) {
-        Text(text = stringResource(R.string.action_randomize), fontSize = 12.sp)
+        Text(text = stringResource(R.string.action_randomize), fontSize = 13.sp)
     }
 }
 
@@ -380,9 +398,9 @@ private fun DeleteButton(enabled: Boolean, onClick: () -> Unit) {
             contentColor = if (isDark) Color(0xFFF2B8B5) else Color(0xFFB3261E),
         ),
         contentPadding = ButtonDefaults.TextButtonContentPadding,
-        modifier = Modifier.heightIn(min = 30.dp),
+        modifier = Modifier.heightIn(min = 34.dp),
     ) {
-        Text(text = stringResource(R.string.delete), fontSize = 12.sp)
+        Text(text = stringResource(R.string.delete), fontSize = 13.sp)
     }
 }
 
