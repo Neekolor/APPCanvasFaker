@@ -23,11 +23,9 @@ import androidx.compose.foundation.layout.safeDrawing
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.systemBars
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.rounded.Backpack
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
@@ -49,9 +47,11 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.LayoutDirection
@@ -75,10 +75,12 @@ import dev.nikko.appcanvasfaker.ui.navigation3.LocalNavigator
 import dev.nikko.appcanvasfaker.ui.theme.isInDarkTheme
 import kotlinx.coroutines.launch
 import top.yukonga.miuix.kmp.basic.BasicComponent
+import top.yukonga.miuix.kmp.basic.Card
 import top.yukonga.miuix.kmp.basic.Icon
 import top.yukonga.miuix.kmp.basic.IconButton
 import top.yukonga.miuix.kmp.basic.MiuixScrollBehavior
 import top.yukonga.miuix.kmp.basic.Scaffold
+import top.yukonga.miuix.kmp.basic.SmallTitle
 import top.yukonga.miuix.kmp.basic.TopAppBar
 import top.yukonga.miuix.kmp.icon.MiuixIcons
 import top.yukonga.miuix.kmp.icon.extended.Back
@@ -209,28 +211,50 @@ private fun SsaidScreenMiuix(
             SsaidLoadState.LOADING -> LoadingBox(Modifier.padding(innerPadding))
             SsaidLoadState.UNAVAILABLE -> UnavailableBox(Modifier.padding(innerPadding), onRetry = actions.onRetry)
             SsaidLoadState.FAILED -> FailedBox(Modifier.padding(innerPadding), onRetry = actions.onRetry)
-                SsaidLoadState.READY -> {
-                    if (state.items.isEmpty()) {
-                        EmptyBox(Modifier.padding(innerPadding))
-                    } else {
-                        LazyColumn(
-                            modifier = Modifier.fillMaxSize(),
-                            contentPadding = PaddingValues(
+            SsaidLoadState.READY -> {
+                if (state.items.isEmpty()) {
+                    EmptyBox(Modifier.padding(innerPadding))
+                } else {
+                    // 对齐 Miuix 设置页模式：计数小标题 + 一张大 Card 内条目行 + Separator 分隔
+                    Column(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .verticalScroll(rememberScrollState())
+                            .padding(
                                 top = innerPadding.calculateTopPadding() + 8.dp,
                                 bottom = innerPadding.calculateBottomPadding() + 16.dp,
                             ),
+                    ) {
+                        SmallTitle(
+                            text = stringResource(R.string.ssaid_count_title, state.items.size),
+                            modifier = Modifier.padding(horizontal = 20.dp),
+                        )
+                        Card(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 12.dp),
                         ) {
-                            items(state.items, key = { it.packageName }) { item ->
+                            state.items.forEachIndexed { index, item ->
                                 SsaidListRow(
                                     item = item,
                                     enabled = buttonsEnabled(state.busyPkg),
                                     onRandomize = { actions.onRandomize(item.packageName) },
                                     onDelete = { actions.onDelete(item.packageName) },
                                 )
+                                if (index < state.items.lastIndex) {
+                                    Box(
+                                        modifier = Modifier
+                                            .padding(start = 70.dp)
+                                            .fillMaxWidth()
+                                            .height(0.5.dp)
+                                            .background(colorScheme.onSurface.copy(alpha = 0.10f)),
+                                    )
+                                }
                             }
                         }
                     }
                 }
+            }
         }
     }
 }
@@ -339,8 +363,8 @@ fun SsaidIcon(item: SsaidItemUi, size: Int = 40) {
 }
 
 /**
- * Miuix 列表行：对齐 AppList/AppProfile 指纹列表的 BasicComponent 平铺风格
- * （应用名 + SSAID 值 + 右侧操作按钮），非卡片。
+ * Miuix 列表行：对齐设置页 Card 内条目行风格（BasicComponent 平铺）。
+ * 点击整行复制 SSAID 值到剪贴板。
  */
 @Composable
 private fun SsaidListRow(
@@ -349,6 +373,9 @@ private fun SsaidListRow(
     onRandomize: () -> Unit,
     onDelete: () -> Unit,
 ) {
+    val clipboard = LocalClipboardManager.current
+    val context = LocalContext.current
+    val copiedText = stringResource(R.string.ssaid_copied)
     BasicComponent(
         startAction = {
             Box(modifier = Modifier.padding(end = 6.dp)) {
@@ -373,6 +400,10 @@ private fun SsaidListRow(
             )
         },
         insideMargin = PaddingValues(horizontal = 16.dp, vertical = 10.dp),
+        onClick = {
+            clipboard.setText(AnnotatedString(item.value))
+            Toast.makeText(context, copiedText, Toast.LENGTH_SHORT).show()
+        },
     )
 }
 

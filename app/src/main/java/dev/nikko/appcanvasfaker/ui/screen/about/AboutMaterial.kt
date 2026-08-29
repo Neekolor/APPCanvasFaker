@@ -76,24 +76,32 @@ fun AboutScreenMaterial(
                         .padding(vertical = 48.dp),
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
-                    Box(
-                        contentAlignment = Alignment.Center,
-                        modifier = Modifier
-                            .size(80.dp)
-                            .clip(RoundedCornerShape(16.dp))
-                            .background(Color.White)
-                    ) {
-                        if (eggHolder.currentRes == null) {
+                    if (eggHolder.currentRes == null) {
+                        Box(
+                            contentAlignment = Alignment.Center,
+                            modifier = Modifier
+                                .size(80.dp)
+                                .clip(RoundedCornerShape(16.dp))
+                                .background(Color.White)
+                        ) {
                             Image(
                                 painter = painterResource(id = R.drawable.ic_launcher_foreground),
                                 contentDescription = null,
                                 contentScale = FixedScale(1f)
                             )
-                        } else {
-                            // 替换图完整适配白底容器（Fit，不放大不裁切——用户反馈）
+                        }
+                    } else {
+                        // 隐藏交互激活：白底圆角容器随原图（444×444 1:1 ≈161dp）撑开，完整直出
+                        Box(
+                            contentAlignment = Alignment.Center,
+                            modifier = Modifier
+                                .clip(RoundedCornerShape(16.dp))
+                                .background(Color.White)
+                                .padding(6.dp)
+                        ) {
                             EasterEggLogoImage(
                                 holder = eggHolder,
-                                modifier = Modifier.matchParentSize()
+                                modifier = Modifier.padding(2.dp)
                             )
                         }
                     }

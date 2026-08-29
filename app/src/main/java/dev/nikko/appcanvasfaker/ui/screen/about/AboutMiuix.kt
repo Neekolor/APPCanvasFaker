@@ -290,8 +290,8 @@ private fun AboutContent(
             Box(
                 contentAlignment = Alignment.Center,
                 modifier = Modifier
-                    .size(100.dp)
-                    .clipToBounds()
+                    // 原 logo 需要固定窗口裁切；替换图按原始分辨率 1:1 完整显示（不裁不缩）
+                    .then(if (eggHolder.currentRes == null) Modifier.size(100.dp).clipToBounds() else Modifier)
                     .graphicsLayer {
                         alpha = 1 - iconProgress
                         scaleX = 1 - (iconProgress * 0.05f)
@@ -325,16 +325,14 @@ private fun AboutContent(
                         contentDescription = null,
                     )
                 } else {
-                    // 隐藏交互激活：logo 替换为替换图。
+                    // 隐藏交互激活：直接显示原图（原始分辨率 1:1）。
                     // textureBlur 是为透明矢量前景设计的（DstIn 遮罩混合），套在不透明
                     // JPG 上会异常放大/裁切（实测），故替换图不走 blur，只保留淡出。
                     EasterEggLogoImage(
                         holder = eggHolder,
-                        modifier = Modifier
-                            .requiredSize(245.dp)
-                            .graphicsLayer {
-                                alpha = 1 - iconProgress
-                            },
+                        modifier = Modifier.graphicsLayer {
+                            alpha = 1 - iconProgress
+                        },
                     )
                 }
             }

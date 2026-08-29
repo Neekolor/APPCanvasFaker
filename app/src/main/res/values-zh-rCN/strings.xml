@@ -127,7 +127,9 @@
     <string name="search_no_result">未找到匹配的应用</string>
     <string name="nav_pending">待定</string>
     <string name="home_checking">{}</string>
-    <string name="about_copyright" translatable="false">Copyright © 2026 Neekolor.</string>
+    <string name="about_copyright" translatable="false">© 2026 Neekolor.</string>
+    <string name="ssaid_count_title">共 %d 个条目</string>
+    <string name="ssaid_copied">SSAID 已复制到剪贴板</string>
     <string name="log_disabled_banner">日志记录功能已关闭，Hook 活动不会被记录。</string>
     <string name="log_disabled_action">去开启</string>
 </resources>

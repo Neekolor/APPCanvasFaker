@@ -130,7 +130,6 @@ fun EasterEggLogoImage(
         Image(
             painter = painterResource(id = current),
             contentDescription = null,
-            contentScale = ContentScale.Fit,
             colorFilter = ColorFilter.colorMatrix(eggToneMatrix(isDark)),
             modifier = modifier,
         )

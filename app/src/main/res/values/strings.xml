@@ -129,7 +129,9 @@
     <string name="search_no_result">No matching apps</string>
     <string name="nav_pending">TBD</string>
     <string name="home_checking">{}</string>
-    <string name="about_copyright" translatable="false">Copyright © 2026 Neekolor.</string>
+    <string name="about_copyright" translatable="false">© 2026 Neekolor.</string>
+    <string name="ssaid_count_title">%d entries</string>
+    <string name="ssaid_copied">SSAID copied to clipboard</string>
     <string name="log_disabled_banner">Logging is disabled. Hook activity is not being recorded.</string>
     <string name="log_disabled_action">Enable</string>
 </resources>
