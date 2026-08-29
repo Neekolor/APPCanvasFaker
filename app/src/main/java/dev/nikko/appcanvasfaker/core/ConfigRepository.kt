@@ -4,12 +4,9 @@ import android.content.Context
 import android.content.SharedPreferences
 import android.content.pm.ApplicationInfo
 import android.content.pm.PackageManager
-import android.graphics.Bitmap
-import android.graphics.Canvas
-import android.graphics.Color
-import android.graphics.Paint
 import dev.nikko.appcanvasfaker.AppCanvasFakerApplication
 import dev.nikko.appcanvasfaker.BuildConfig
+import dev.nikko.appcanvasfaker.scanner.core.StandardCanvas
 import dev.nikko.appcanvasfaker.scanner.fingerprint.HardwareReaders
 import dev.nikko.appcanvasfaker.scanner.fingerprint.NonPixelSignals
 import dev.nikko.appcanvasfaker.scanner.fingerprint.PixelReaders
@@ -33,13 +30,6 @@ class ConfigRepository(private val context: Context) {
         context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
 
     private val pm: PackageManager get() = context.packageManager
-
-    /**
-     * 写锁：配置 JSON 与日志数组都是"读出→内存修改→整份写回"模式，
-     * UI 线程与 Provider binder 线程并发执行时后写者会覆盖先写者的修改
-     * （丢失更新）。所有读改写序列必须持有同一把锁。
-     */
-    private val writeLock = Any()
 
     // ---------- 公开接口（UI 契约） ----------
 
@@ -125,103 +115,86 @@ class ConfigRepository(private val context: Context) {
         }
     }
 
-    /** 该 app 的本地模拟 hook 后指纹：标准画布 + 该 app 的 seed 按当前模式套扰动 → 16 位折叠短哈希。纯本地，不走跨进程。 */
+    /** 该 app 的本地模拟 hook 后指纹（A1 方法，scanner 画布 + seed 扰动）。纯本地，不走跨进程。 */
     fun simulatedFingerprint(pkg: String): String {
         val rule = getRule(pkg)
         if (rule.seed == 0L) return "暂无"
-        val pixels = renderStandardCanvas()
-        FingerprintEngine.applyPixels(pixels, STD_W, STD_H, 0, STD_W, 0, 0, mode(), rule.seed)
+        val pixels = standardPixels()
+        FingerprintEngine.applyPixels(
+            pixels, StandardCanvas.WIDTH, StandardCanvas.HEIGHT, 0, StandardCanvas.WIDTH, 0, 0, mode(), rule.seed
+        )
         return HashUtils.foldHash16(HashUtils.ofIntArray(pixels))
     }
 
-    /** 4 种读取路径的标准画布指纹（未污染基准），用于与 hook 后指纹对比。 */
-    fun standardFingerprints(): List<FingerprintValue> {
-        val pixels = renderStandardCanvas()
-        return fingerprintValues(pixels)
-    }
+    /** 7 条读取路径的未污染基准指纹，用于与 hook 后指纹对比。 */
+    fun standardFingerprints(): List<FingerprintValue> = collectFingerprints(seed = null)
 
-    /** 该 app 套当前模式扰动后的 4 种读取路径指纹。 */
+    /** 该 app 套当前模式扰动后的 7 条读取路径指纹。 */
     fun simulatedFingerprints(pkg: String): List<FingerprintValue> {
         val rule = getRule(pkg)
         if (rule.seed == 0L) return emptyList()
-        val pixels = renderStandardCanvas()
-        FingerprintEngine.applyPixels(pixels, STD_W, STD_H, 0, STD_W, 0, 0, mode(), rule.seed)
-        return fingerprintValues(pixels)
+        return collectFingerprints(seed = rule.seed)
     }
 
     /**
-     * 按固定方法计算 7 种标准化指纹，与 hook 链一一对应（方法复用 scanner 采集器，
-     * 保证与配套扫描器应用、哈希页三方互比）：
-     * - A1：getPixels 像素数组直读（链 A1）
-     * - A3：copyPixelsToBuffer 按字节缓冲拷贝（链 A3）
-     * - A4：compress 压缩后字节（PNG 编码字节）（链 A4/A4b）
-     * - A4b：getImageSizes 尺寸 + 抽样像素
-     * - A2：getPixel 单点采样（A2）
-     * - E1：Paint 文本度量（E1）
-     * - D1：glReadPixels GPU 直读（D1）
+     * 按固定方法计算 7 种标准化指纹（全部方法复用 scanner 采集器，
+     * 统一 320×160 标准画布，与配套扫描器应用三方互比；A4b 更正为 JPEG 压缩方法）：
+     * - A1 getPixels / A3 copyPixelsToBuffer / A4 compress(PNG) / A4b compress(JPEG)
+     * - A2 getPixel 单点（A2）/ E1 Paint 文本度量（E1）/ D1 glReadPixels（D1）
+     * [seed] 非空时先对画布像素施加扰动，模拟 hook 后状态。
      */
-    private fun fingerprintValues(pixels: IntArray): List<FingerprintValue> {
-        val a1 = HashUtils.ofIntArray(pixels)
-        val a3 = HashUtils.ofBytes(IntArrayToRgba(pixels))
-        val a4 = HashUtils.ofBytes(compressPng(pixels))
-        val a4b = HashUtils.ofString("$STD_W:$STD_H:" + HashUtils.foldHash16(a1))
-        // H 链方法直接复用 scanner 采集器：A2/E1 纯 CPU，D1 需要离屏 EGL 上下文，
-        // 失败时返回错误文本原样展示（不折叠，避免把失败伪装成正常哈希）
-        val stdBitmap = runCatching {
-            dev.nikko.appcanvasfaker.scanner.core.StandardCanvas.createBitmap()
-        }.getOrNull()
-        val a2 = stdBitmap?.let { bmp ->
-            runCatching { PixelReaders.getPixel(bmp) }
-                .getOrElse { "异常: ${it.javaClass.simpleName}" }
-        } ?: "标准画布创建失败"
-        stdBitmap?.recycle()
-        val e1 = runCatching { NonPixelSignals.fontMetrics() }
-            .getOrElse { "异常: ${it.javaClass.simpleName}" }
-        val d1 = runCatching { HardwareReaders.glReadPixels() }
-            .getOrElse { "异常: ${it.javaClass.simpleName}" }
-        return listOf(
-            FingerprintValue("A1", "像素直读（getPixels）", HashUtils.foldHash16(a1)),
-            FingerprintValue("A3", "缓冲拷贝（copyPixelsToBuffer）", HashUtils.foldHash16(a3)),
-            FingerprintValue("A4", "压缩读取（compress）", HashUtils.foldHash16(a4)),
-            FingerprintValue("A4b", "尺寸采样（getImageSizes）", HashUtils.foldHash16(a4b)),
-            FingerprintValue("A2", "单点读取（getPixel）", foldIfHash(a2)),
-            FingerprintValue("E1", "文本度量（Paint）", foldIfHash(e1)),
-            FingerprintValue("D1", "GL 直读（glReadPixels）", foldIfHash(d1)),
-        )
+    private fun collectFingerprints(seed: Long?): List<FingerprintValue> {
+        val std = runCatching { StandardCanvas.createBitmap() }.getOrNull() ?: return emptyList()
+        try {
+            if (seed != null) {
+                val pixels = IntArray(StandardCanvas.WIDTH * StandardCanvas.HEIGHT)
+                std.getPixels(pixels, 0, StandardCanvas.WIDTH, 0, 0, StandardCanvas.WIDTH, StandardCanvas.HEIGHT)
+                FingerprintEngine.applyPixels(
+                    pixels, StandardCanvas.WIDTH, StandardCanvas.HEIGHT, 0, StandardCanvas.WIDTH, 0, 0, mode(), seed
+                )
+                std.setPixels(pixels, 0, StandardCanvas.WIDTH, 0, 0, StandardCanvas.WIDTH, StandardCanvas.HEIGHT)
+            }
+            val error = { e: Throwable -> "异常: ${e.javaClass.simpleName}" }
+            val a1 = runCatching { PixelReaders.getPixels(std) }.getOrElse(error)
+            val a3 = runCatching { PixelReaders.copyPixelsToBuffer(std) }.getOrElse(error)
+            val a4 = runCatching { PixelReaders.compressPng(std) }.getOrElse(error)
+            val a4b = runCatching { PixelReaders.compressJpeg(std) }.getOrElse(error)
+            val a2 = runCatching { PixelReaders.getPixel(std) }.getOrElse(error)
+            val e1 = runCatching { NonPixelSignals.fontMetrics() }.getOrElse(error)
+            val d1 = runCatching { HardwareReaders.glReadPixels() }.getOrElse(error)
+            return listOf(
+                FingerprintValue("A1", "像素直读（getPixels）", foldIfHash(a1)),
+                FingerprintValue("A3", "缓冲拷贝（copyPixelsToBuffer）", foldIfHash(a3)),
+                FingerprintValue("A4", "PNG 压缩（compress）", foldIfHash(a4)),
+                FingerprintValue("A4b", "JPEG 压缩（compress）", foldIfHash(a4b)),
+                FingerprintValue("A2", "单点读取（getPixel）", foldIfHash(a2)),
+                FingerprintValue("E1", "文本度量（Paint）", foldIfHash(e1)),
+                FingerprintValue("D1", "GL 直读（glReadPixels）", foldIfHash(d1)),
+            )
+        } finally {
+            std.recycle()   // ：异常路径也确保回收
+        }
     }
 
-    /** scanner 采集器成功时返回 64 位 SHA-256 hex，折叠为 16 位；失败文本原样透出。 */
-    private fun foldIfHash(raw: String): String =
-        if (raw.length == 64 && raw.all { it in "0123456789abcdef" }) {
-            HashUtils.foldHash16(raw)
+    private fun standardPixels(): IntArray {
+        val bmp = StandardCanvas.createBitmap()
+        val pixels = IntArray(StandardCanvas.WIDTH * StandardCanvas.HEIGHT)
+        try {
+            bmp.getPixels(pixels, 0, StandardCanvas.WIDTH, 0, 0, StandardCanvas.WIDTH, StandardCanvas.HEIGHT)
+        } finally {
+            bmp.recycle()
+        }
+        return pixels
+    }
+
+    /** scanner 采集器成功时返回 64 位 SHA-256 hex，折叠为 16 位；失败文本原样透出（大小写判定统一）。 */
+    private fun foldIfHash(raw: String): String {
+        val lower = raw.lowercase()
+        return if (lower.length == 64 && lower.all { it in "0123456789abcdef" }) {
+            HashUtils.foldHash16(lower)
         } else {
             raw
         }
-
-    /** ARGB8888 像素 → RGBA 字节序（模拟 copyPixelsToBuffer 的落盘格式）。 */
-    private fun IntArrayToRgba(pixels: IntArray): ByteArray {
-        val out = ByteArray(pixels.size * 4)
-        for (i in pixels.indices) {
-            val p = pixels[i]
-            val o = i * 4
-            out[o] = ((p ushr 16) and 0xFF).toByte()
-            out[o + 1] = ((p ushr 8) and 0xFF).toByte()
-            out[o + 2] = (p and 0xFF).toByte()
-            out[o + 3] = ((p ushr 24) and 0xFF).toByte()
-        }
-        return out
-    }
-
-    /** 像素 → PNG 编码字节（模拟 compress 读取路径）。 */
-    private fun compressPng(pixels: IntArray): ByteArray {
-        return runCatching {
-            val bmp = Bitmap.createBitmap(STD_W, STD_H, Bitmap.Config.ARGB_8888)
-            bmp.setPixels(pixels, 0, STD_W, 0, 0, STD_W, STD_H)
-            val out = java.io.ByteArrayOutputStream()
-            bmp.compress(Bitmap.CompressFormat.PNG, 100, out)
-            bmp.recycle()
-            out.toByteArray()
-        }.getOrDefault(ByteArray(0))
     }
 
     fun enableLogging(): Boolean = config().optBoolean("enable_logging", true)
@@ -298,27 +271,18 @@ class ConfigRepository(private val context: Context) {
     }
 
     fun clearLogs() {
-        prefs.edit().putString(KEY_LOGS, "[]").apply()
+        synchronized(writeLock) {
+            prefs.edit().putString(KEY_LOGS, "[]").apply()
+        }
     }
 
     fun snapshot(): ModuleSnapshot {
-        val standard = renderStandardCanvas()
-        // 展示层统一折叠为 16 位短哈希（与扫描器 foldHash16 同算法）
-        val canvasHash = HashUtils.foldHash16(HashUtils.ofIntArray(standard))
-        // 本地标准画布套用噪声后的哈希（预览用独立随机 seed，避免与任何目标 app 关联）
-        val previewSeed = prefs.getLong(KEY_PREVIEW_SEED, 0L).takeIf { it != 0L }
-            ?: newSeed().also { prefs.edit().putLong(KEY_PREVIEW_SEED, it).apply() }
-        val randomized = standard.copyOf()
-        FingerprintEngine.applyPixels(randomized, STD_W, STD_H, 0, STD_W, 0, 0, ProtectionMode.NOISE, previewSeed)
-        val randomizedHash = HashUtils.foldHash16(HashUtils.ofIntArray(randomized))
         return ModuleSnapshot(
             moduleActive = isFrameworkActive(),
             frameworkName = "libxposed",
             frameworkApi = "102",
             totalHookCount = prefs.getLong(KEY_GLOBAL_COUNT, 0L),
             todayHookCount = todayCount(),
-            canvasHash = canvasHash,
-            randomizedHash = randomizedHash,
             widevineId = widevineId(),
             versionName = BuildConfig.VERSION_NAME,
             buildType = BuildConfig.BUILD_TYPE,
@@ -465,13 +429,13 @@ class ConfigRepository(private val context: Context) {
         JSONArray(prefs.getString(KEY_LOGS, "[]"))
     }.getOrElse { JSONArray() }
 
-    private fun todayCount(): Long {
+    private fun todayCount(): Long = synchronized(writeLock) {
         val today = todayStr()
         if (prefs.getString(KEY_TODAY_DATE, "") != today) {
             prefs.edit().putString(KEY_TODAY_DATE, today).putLong(KEY_TODAY_COUNT, 0L).apply()
-            return 0L
+            return@synchronized 0L
         }
-        return prefs.getLong(KEY_TODAY_COUNT, 0L)
+        prefs.getLong(KEY_TODAY_COUNT, 0L)
     }
 
     private fun rollToday(editor: SharedPreferences.Editor) {
@@ -493,24 +457,6 @@ class ConfigRepository(private val context: Context) {
         var s = SecureRandom().nextLong()
         if (s == 0L) s = 0x9E3779B97F4A7C15uL.toLong()
         return s
-    }
-
-    /** 本地标准画布：固定图案的 64x64 ARGB_8888 位图，用于复算本地指纹。 */
-    private fun renderStandardCanvas(): IntArray {
-        return runCatching {
-            val bmp = Bitmap.createBitmap(STD_W, STD_H, Bitmap.Config.ARGB_8888)
-            val canvas = Canvas(bmp)
-            canvas.drawColor(Color.WHITE)
-            val paint = Paint(Paint.ANTI_ALIAS_FLAG)
-            paint.color = Color.BLACK
-            canvas.drawRect(4f, 4f, 20f, 20f, paint)
-            canvas.drawCircle(STD_W / 2f, STD_H / 2f, 12f, paint)
-            canvas.drawLine(0f, 0f, STD_W.toFloat(), STD_H.toFloat(), paint)
-            val pixels = IntArray(STD_W * STD_H)
-            bmp.getPixels(pixels, 0, STD_W, 0, 0, STD_W, STD_H)
-            bmp.recycle()
-            pixels
-        }.getOrDefault(IntArray(STD_W * STD_H))
     }
 
     private fun isFrameworkActive(): Boolean {
@@ -540,10 +486,14 @@ class ConfigRepository(private val context: Context) {
         private const val KEY_GLOBAL_COUNT = "global_hook_count"
         private const val KEY_TODAY_COUNT = "today_hook_count"
         private const val KEY_TODAY_DATE = "today_date"
-        private const val KEY_PREVIEW_SEED = "preview_seed"
         private const val MAX_LOGS = 1000
-        private const val STD_W = 64
-        private const val STD_H = 64
+
+        /**
+         * 写锁：配置 JSON 与日志数组都是"读出→内存修改→整份写回"模式。
+         * ：本类被各 ViewModel/Provider/AboutScreen 多实例化，
+         * 锁必须是全局单例——实例级锁锁不住跨实例的并发读改写。
+         */
+        private val writeLock = Any()
 
         private fun KEY_PKG_COUNT(pkg: String) = "pkg_${pkg}_count"
         private fun KEY_PKG_HASH(pkg: String) = "pkg_${pkg}_last_hash"

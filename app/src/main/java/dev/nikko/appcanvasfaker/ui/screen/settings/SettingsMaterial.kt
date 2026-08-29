@@ -13,6 +13,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Article
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
+import androidx.compose.material.icons.filled.Badge
 import androidx.compose.material.icons.filled.ContactPage
 import androidx.compose.material.icons.filled.Fence
 import androidx.compose.material.icons.filled.History
@@ -126,11 +127,12 @@ fun SettingPagerMaterial(
             )
 
             val tools = stringResource(id = R.string.settings_profile_template)
+            val ssaid = stringResource(id = R.string.settings_ssaid)
             val log = stringResource(id = R.string.settings_log)
             SegmentedColumn(
                 modifier = Modifier.padding(start = 16.dp, end = 16.dp, bottom = 13.dp),
-                content = listOf(
-                    {
+                content = buildList {
+                    add {
                         SegmentedListItem(
                             onClick = actions.onOpenTools,
                             headlineContent = { Text(tools) },
@@ -143,8 +145,25 @@ fun SettingPagerMaterial(
                                 )
                             }
                         )
-                    },
-                    {
+                    }
+                    // SSAID 管理入口：仅在实验性功能中启用后显示
+                    if (uiState.ssaidEnabled) {
+                        add {
+                            SegmentedListItem(
+                                onClick = actions.onOpenSsaid,
+                                headlineContent = { Text(ssaid) },
+                                supportingContent = { Text(stringResource(id = R.string.settings_ssaid_summary)) },
+                                leadingContent = { Icon(Icons.Filled.Badge, ssaid) },
+                                trailingContent = {
+                                    Icon(
+                                        Icons.AutoMirrored.Filled.KeyboardArrowRight,
+                                        null
+                                    )
+                                }
+                            )
+                        }
+                    }
+                    add {
                         SegmentedListItem(
                             onClick = actions.onOpenLog,
                             headlineContent = { Text(log) },
@@ -158,7 +177,7 @@ fun SettingPagerMaterial(
                             }
                         )
                     }
-                )
+                }
             )
 
             SegmentedColumn(

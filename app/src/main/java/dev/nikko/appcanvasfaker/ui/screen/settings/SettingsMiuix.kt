@@ -15,6 +15,7 @@ import androidx.compose.foundation.layout.systemBars
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.Article
+import androidx.compose.material.icons.rounded.Badge
 import androidx.compose.material.icons.rounded.ContactPage
 import androidx.compose.material.icons.rounded.Dashboard
 import androidx.compose.material.icons.rounded.Fence
@@ -185,6 +186,23 @@ fun SettingPagerMiuix(
                             },
                             onClick = actions.onOpenTools
                         )
+                        // SSAID 管理入口：仅在实验性功能中启用后显示
+                        if (uiState.ssaidEnabled) {
+                            val ssaid = stringResource(id = R.string.settings_ssaid)
+                            ArrowPreference(
+                                title = ssaid,
+                                summary = stringResource(id = R.string.settings_ssaid_summary),
+                                startAction = {
+                                    Icon(
+                                        Icons.Rounded.Badge,
+                                        modifier = Modifier.padding(end = 6.dp),
+                                        contentDescription = ssaid,
+                                        tint = colorScheme.onBackground
+                                    )
+                                },
+                                onClick = actions.onOpenSsaid
+                            )
+                        }
                         val log = stringResource(id = R.string.settings_log)
                         ArrowPreference(
                             title = log,

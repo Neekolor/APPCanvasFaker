@@ -40,7 +40,8 @@ class StatsProvider : ContentProvider() {
                 // 只允许应用为自己的包名记录统计，注入他人数据直接忽略
                 val pkg = extras.getString("packageName").orEmpty()
                 val fingerprint = extras.getString("fingerprint").orEmpty()
-                android.util.Log.i("ACF-Provider", "record_hook pkg=$pkg fp=$fingerprint")
+                // （强约束 #5）：指纹明文不落 logcat，流程日志走 HookLog（release 静默）
+                HookLog.i("ACF-Provider", "record_hook pkg=$pkg")
                 if (pkg.isNotBlank() && fingerprint.isNotBlank() && uidOwnsPackage(pkg)) {
                     repo.recordHook(
                         pkg = pkg,
@@ -50,7 +51,6 @@ class StatsProvider : ContentProvider() {
                         timestamp = extras.getLong("timestamp", System.currentTimeMillis()),
                         enableLogging = extras.getBoolean("enable_logging", true)
                     )
-                    android.util.Log.i("ACF-Provider", "record_hook done pkg=$pkg")
                 }
                 Bundle().apply { putBoolean("ok", true) }
             }

@@ -12,12 +12,17 @@ import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawing
 import androidx.compose.foundation.layout.systemBars
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Badge
 import androidx.compose.material.icons.filled.TextFields
 import androidx.compose.material.icons.filled.ViewInAr
+import androidx.compose.material.icons.rounded.Badge
 import androidx.compose.material.icons.rounded.TextFields
 import androidx.compose.material.icons.rounded.ViewInAr
 import androidx.compose.material3.LargeFlexibleTopAppBar
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -28,6 +33,7 @@ import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.compose.dropUnlessResumed
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -123,40 +129,75 @@ private fun ToolsScreenMiuix(
                     .fillMaxWidth()
                     .padding(horizontal = 12.dp, vertical = 12.dp),
             ) {
+                // 实验性功能说明
                 Card(
                     modifier = Modifier
-                        .fillMaxWidth(),
+                        .fillMaxWidth()
+                        .padding(bottom = 12.dp),
+                ) {
+                    Text(
+                        text = stringResource(R.string.tools_note),
+                        modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp),
+                        fontSize = 13.sp,
+                        color = colorScheme.onSurfaceVariantSummary,
+                    )
+                }
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 12.dp),
                 ) {
                     val textMetrics = stringResource(id = R.string.settings_hook_text_metrics)
-                    SwitchPreference(
-                        title = textMetrics,
-                        summary = stringResource(id = R.string.settings_hook_text_metrics_summary),
-                        startAction = {
-                            Icon(
-                                Icons.Rounded.TextFields,
-                                modifier = Modifier.padding(end = 6.dp),
-                                contentDescription = textMetrics,
-                                tint = colorScheme.onBackground
-                            )
-                        },
-                        checked = uiState.hookTextMetrics,
-                        onCheckedChange = viewModel::setHookTextMetrics
-                    )
-                    val glReadPixels = stringResource(id = R.string.settings_hook_glreadpixels)
-                    SwitchPreference(
-                        title = glReadPixels,
-                        summary = stringResource(id = R.string.settings_hook_glreadpixels_summary),
-                        startAction = {
-                            Icon(
-                                Icons.Rounded.ViewInAr,
-                                modifier = Modifier.padding(end = 6.dp),
-                                contentDescription = glReadPixels,
-                                tint = colorScheme.onBackground
-                            )
-                        },
-                        checked = uiState.hookGlReadPixels,
-                        onCheckedChange = viewModel::setHookGlReadPixels
-                    )
+                    Card(
+                        modifier = Modifier
+                            .fillMaxWidth(),
+                    ) {
+                        SwitchPreference(
+                            title = textMetrics,
+                            summary = stringResource(id = R.string.settings_hook_text_metrics_summary),
+                            startAction = {
+                                Icon(
+                                    Icons.Rounded.TextFields,
+                                    modifier = Modifier.padding(end = 6.dp),
+                                    contentDescription = textMetrics,
+                                    tint = colorScheme.onBackground
+                                )
+                            },
+                            checked = uiState.hookTextMetrics,
+                            onCheckedChange = viewModel::setHookTextMetrics
+                        )
+                        val glReadPixels = stringResource(id = R.string.settings_hook_glreadpixels)
+                        SwitchPreference(
+                            title = glReadPixels,
+                            summary = stringResource(id = R.string.settings_hook_glreadpixels_summary),
+                            startAction = {
+                                Icon(
+                                    Icons.Rounded.ViewInAr,
+                                    modifier = Modifier.padding(end = 6.dp),
+                                    contentDescription = glReadPixels,
+                                    tint = colorScheme.onBackground
+                                )
+                            },
+                            checked = uiState.hookGlReadPixels,
+                            onCheckedChange = viewModel::setHookGlReadPixels
+                        )
+                        // 「启用随机化 SSAID」：控制设置页 SSAID 管理入口的显示（默认关）
+                        val ssaid = stringResource(id = R.string.tools_ssaid_switch)
+                        SwitchPreference(
+                            title = ssaid,
+                            summary = stringResource(id = R.string.tools_ssaid_switch_summary),
+                            startAction = {
+                                Icon(
+                                    Icons.Rounded.Badge,
+                                    modifier = Modifier.padding(end = 6.dp),
+                                    contentDescription = ssaid,
+                                    tint = colorScheme.onBackground
+                                )
+                            },
+                            checked = uiState.ssaidEnabled,
+                            onCheckedChange = viewModel::setSsaidEnabled
+                        )
+                    }
                 }
             }
         }
@@ -182,15 +223,25 @@ private fun ToolsScreenMaterial(
         },
         contentWindowInsets = WindowInsets.safeDrawing.only(WindowInsetsSides.Top + WindowInsetsSides.Horizontal),
     ) { innerPadding ->
-        Box(
+        Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(innerPadding),
+                .padding(innerPadding)
+                .verticalScroll(rememberScrollState()),
         ) {
+            // 实验性功能说明
+            Text(
+                text = stringResource(R.string.tools_note),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 20.dp, vertical = 10.dp),
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                fontSize = 13.sp,
+            )
             SegmentedColumn(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = 16.dp, vertical = 12.dp),
+                    .padding(horizontal = 16.dp, vertical = 8.dp),
                 content = listOf(
                     {
                         SegmentedSwitchItem(
@@ -208,6 +259,15 @@ private fun ToolsScreenMaterial(
                             summary = stringResource(id = R.string.settings_hook_glreadpixels_summary),
                             checked = uiState.hookGlReadPixels,
                             onCheckedChange = viewModel::setHookGlReadPixels
+                        )
+                    },
+                    {
+                        SegmentedSwitchItem(
+                            icon = Icons.Filled.Badge,
+                            title = stringResource(id = R.string.tools_ssaid_switch),
+                            summary = stringResource(id = R.string.tools_ssaid_switch_summary),
+                            checked = uiState.ssaidEnabled,
+                            onCheckedChange = viewModel::setSsaidEnabled
                         )
                     }
                 )

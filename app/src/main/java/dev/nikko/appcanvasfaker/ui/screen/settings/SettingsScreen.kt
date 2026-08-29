@@ -35,7 +35,9 @@ fun SettingPager(
         onSetEnableLogging = viewModel::setEnableLogging,
         onSetHookTextMetrics = viewModel::setHookTextMetrics,
         onSetHookGlReadPixels = viewModel::setHookGlReadPixels,
+        onSetSsaidEnabled = viewModel::setSsaidEnabled,
         onOpenTools = { navigator.push(Route.Tools) },
+        onOpenSsaid = { navigator.push(Route.Ssaid) },
         onOpenLog = { navigator.push(Route.Log) },
         onOpenAbout = { navigator.push(Route.About) },
     )

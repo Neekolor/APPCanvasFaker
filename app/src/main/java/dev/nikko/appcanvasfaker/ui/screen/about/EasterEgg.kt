@@ -73,6 +73,9 @@ class EasterEggHolder {
                 active = true
                 changeCount = 0
                 currentRes = EGG_IMAGES[0]
+
+
+                EasterEggState.consumed = true
             }
             scheduleReset(scope)
             return
@@ -107,7 +110,7 @@ class EasterEggHolder {
             delay(RESET_AFTER_MS)
             active = false
             currentRes = null
-            EasterEggState.consumed = true
+
         }
     }
 }

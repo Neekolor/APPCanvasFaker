@@ -20,7 +20,6 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Badge
 import androidx.compose.material.icons.filled.Fingerprint
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.outlined.PlayArrow
@@ -110,12 +109,6 @@ private fun AppProfileContent(
     state: AppProfileUiState,
     actions: AppProfileActions,
 ) {
-    val ssaidDisplay = when {
-        state.ssaidLoadFailed -> stringResource(R.string.ssaid_read_failed)
-        state.ssaid == null -> "…"
-        state.ssaid.isEmpty() -> stringResource(R.string.ssaid_empty)
-        else -> state.ssaid
-    }
     Column(modifier = modifier) {
         val header: @Composable () -> Unit = {
             SegmentedListItem(
@@ -195,31 +188,6 @@ private fun AppProfileContent(
                             ExecuteButton(onClick = actions.onRandomize)
                         },
                     )
-                },
-                {
-                    SegmentedListItem(
-                        headlineContent = {
-                            Text(stringResource(R.string.randomize_ssaid))
-                        },
-                        supportingContent = {
-                            Text(
-                                text = ssaidDisplay,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                maxLines = 1,
-                                overflow = TextOverflow.Ellipsis,
-                            )
-                        },
-                        leadingContent = {
-                            Icon(Icons.Filled.Badge, contentDescription = null)
-                        },
-                        trailingContent = {
-                            Row(verticalAlignment = Alignment.CenterVertically) {
-                                DeleteButton(onClick = actions.onDeleteSsaid)
-                                Spacer(Modifier.width(8.dp))
-                                ExecuteButton(onClick = actions.onRandomizeSsaid)
-                            }
-                        },
-                    )
                 }
             )
         )
@@ -293,28 +261,6 @@ private fun ProfileOverflowMenu(actions: AppProfileActions) {
                 )
             }
         }
-    }
-}
-
-@Composable
-private fun DeleteButton(
-    onClick: () -> Unit,
-) {
-    Button(
-        onClick = onClick,
-        modifier = Modifier,
-        shape = ButtonDefaults.filledTonalShape,
-        colors = ButtonDefaults.buttonColors(
-            containerColor = MaterialTheme.colorScheme.errorContainer,
-            contentColor = MaterialTheme.colorScheme.onErrorContainer
-        ),
-        contentPadding = ButtonDefaults.TextButtonContentPadding,
-    ) {
-        Text(
-            text = stringResource(R.string.delete),
-            fontFamily = MaterialTheme.typography.labelMedium.fontFamily,
-            fontSize = MaterialTheme.typography.labelMedium.fontSize,
-        )
     }
 }
 

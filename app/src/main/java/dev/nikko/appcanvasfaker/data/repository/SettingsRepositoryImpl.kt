@@ -74,4 +74,8 @@ class SettingsRepositoryImpl : SettingsRepository {
     override var superuserSortOption: Int
         get() = prefs.getInt("superuser_sort_option", 0)
         set(value) = prefs.edit { putInt("superuser_sort_option", value) }
+
+    override var ssaidEnabled: Boolean
+        get() = prefs.getBoolean("ssaid_enabled", false)
+        set(value) = prefs.edit { putBoolean("ssaid_enabled", value) }
 }

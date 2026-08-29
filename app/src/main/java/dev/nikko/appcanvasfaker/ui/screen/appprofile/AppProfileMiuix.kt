@@ -29,7 +29,6 @@ import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.rounded.Badge
 import androidx.compose.material.icons.rounded.Fingerprint
 import androidx.compose.material.icons.rounded.PlayArrow
 import androidx.compose.material.icons.rounded.Security
@@ -153,12 +152,6 @@ private fun AppProfileContent(
     state: AppProfileUiState,
     actions: AppProfileActions,
 ) {
-    val ssaidDisplay = when {
-        state.ssaidLoadFailed -> stringResource(R.string.ssaid_read_failed)
-        state.ssaid == null -> "…"
-        state.ssaid.isEmpty() -> stringResource(R.string.ssaid_empty)
-        else -> state.ssaid
-    }
     Column {
         Card(
             modifier = Modifier
@@ -285,52 +278,6 @@ private fun AppProfileContent(
             }
         }
 
-        Card(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 12.dp)
-                .padding(bottom = 12.dp),
-        ) {
-            Row(
-                modifier = Modifier.padding(start = 16.dp, end = 16.dp, top = 12.dp, bottom = 12.dp),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                Column(
-                    modifier = Modifier.weight(1f),
-                ) {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Icon(
-                            imageVector = Icons.Rounded.Badge,
-                            contentDescription = null,
-                            modifier = Modifier.size(20.dp).padding(end = 4.dp),
-                            tint = colorScheme.onBackground
-                        )
-                        Text(
-                            text = stringResource(R.string.randomize_ssaid),
-                            color = colorScheme.onSurface,
-                            fontWeight = FontWeight.Medium,
-                            maxLines = 1,
-                            softWrap = false
-                        )
-                    }
-                    Spacer(Modifier.height(4.dp))
-                    Text(
-                        text = ssaidDisplay,
-                        fontSize = 12.sp,
-                        color = colorScheme.onSurfaceVariantSummary,
-                        fontWeight = FontWeight.Medium,
-                        maxLines = 2
-                    )
-                }
-                Spacer(Modifier.width(12.dp))
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    DeleteButton(onClick = actions.onDeleteSsaid)
-                    Spacer(Modifier.width(8.dp))
-                    ExecuteButton(onClick = actions.onRandomizeSsaid)
-                }
-            }
-        }
-
         SmallTitle(
             text = stringResource(R.string.randomized_values),
             modifier = Modifier.padding(top = 4.dp)
@@ -447,31 +394,6 @@ private fun ProfileOverflowMenu(actions: AppProfileActions) {
             imageVector = MiuixIcons.MoreCircle,
             tint = colorScheme.onSurface,
             contentDescription = null
-        )
-    }
-}
-
-@Composable
-private fun DeleteButton(
-    onClick: () -> Unit,
-) {
-    val isDark = isInDarkTheme()
-    val bg = if (isDark) Color(0xFF4A2222) else Color(0xFFFBE9E9)
-    val fg = if (isDark) Color(0xFFF2B8B5) else Color(0xFFB3261E)
-    Row(
-        modifier = Modifier
-            .heightIn(min = 35.dp)
-            .clip(CircleShape)
-            .background(bg)
-            .clickable(onClick = onClick)
-            .padding(start = 10.dp, end = 10.dp),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        Text(
-            text = stringResource(R.string.delete),
-            color = fg,
-            fontWeight = FontWeight.Medium,
-            fontSize = 15.sp,
         )
     }
 }

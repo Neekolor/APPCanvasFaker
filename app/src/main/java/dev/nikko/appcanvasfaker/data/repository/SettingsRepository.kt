@@ -16,4 +16,5 @@ interface SettingsRepository {
     var superuserShowSystemApps: Boolean
     var superuserShowOnlyPrimaryUserApps: Boolean
     var superuserSortOption: Int
+    var ssaidEnabled: Boolean
 }

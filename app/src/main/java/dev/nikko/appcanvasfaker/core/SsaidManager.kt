@@ -3,48 +3,107 @@ package dev.nikko.appcanvasfaker.core
 import android.util.Log
 import dev.nikko.appcanvasfaker.util.RootShell
 import java.security.SecureRandom
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 
 /**
  * SSAID（Settings.Secure.ANDROID_ID 的 per-app 值）真实读写，非 Hook。
- * 明文存于 /data/system/users/0/settings_ssaid.xml（system 属主 0600），
- * 只能经 root shell 修改；SettingsProvider 有内存缓存，改完必须 kill 该进程才会重载。
+ * 明文存于 /data/system/users/0/settings_ssaid.xml（system 属主 0600，Android 12+ 为
+ * ABX 二进制编码），只经 root shell 读写；SettingsProvider 有内存缓存，写后必须杀掉
+ * 该进程才会重载。
  *
- * 返回值约定：readSsaid null=读取失败（无 root/文件不存在）；""=该应用无 SSAID 条目。
- * 调用方负责在写入前强制停止目标应用，避免其进程内缓存旧值。
+ * 安全与可靠性设计：
+ * - 所有读改写经 [mutex] 串行化，杜绝并发双写丢失更新；
+ * - 新条目插入到 `</settings>` 之前并做内存层自查（AOSP SettingsProvider 解析到
+ *   闭合标签即止，根外条目不会被读入、还会在系统下次写盘时静默丢失）；
+ * - 写回走"同目录临时文件 → xml2abx 校验 → 属性修正 → sync → mv 原子替换"，
+ *   任一步失败都不触碰原文件；
+ * - 临时文件全部位于 /data/system/users/0/（shell 不可达）且带随机后缀。
+ *
+ * 仅支持 user 0；工作资料/双开用户为已知限制。
+ * 调用方负责在写入前强制停止目标应用。
  */
 object SsaidManager {
 
     private const val TAG = "SsaidManager"
     private const val SSAID_PATH = "/data/system/users/0/settings_ssaid.xml"
-    private const val TMP_XML = "/data/local/tmp/acf_ssaid.xml"
-    private const val TMP_ABX = "/data/local/tmp/acf_ssaid.abx"
+    private const val TMP_DIR = "/data/system/users/0"
     private const val PROVIDER_PKG = "com.android.providers.settings"
+    private const val CLOSE_TAG = "</settings>"
     private val SETTING_LINE = Regex("""<setting\s[^>]*name="([^"]+)"[^>]*/>""")
+    private val VALUE_LINE = Regex("""value="([^"]*)"""")
 
-    /**
-     * Android 12+ 的 settings_ssaid.xml 为 ABX 二进制编码（MIUI Android 14 实测），
-     * 读须经系统自带 abx2xml 转文本、写经 xml2abx 转回；旧纯文本 ROM 上
-     * abx2xml 会失败，此时回退直接按文本读（写仍尝试原样写回）。
-     */
+    /** 读改写互斥：同一时间只允许一个 SSAID 操作。 */
+    private val mutex = Mutex()
 
-    /** 读取目标应用的 SSAID；不存在返回空串，读取失败返回 null。 */
-    fun readSsaid(packageName: String): String? {
-        val content = readFile() ?: return null
-        val line = SETTING_LINE.findAll(content)
-            .firstOrNull { it.groupValues[1] == packageName }?.value ?: return ""
-        return Regex("""value="([^"]*)"""").find(line)?.groupValues?.get(1) ?: ""
+    data class SsaidEntry(val packageName: String, val value: String)
+
+    /** 写入结果：written=文件已原子替换；reloaded=SettingsProvider 缓存已确认刷新。 */
+    data class WriteResult(val written: Boolean, val reloaded: Boolean) {
+        val isSuccess: Boolean get() = written && reloaded
     }
 
-    /** 随机化 SSAID：生成新 16 位 hex 并写回。成功返回 true。 */
-    fun randomize(packageName: String): Boolean {
-        val newValue = newSsaid()
-        return mutate(packageName) { line ->
-            line.replaceFirst(Regex("""value="[^"]*""""), """value="$newValue"""")
+    /** 读取全部条目。读取失败（无 root/文件异常）返回 null。写回经 mv 原子替换，读无需加锁。 */
+    suspend fun listEntries(): List<SsaidEntry>? = mutex.withLock {
+        readFile()?.let { content ->
+            SETTING_LINE.findAll(content).map { m ->
+                SsaidEntry(m.groupValues[1], VALUE_LINE.find(m.value)?.groupValues?.get(1).orEmpty())
+            }.toList()
         }
     }
 
-    /** 删除该应用的 SSAID 条目。成功返回 true。 */
-    fun delete(packageName: String): Boolean = mutate(packageName) { null }
+    /** 随机化指定应用的 SSAID（无条目时新建）。 */
+    suspend fun randomize(packageName: String): WriteResult = mutate(packageName, isDelete = false)
+
+    /** 删除指定应用的 SSAID 条目。 */
+    suspend fun delete(packageName: String): WriteResult = mutate(packageName, isDelete = true)
+
+    /**
+     * 统一读改写入口。替换/删除命中现有条目；新建时插入到 `</settings>` 之前。
+     * 全部通过内存层自查后才原子写回。
+     */
+    private suspend fun mutate(packageName: String, isDelete: Boolean): WriteResult =
+        mutex.withLock {
+            val original = readFile()
+                ?: return@withLock WriteResult(written = false, reloaded = false)
+            val lines = original.lines().toMutableList()
+            val index = lines.indexOfFirst { line ->
+                SETTING_LINE.find(line)?.groupValues?.get(1) == packageName
+            }
+            when {
+                // 已有条目：原位替换或整行删除
+                index >= 0 && isDelete -> lines.removeAt(index)
+                index >= 0 -> lines[index] =
+                    lines[index].replaceFirst(VALUE_LINE, """value="${newSsaid()}"""")
+
+                // 无条目：仅允许"随机化"新建，插入点必须在 </settings> 之前
+                isDelete -> return@withLock WriteResult(written = false, reloaded = false)
+                else -> {
+                    val closeIdx = lines.indexOfFirst { it.trim() == CLOSE_TAG }
+                    if (closeIdx < 0) {
+                        Log.w(TAG, "malformed ssaid file: no closing tag")
+                        return@withLock WriteResult(false, false)
+                    }
+                    val maxId = SETTING_LINE.findAll(original)
+                        .mapNotNull {
+                            Regex("""id="(\d+)"""").find(it.value)?.groupValues?.get(1)?.toLongOrNull()
+                        }.maxOrNull() ?: 0L
+                    lines.add(closeIdx, buildSettingLine(maxId + 1, packageName))
+                }
+            }
+            // 内存层自查：目标行必须存在（删除时必须不存在）且位于 </settings> 之前
+            val closeIdx = lines.indexOfFirst { it.trim() == CLOSE_TAG }
+            val targetIdx = lines.indexOfFirst { SETTING_LINE.find(it)?.groupValues?.get(1) == packageName }
+            val targetValid = if (isDelete) targetIdx < 0 else targetIdx in 0..(closeIdx - 1)
+            if (!targetValid || closeIdx < 0) {
+                Log.w(TAG, "mutate self-check failed for $packageName")
+                return@withLock WriteResult(false, false)
+            }
+            if (!writeBack(lines.joinToString("\n", postfix = "\n"))) {
+                return@withLock WriteResult(written = false, reloaded = false)
+            }
+            WriteResult(written = true, reloaded = reloadProvider())
+        }
 
     private fun newSsaid(): String {
         val bytes = ByteArray(8)
@@ -52,73 +111,69 @@ object SsaidManager {
         return bytes.joinToString("") { "%02x".format(it) }
     }
 
-    /**
-     * 修改/删除/追加 [packageName] 的 setting 行并写回。
-     * [transform] 收到原行内容，返回替换后的行；返回 null 表示删除该行。
-     * 原条目不存在且 transform 返回替换行时按追加处理（随机化路径）。
-     * 返回 writeBack 是否成功。
-     */
-    private fun mutate(packageName: String, transform: (String) -> String?): Boolean {
-        val original = readFile() ?: return false
-        val lines = original.lines().toMutableList()
-        val index = lines.indexOfFirst { line ->
-            SETTING_LINE.find(line)?.groupValues?.get(1) == packageName
-        }
-        val newLines: List<String> = if (index >= 0) {
-            val replaced = transform(lines[index])
-            if (replaced == null) {
-                lines.toMutableList().apply { removeAt(index) }
-            } else {
-                lines.toMutableList().apply { set(index, replaced) }
-            }
-        } else {
-            // 新条目：id 取现有最大值 +1，保证属性顺序与 AOSP 写入格式一致
-            val maxId = SETTING_LINE.findAll(original)
-                .mapNotNull { Regex("""id="(\d+)"""").find(it.value)?.groupValues?.get(1)?.toLongOrNull() }
-                .maxOrNull() ?: 0L
-            lines.filter { it.isNotBlank() } + buildSettingLine(maxId + 1, packageName)
-        }
-        return writeBack(newLines.joinToString("\n", postfix = "\n"))
+    private fun randomSuffix(): String {
+        val bytes = ByteArray(4)
+        SecureRandom().nextBytes(bytes)
+        return bytes.joinToString("") { "%02x".format(it) }
     }
 
     private fun buildSettingLine(id: Long, packageName: String): String =
         """<setting id="$id" name="$packageName" value="${newSsaid()}" tag="null" package="$packageName" />"""
 
+    /**
+     * 读取并解码当前文件为 XML 文本。Android 12+ 为 ABX 二进制，须经系统 abx2xml
+     * 解码（临时文件放在系统目录内，shell 不可达）；旧纯文本 ROM 上 abx2xml 失败则直接
+     * cat 原文件。失败返回 null。
+     */
     private fun readFile(): String? {
-        // 先尝试 ABX 解码（Android 12+）；失败则按纯文本直接读（旧 ROM）
-        val decode = RootShell.exec(
-            "abx2xml $SSAID_PATH $TMP_XML 2>/dev/null && cat $TMP_XML && rm -f $TMP_XML" +
-                " || cat $SSAID_PATH"
+        val rand = randomSuffix()
+        val tmp = "$TMP_DIR/.acf_ssaid_read_$rand.xml"
+        val r = RootShell.exec(
+            "rm -f $tmp; " +
+                "if abx2xml $SSAID_PATH $tmp 2>/dev/null; then cat $tmp; else cat $SSAID_PATH; fi; " +
+                "rm -f $tmp"
         )
-        if (!decode.isSuccess || !decode.stdout.contains("<settings")) {
-            Log.w(TAG, "read ssaid failed: code=${decode.exitCode} out=${decode.stdout.take(80)}")
+        if (!r.isSuccess || !r.stdout.contains("<settings")) {
+            Log.w(TAG, "read ssaid failed: code=${r.exitCode} out=${r.stdout.take(80)}")
             return null
         }
-        return decode.stdout
+        return r.stdout
     }
 
+    /**
+     * 原子写回：XML 文本落同目录临时文件 → xml2abx 校验 →
+     * 属性修正（mv 前完成，失败即放弃且原文件未动）→ sync → mv 原子替换。
+     */
     private fun writeBack(content: String): Boolean {
-        // XML 文本落 /data/local/tmp → xml2abx 转回二进制（旧 ROM 上 xml2abx 失败时
-        // 直接 cp 文本，保持与读取端同一套编解码假设）→ 覆盖原文件并恢复属主/权限
-        // → kill SettingsProvider 迫使其重载缓存
+        val rand = randomSuffix()
+        val tmpXml = "$TMP_DIR/.acf_ssaid_$rand.xml"
+        val tmpAbx = "$TMP_DIR/.acf_ssaid_$rand.abx"
         val write = RootShell.exec(
-            "rm -f $TMP_XML $TMP_ABX; " +
-                "cat > $TMP_XML << 'ACF_EOF'\n$content" +
+            "rm -f $tmpXml $tmpAbx; " +
+                "cat > $tmpXml << 'ACF_EOF'\n$content" +
                 "ACF_EOF\n" +
-                "if xml2abx $TMP_XML $TMP_ABX 2>/dev/null; then" +
-                " cp $TMP_ABX $SSAID_PATH;" +
-                " else cp $TMP_XML $SSAID_PATH; fi && " +
-                "chown system:system $SSAID_PATH && chmod 600 $SSAID_PATH && rm -f $TMP_XML $TMP_ABX"
+                "if ! xml2abx $tmpXml $tmpAbx 2>/dev/null; then echo ACF_VERIFY_FAILED; rm -f $tmpXml $tmpAbx; exit 1; fi; " +
+                "chown system:system $tmpAbx && chmod 600 $tmpAbx || { echo ACF_PERM_FAILED; rm -f $tmpXml $tmpAbx; exit 1; }; " +
+                "sync; " +
+                "mv -f $tmpAbx $SSAID_PATH || { echo ACF_MOVE_FAILED; rm -f $tmpXml $tmpAbx; exit 1; }; " +
+                "rm -f $tmpXml"
         )
         if (!write.isSuccess) {
             Log.w(TAG, "write ssaid failed: code=${write.exitCode} ${write.stdout.take(200)}")
             return false
         }
-        val reload = RootShell.exec("am kill $PROVIDER_PKG")
-        if (!reload.isSuccess) {
-            // am kill 失败不致命：SettingsProvider 重启后也会重读文件
-            Log.w(TAG, "reload provider failed: code=${reload.exitCode}")
-        }
         return true
+    }
+
+    /** 让 SettingsProvider 重载文件缓存（am kill 只杀缓存态进程，失败升级强杀）。 */
+    private fun reloadProvider(): Boolean {
+        val kill = RootShell.exec("am kill $PROVIDER_PKG")
+        if (kill.isSuccess) return true
+        Log.w(TAG, "am kill provider failed (code=${kill.exitCode}), escalating to force-stop")
+        val force = RootShell.exec("am force-stop $PROVIDER_PKG")
+        if (!force.isSuccess) {
+            Log.w(TAG, "force-stop provider failed: code=${force.exitCode}")
+        }
+        return force.isSuccess
     }
 }

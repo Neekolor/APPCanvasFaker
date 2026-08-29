@@ -61,6 +61,7 @@ import dev.nikko.appcanvasfaker.ui.screen.log.LogScreen
 import dev.nikko.appcanvasfaker.ui.screen.pending.PendingScreen
 import dev.nikko.appcanvasfaker.ui.screen.settings.SettingPager
 import dev.nikko.appcanvasfaker.ui.screen.applist.AppListPager
+import dev.nikko.appcanvasfaker.ui.screen.ssaid.SsaidScreen
 import dev.nikko.appcanvasfaker.ui.screen.tools.ToolsScreen
 import dev.nikko.appcanvasfaker.ui.theme.AppCanvasFakerTheme
 import dev.nikko.appcanvasfaker.ui.theme.LocalColorMode
@@ -144,6 +145,7 @@ class MainActivity : ComponentActivity() {
                                 entry<Route.Log> { LogScreen() }
                                 entry<Route.ColorPalette> { ColorPaletteScreen() }
                                 entry<Route.Tools> { ToolsScreen() }
+                                entry<Route.Ssaid> { SsaidScreen() }
                                 entry<Route.AppProfile> { key -> AppProfileScreen(key.packageName) }
                                 entry<Route.Home> { mainScreenEntry() }
                                 entry<Route.AppList> { mainScreenEntry() }

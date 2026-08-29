@@ -35,8 +35,6 @@ data class ModuleSnapshot(
     val frameworkApi: String,
     val totalHookCount: Long,
     val todayHookCount: Long,
-    val canvasHash: String,
-    val randomizedHash: String,
     val widevineId: String,
     val versionName: String,
     val buildType: String,

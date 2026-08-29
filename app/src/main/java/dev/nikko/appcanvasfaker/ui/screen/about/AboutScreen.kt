@@ -17,10 +17,7 @@ import dev.nikko.appcanvasfaker.ui.navigation3.LocalNavigator
 fun AboutScreen() {
     val navigator = LocalNavigator.current
     val uriHandler = LocalUriHandler.current
-    val versionName = remember {
-        runCatching { ConfigRepository(acfApp).snapshot().versionName }
-            .getOrDefault(BuildConfig.VERSION_NAME)
-    }
+    val versionName = BuildConfig.VERSION_NAME
     val htmlString = stringResource(
         id = R.string.about_source_code,
         "<b><a href=\"https://github.com\">GitHub</a></b>"

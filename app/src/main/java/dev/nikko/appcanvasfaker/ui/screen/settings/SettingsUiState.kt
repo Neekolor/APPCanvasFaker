@@ -22,6 +22,7 @@ data class SettingsUiState(
     val enableLogging: Boolean = true,
     val hookTextMetrics: Boolean = true,
     val hookGlReadPixels: Boolean = false,
+    val ssaidEnabled: Boolean = false,
 )
 
 @Immutable
@@ -32,7 +33,9 @@ data class SettingsScreenActions(
     val onSetEnableLogging: (Boolean) -> Unit,
     val onSetHookTextMetrics: (Boolean) -> Unit,
     val onSetHookGlReadPixels: (Boolean) -> Unit,
+    val onSetSsaidEnabled: (Boolean) -> Unit,
     val onOpenTools: () -> Unit,
+    val onOpenSsaid: () -> Unit,
     val onOpenLog: () -> Unit,
     val onOpenAbout: () -> Unit,
 )
