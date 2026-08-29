@@ -5,6 +5,14 @@
 格式基于 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.1.0/)，
 版本号遵循 [语义化版本](https://semver.org/lang/zh-CN/)（迭代期带 `-dev` 后缀）。
 
+## [0.7.1-dev] - 2026-08-29
+
+### 修复
+
+- 版本号显示统一为纯语义版本（如 `0.7.1-dev`）。
+- App Profile 头部的应用信息即时显示，指纹与 SSAID 改为异步加载，
+  不再整卡延迟等待。
+
 ## [0.7.0-dev] - 2026-08-29
 
 ### 新增

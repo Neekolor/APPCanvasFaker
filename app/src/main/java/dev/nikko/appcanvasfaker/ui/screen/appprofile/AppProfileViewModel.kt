@@ -32,12 +32,31 @@ class AppProfileViewModel(application: Application) : AndroidViewModel(applicati
         loadedPackageName = packageName
         loadJob?.cancel()
         loadJob = viewModelScope.launch {
-            val state = withContext(Dispatchers.IO) {
-                buildState(packageName)
+            // 第一步：应用基本信息立即上屏（对齐 KSU：头部卡不等任何重活）
+            val quick = withContext(Dispatchers.IO) {
+                buildQuickState(packageName)
             }
-            // 过期结果保护：快速切换应用时，仅提交最后一次请求的结果
             if (loadedPackageName == packageName) {
-                _uiState.value = state
+                _uiState.value = quick
+            }
+            // 第二步：指纹计算（渲染 + PNG + SHA-256）异步补充
+            val fingerprints = withContext(Dispatchers.Default) {
+                runCatching { repo.simulatedFingerprints(packageName) }.getOrElse { emptyList() }
+            }
+            if (loadedPackageName == packageName) {
+                _uiState.update { it.copy(fingerprints = fingerprints) }
+            }
+        }
+        // SSAID 读取需要启动 su 进程（KernelSU 授权检查可达秒级），
+        // 完全独立加载，不阻塞头部卡与指纹
+        viewModelScope.launch {
+            val ssaid = withContext(Dispatchers.IO) {
+                runCatching { readSsaidRaw(packageName) }.getOrNull()
+            }
+            if (loadedPackageName == packageName) {
+                _uiState.update {
+                    if (ssaid == null) it.copy(ssaidLoadFailed = true) else it.copy(ssaid = ssaid, ssaidLoadFailed = false)
+                }
             }
         }
     }
@@ -127,14 +146,13 @@ class AppProfileViewModel(application: Application) : AndroidViewModel(applicati
         return SsaidManager.readSsaid(packageName)
     }
 
-    private suspend fun buildState(packageName: String): AppProfileUiState = withContext(Dispatchers.Default) {
+    private suspend fun buildQuickState(packageName: String): AppProfileUiState = withContext(Dispatchers.IO) {
         val appInfo = runCatching { pm.getApplicationInfo(packageName, 0) }.getOrNull()
         val label = appInfo?.let {
             runCatching { pm.getApplicationLabel(it).toString() }.getOrNull()
         }
         val version = runCatching { pm.getPackageInfo(packageName, 0) }.getOrNull()
         val rule = repo.getRule(packageName)
-        val ssaid = runCatching { readSsaidRaw(packageName) }.getOrNull()
         AppProfileUiState(
             packageName = packageName,
             label = label,
@@ -142,9 +160,6 @@ class AppProfileViewModel(application: Application) : AndroidViewModel(applicati
             versionCode = version?.longVersionCode ?: 0L,
             applicationInfo = appInfo,
             enabled = rule.enabled,
-            fingerprints = repo.simulatedFingerprints(packageName),
-            ssaid = ssaid,
-            ssaidLoadFailed = ssaid == null,
         )
     }
 

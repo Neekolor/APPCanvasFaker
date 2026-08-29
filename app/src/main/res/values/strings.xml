@@ -267,7 +267,6 @@
     <string name="app_version">App Version</string>
     <string name="hooked_apps">Hooked Apps</string>
     <string name="hook_count">Hook Count</string>
-    <string name="version_channel" translatable="false">dev</string>
     <string name="xposed_description">Randomizes Android canvas and web canvas fingerprint reads to prevent device tracking.</string>
     <string name="tag_hook" translatable="false">HOOK</string>
     <string name="tag_inactive" translatable="false">INACTIVE</string>
@@ -302,7 +301,7 @@
     <string name="app_detail_title">App Detail</string>
     <string name="nav_pending">TBD</string>
     <string name="home_checking">{}</string>
-    <string name="about_easter_egg" translatable="false">ACF-© 2026 Neekolor</string>
+    <string name="about_copyright" translatable="false">Copyright © 2026 Neekolor.</string>
     <string name="log_disabled_banner">Logging is disabled. Hook activity is not being recorded.</string>
     <string name="log_disabled_action">Enable</string>
 </resources>

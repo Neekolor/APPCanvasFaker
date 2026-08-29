@@ -265,7 +265,6 @@
     <string name="app_version">应用版本</string>
     <string name="hooked_apps">已Hook应用</string>
     <string name="hook_count">Hook次数</string>
-    <string name="version_channel" translatable="false">dev</string>
     <string name="tag_hook" translatable="false">HOOK</string>
     <string name="tag_inactive" translatable="false">INACTIVE</string>
     <string name="randomize_fingerprint">随机化指纹值</string>
@@ -299,7 +298,7 @@
     <string name="app_detail_title">应用详情</string>
     <string name="nav_pending">待定</string>
     <string name="home_checking">{}</string>
-    <string name="about_easter_egg" translatable="false">ACF-© 2026 Neekolor</string>
+    <string name="about_copyright" translatable="false">Copyright © 2026 Neekolor.</string>
     <string name="log_disabled_banner">日志记录功能已关闭，Hook 活动不会被记录。</string>
     <string name="log_disabled_action">去开启</string>
 </resources>

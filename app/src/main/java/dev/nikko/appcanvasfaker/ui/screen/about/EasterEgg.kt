@@ -78,8 +78,9 @@ class EasterEggHolder {
             return
         }
         changeCount++
-        val oneCycleDone = changeCount >= EGG_IMAGES.size
-        if (oneCycleDone && !EasterEggState.midEggUsed && Random.nextFloat() < MID_EGG_PROBABILITY) {
+
+
+        if (!EasterEggState.midEggUsed && Random.nextFloat() < MID_EGG_PROBABILITY) {
             EasterEggState.midEggUsed = true
             showingMidEgg = true
             scope.launch {

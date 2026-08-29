@@ -336,7 +336,7 @@ private fun InfoCard(state: HomeUiState) {
         ) {
             InfoText(
                 title = stringResource(R.string.app_version),
-                content = "${stringResource(R.string.version_channel)}/${state.versionName}"
+                content = state.versionName
             )
             state.standardFingerprints.forEachIndexed { index, fingerprint ->
                 InfoText(

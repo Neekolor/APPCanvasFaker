@@ -28,7 +28,7 @@ fun AboutScreen() {
     val state = AboutUiState(
         title = stringResource(R.string.about),
         appName = stringResource(R.string.app_name),
-        versionName = "${stringResource(R.string.version_channel)}/$versionName",
+        versionName = versionName,
         description = stringResource(R.string.about_description),
         license = stringResource(R.string.about_license),
         links = extractLinks(htmlString),

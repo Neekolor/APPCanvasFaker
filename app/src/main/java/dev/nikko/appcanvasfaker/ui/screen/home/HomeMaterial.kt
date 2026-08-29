@@ -253,7 +253,7 @@ private fun InfoCard(state: HomeUiState) {
 
             InfoCardItem(
                 stringResource(R.string.app_version),
-                "${stringResource(R.string.version_channel)}/${state.versionName}"
+                state.versionName
             )
             state.standardFingerprints.forEach { fingerprint ->
                 Spacer(Modifier.height(16.dp))

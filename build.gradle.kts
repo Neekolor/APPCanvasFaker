@@ -12,5 +12,5 @@ extra["androidBuildToolsVersion"] = "37.0.0"
 extra["androidCompileNdkVersion"] = libs.versions.ndk.get()
 extra["androidSourceCompatibility"] = JavaVersion.VERSION_21
 extra["androidTargetCompatibility"] = JavaVersion.VERSION_21
-extra["managerVersionCode"] = 34
-extra["managerVersionName"] = "0.7.0-dev"
+extra["managerVersionCode"] = 35
+extra["managerVersionName"] = "0.7.1-dev"

@@ -495,11 +495,11 @@ private fun AboutContent(
                     // 隐藏交互入口：表面无动作，连点触发（见 EasterEgg.kt）
                     Card(
                         modifier = Modifier
-                            .padding(top = 12.dp)
+                            .padding(horizontal = 12.dp, vertical = 6.dp)
                             .fillMaxWidth(),
                     ) {
                         ArrowPreference(
-                            title = stringResource(R.string.about_easter_egg),
+                            title = stringResource(R.string.about_copyright),
                             onClick = { eggHolder.onClick(scope) }
                         )
                     }
