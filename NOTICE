@@ -1,0 +1,39 @@
+APPCanvasFaker
+==============
+
+Copyright (C) 2026 the APPCanvasFaker authors
+
+This program is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with this program.  If not, see <https://www.gnu.org/licenses/>.
+
+-----------------------------------------------------------------------------
+
+This project is derived from KernelSU.
+
+KernelSU
+    Copyright (C) 2023-2024 weishu
+    Licensed under the GNU General Public License v3.0
+    https://github.com/tiann/KernelSU
+
+The user interface (UI) of this application, including layouts, theme
+system, components and interaction patterns, is based on the KernelSU
+Manager application. The original KernelSU source code is licensed
+under GPL-3.0. All such derived portions remain under GPL-3.0 and
+their original copyright notices are retained in the respective source
+files.
+
+This product includes software developed by the miuix project
+(top.yukonga.miuix.kmp), licensed under GPL-3.0, and libxposed
+(io.github.libxposed), used under the Xposed module API.
+
+No warranty is provided. Use at your own risk.
