@@ -5,6 +5,7 @@ plugins {
     alias(libs.plugins.compose.compiler)
     alias(libs.plugins.kotlin.serialization)
     id("kotlin-parcelize")
+    alias(libs.plugins.detekt)
 }
 
 val androidCompileSdkVersion = rootProject.extra["androidCompileSdkVersion"] as Int
@@ -21,7 +22,7 @@ val defaultManagerName = "APPCanvasFaker"
 val managerName = project.findProperty("APP_NAME")?.toString() ?: defaultManagerName
 
 android {
-    namespace = "dev.nikko.appcanvasfaker"
+    namespace = "dev.neekolor.appcanvasfaker"
 
     buildTypes {
         debug {
@@ -75,7 +76,7 @@ android {
         targetSdk = androidTargetSdkVersion
         versionCode = managerVersionCode
         versionName = managerVersionName
-        applicationId = "dev.nikko.appcanvasfaker"
+        applicationId = "dev.neekolor.appcanvasfaker"
 
         buildConfigField("boolean", "IS_PR_BUILD", "false")
         resValue("string", "app_name", managerName)
@@ -106,6 +107,12 @@ base {
     archivesName.set(
         "${managerName.replace(" ", "_")}_${managerVersionName}_${managerVersionCode}"
     )
+}
+
+detekt {
+    buildUponDefaultConfig = true
+    config.setFrom(rootProject.file("config/detekt/detekt.yml"))
+    baseline = rootProject.file("config/detekt/detekt-baseline.xml")
 }
 
 dependencies {

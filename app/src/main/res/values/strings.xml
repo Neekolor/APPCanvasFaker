@@ -84,6 +84,8 @@
     <string name="nav_rail_expand">Expand navigation rail</string>
     <string name="nav_rail_collapse">Collapse navigation rail</string>
     <string name="home_not_activated">Module Not Activated</string>
+    <string name="home_baseline_note">The module cannot hook itself; values above are this device\'s unmodified baseline.</string>
+    <string name="home_channel_bad">Remote config channel unavailable. Hooked apps cannot receive rules; check LSPosed status and restart this app.</string>
     <string name="app_version">App Version</string>
     <string name="hooked_apps">Hooked Apps</string>
     <string name="hook_count">Hook Count</string>
@@ -129,9 +131,10 @@
     <string name="search_no_result">No matching apps</string>
     <string name="nav_pending">TBD</string>
     <string name="home_checking">{}</string>
-    <string name="about_copyright" translatable="false">© 2026 Neekolor.</string>
     <string name="ssaid_count_title">%d entries</string>
     <string name="ssaid_copied">SSAID copied to clipboard</string>
     <string name="log_disabled_banner">Logging is disabled. Hook activity is not being recorded.</string>
     <string name="log_disabled_action">Enable</string>
+    <string name="settings_navigation_badge">Navigation badge</string>
+    <string name="settings_navigation_badge_summary">Show the enabled app count on the navigation bar</string>
 </resources>

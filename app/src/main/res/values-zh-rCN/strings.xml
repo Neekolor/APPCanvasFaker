@@ -83,6 +83,8 @@
     <string name="nav_rail_expand">展开导航栏</string>
     <string name="nav_rail_collapse">收起导航栏</string>
     <string name="home_not_activated">模块未激活</string>
+    <string name="home_baseline_note">模块无法 Hook 自身，以上为本机未污染基准值。</string>
+    <string name="home_channel_bad">远端配置通道不可用，被 Hook 应用收不到规则；请检查 LSPosed 状态并重启本应用。</string>
     <string name="app_version">应用版本</string>
     <string name="hooked_apps">已Hook应用</string>
     <string name="hook_count">Hook次数</string>
@@ -127,9 +129,10 @@
     <string name="search_no_result">未找到匹配的应用</string>
     <string name="nav_pending">待定</string>
     <string name="home_checking">{}</string>
-    <string name="about_copyright" translatable="false">© 2026 Neekolor.</string>
     <string name="ssaid_count_title">共 %d 个条目</string>
     <string name="ssaid_copied">SSAID 已复制到剪贴板</string>
     <string name="log_disabled_banner">日志记录功能已关闭，Hook 活动不会被记录。</string>
     <string name="log_disabled_action">去开启</string>
+    <string name="settings_navigation_badge">导航栏角标</string>
+    <string name="settings_navigation_badge_summary">在导航栏显示已启用伪装的应用数量</string>
 </resources>

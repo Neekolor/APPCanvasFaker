@@ -19,6 +19,7 @@ miuix = "0.9.3"
 okhttp = "5.4.0"
 hiddenapibypass = "6.1"
 appiconloader = "1.5.0"
+detekt = "1.23.8"
 
 [plugins]
 agp-app = { id = "com.android.application", version.ref = "agp" }
@@ -28,6 +29,7 @@ compose-compiler = { id = "org.jetbrains.kotlin.plugin.compose", version.ref = "
 kotlin-serialization = { id = "org.jetbrains.kotlin.plugin.serialization", version.ref = "kotlin" }
 
 lsplugin-apksign = { id = "org.lsposed.lsplugin.apksign", version.ref = "apksign" }
+detekt = { id = "io.gitlab.arturbosch.detekt", version.ref = "detekt" }
 
 [libraries]
 androidx-activity-compose = { group = "androidx.activity", name = "activity-compose", version.ref = "activity-compose" }
