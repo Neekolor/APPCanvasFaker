@@ -1,0 +1,30 @@
+# detekt 配置：基于默认规则集，针对本项目的 Compose + Xposed 热路径做少量放宽。
+# 完整默认规则见 https://detekt.dev/docs/rules/overview
+
+build:
+  maxIssues: 0
+
+style:
+  MaxLineLength:
+    maxLineLength: 140
+    excludeCommentStatements: true
+  # Hook 链与哈希工具大量位运算常量（0x1908、0xFF、位移量等），属正常写法，关闭此规则
+  MagicNumber:
+    active: false
+  UnusedPrivateMember:
+    active: true
+
+complexity:
+  TooManyFunctions:
+    thresholdInFiles: 30
+    thresholdInClasses: 20
+    thresholdInObjects: 25
+  LongMethod:
+    threshold: 80
+  LongParameterList:
+    functionThreshold: 8
+    constructorThreshold: 8
+
+naming:
+  FunctionNaming:
+    ignoreAnnotated: ['Composable']

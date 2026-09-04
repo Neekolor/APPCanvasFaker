@@ -1,0 +1,216 @@
+<?xml version="1.0" ?>
+<SmellBaseline>
+  <ManuallySuppressedIssues/>
+  <CurrentIssues>
+    <ID>ComplexCondition:BitmapHooks.kt$BitmapHooks$chars == null || index &lt; 0 || count &lt;= 0 || index + count &gt; chars.size</ID>
+    <ID>ComplexCondition:BitmapHooks.kt$BitmapHooks$text == null || start &lt; 0 || end &gt; text.length || start &gt;= end</ID>
+    <ID>ComplexCondition:FingerprintEngine.kt$FingerprintEngine$width &lt;= 0 || height &lt;= 0 || stride &lt;= 0 || pixels.isEmpty()</ID>
+    <ID>CyclomaticComplexMethod:AboutMiuix.kt$@Composable private fun AboutContent( state: AboutUiState, actions: AboutScreenActions, innerPadding: PaddingValues, topAppBarScrollBehavior: ScrollBehavior, lazyListState: LazyListState, scrollProgress: Float, onLogoHeightChanged: (Int) -&gt; Unit, eggHolder: EasterEggHolder, scope: CoroutineScope, )</ID>
+    <ID>CyclomaticComplexMethod:ColorPaletteScreenMiuix.kt$@SuppressLint("ConfigurationScreenWidthHeight") @Composable private fun ThemePreviewCardMiuix( keyColor: Int, isDark: Boolean, miuixMonet: Boolean, enableFloatingBottomBar: Boolean = false, enableFloatingBottomBarBlur: Boolean = false, paletteStyle: PaletteStyle = PaletteStyle.TonalSpot, colorSpec: ColorSpec.SpecVersion = ColorSpec.SpecVersion.SPEC_2021, )</ID>
+    <ID>CyclomaticComplexMethod:FilterNumber.kt$FilterNumber$private fun filterInputNumber( inputTextFieldValue: TextFieldValue, lastInputTextFieldValue: TextFieldValue, minValue: Int = Int.MIN_VALUE, maxValue: Int = Int.MAX_VALUE, ): TextFieldValue</ID>
+    <ID>CyclomaticComplexMethod:FingerprintCollector.kt$FingerprintCollector$suspend fun collectSync(context: Context): List&lt;FingerprintResult&gt;</ID>
+    <ID>CyclomaticComplexMethod:FloatingBottomBar.kt$@Composable fun FloatingBottomBar( modifier: Modifier = Modifier, selectedIndex: () -&gt; Int, onSelected: (index: Int) -&gt; Unit, backdrop: Backdrop, tabsCount: Int, isBlurEnabled: Boolean = true, content: @Composable RowScope.() -&gt; Unit )</ID>
+    <ID>CyclomaticComplexMethod:MainActivity.kt$@SuppressLint("UnusedMaterial3ScaffoldPaddingParameter") @Composable fun MainScreen( initialPage: Int = 0, onPageChanged: (Int) -&gt; Unit = {}, )</ID>
+    <ID>CyclomaticComplexMethod:MiuixTheme.kt$@Composable fun AppCanvasFakerMiuixTheme( appSettings: AppSettings, content: @Composable () -&gt; Unit )</ID>
+    <ID>CyclomaticComplexMethod:SsaidScreen.kt$@Composable fun SsaidScreen()</ID>
+    <ID>CyclomaticComplexMethod:StatsProvider.kt$StatsProvider$override fun call(method: String, arg: String?, extras: Bundle?): Bundle?</ID>
+    <ID>FunctionNaming:ConfigRepository.kt$ConfigRepository.Companion$private fun KEY_PKG_COUNT(pkg: String)</ID>
+    <ID>FunctionNaming:ConfigRepository.kt$ConfigRepository.Companion$private fun KEY_PKG_HASH(pkg: String)</ID>
+    <ID>FunctionNaming:ConfigRepository.kt$ConfigRepository.Companion$private fun KEY_PKG_LAST_TIME(pkg: String)</ID>
+    <ID>FunctionNaming:Dialog.kt$ConfirmDialogHandleImpl.Companion$fun Saver( visible: MutableState&lt;Boolean&gt;, coroutineScope: CoroutineScope, callback: ConfirmCallback, resultChannel: ReceiveChannel&lt;ConfirmResult&gt; )</ID>
+    <ID>FunctionOnlyReturningConstant:BaseFieldFilter.kt$BaseFieldFilter$protected fun getNewText( lastTextFiled: TextFieldValue, inputTextFieldValue: TextFieldValue ): TextRange?</ID>
+    <ID>FunctionOnlyReturningConstant:BaseFieldFilter.kt$BaseFieldFilter$protected fun getNewTextRange( lastTextFiled: TextFieldValue, inputTextFieldValue: TextFieldValue ): TextRange?</ID>
+    <ID>LongMethod:AboutMaterial.kt$@Composable fun AboutScreenMaterial( state: AboutUiState, actions: AboutScreenActions, )</ID>
+    <ID>LongMethod:AboutMiuix.kt$@Composable private fun AboutContent( state: AboutUiState, actions: AboutScreenActions, innerPadding: PaddingValues, topAppBarScrollBehavior: ScrollBehavior, lazyListState: LazyListState, scrollProgress: Float, onLogoHeightChanged: (Int) -&gt; Unit, eggHolder: EasterEggHolder, scope: CoroutineScope, )</ID>
+    <ID>LongMethod:AppListMaterial.kt$@Composable fun AppListPagerMaterial( uiState: AppListUiState, actions: AppListActions, bottomInnerPadding: Dp, )</ID>
+    <ID>LongMethod:AppListMiuix.kt$@Composable fun AppListPagerMiuix( uiState: AppListUiState, actions: AppListActions, bottomInnerPadding: Dp, )</ID>
+    <ID>LongMethod:AppListMiuix.kt$@Composable private fun AppItem( app: AppListItem, onClick: () -&gt; Unit, )</ID>
+    <ID>LongMethod:AppProfileMaterial.kt$@Composable private fun AppProfileContent( modifier: Modifier = Modifier, state: AppProfileUiState, actions: AppProfileActions, )</ID>
+    <ID>LongMethod:AppProfileMiuix.kt$@Composable private fun AppProfileContent( state: AppProfileUiState, actions: AppProfileActions, )</ID>
+    <ID>LongMethod:ColorPaletteScreenMaterial.kt$@Composable fun ColorPaletteScreenMaterial( state: ColorPaletteUiState, actions: ColorPaletteScreenActions, )</ID>
+    <ID>LongMethod:ColorPaletteScreenMaterial.kt$@Composable private fun ColorButtonMaterial( color: Color, isSelected: Boolean, isDark: Boolean, isAmoled: Boolean = false, paletteStyle: PaletteStyle = PaletteStyle.TonalSpot, colorSpec: ColorSpec.SpecVersion = ColorSpec.SpecVersion.SPEC_2025, onClick: () -&gt; Unit )</ID>
+    <ID>LongMethod:ColorPaletteScreenMaterial.kt$@SuppressLint("ConfigurationScreenWidthHeight") @Composable private fun ThemePreviewCard( keyColor: Int, isDark: Boolean, isAmoled: Boolean = false, paletteStyle: PaletteStyle = PaletteStyle.TonalSpot, colorSpec: ColorSpec.SpecVersion = ColorSpec.SpecVersion.SPEC_2025, )</ID>
+    <ID>LongMethod:ColorPaletteScreenMiuix.kt$@Composable fun ColorPaletteScreenMiuix( state: ColorPaletteUiState, actions: ColorPaletteScreenActions, )</ID>
+    <ID>LongMethod:ColorPaletteScreenMiuix.kt$@SuppressLint("ConfigurationScreenWidthHeight") @Composable private fun ThemePreviewCardMiuix( keyColor: Int, isDark: Boolean, miuixMonet: Boolean, enableFloatingBottomBar: Boolean = false, enableFloatingBottomBarBlur: Boolean = false, paletteStyle: PaletteStyle = PaletteStyle.TonalSpot, colorSpec: ColorSpec.SpecVersion = ColorSpec.SpecVersion.SPEC_2021, )</ID>
+    <ID>LongMethod:EditText.kt$@Composable fun EditText( modifier: Modifier = Modifier, title: String, value: String, onValueChange: (String) -&gt; Unit = {}, summary: String? = null, textHint: String = "", enabled: Boolean = true, keyboardOptions: KeyboardOptions = KeyboardOptions.Default, titleColor: BasicComponentColors = EditTextDefaults.titleColor(), summaryColor: BasicComponentColors = EditTextDefaults.summaryColor(), rightActionColor: BasicComponentColors = EditTextDefaults.rightActionColors(), isError: Boolean = false, )</ID>
+    <ID>LongMethod:FloatingBottomBar.kt$@Composable fun FloatingBottomBar( modifier: Modifier = Modifier, selectedIndex: () -&gt; Int, onSelected: (index: Int) -&gt; Unit, backdrop: Backdrop, tabsCount: Int, isBlurEnabled: Boolean = true, content: @Composable RowScope.() -&gt; Unit )</ID>
+    <ID>LongMethod:HomeMaterial.kt$@Composable private fun StatusCard( state: HomeUiState, actions: HomeActions, )</ID>
+    <ID>LongMethod:HomeMiuix.kt$@Composable private fun StatusCard( state: HomeUiState, actions: HomeActions, )</ID>
+    <ID>LongMethod:LogMaterial.kt$@Composable fun LogScreenMaterial( state: LogUiState, actions: LogActions, )</ID>
+    <ID>LongMethod:LogMiuix.kt$@Composable fun LogScreenMiuix( state: LogUiState, actions: LogActions, )</ID>
+    <ID>LongMethod:MainActivity.kt$@SuppressLint("UnusedMaterial3ScaffoldPaddingParameter") @Composable fun MainScreen( initialPage: Int = 0, onPageChanged: (Int) -&gt; Unit = {}, )</ID>
+    <ID>LongMethod:SearchBar.kt$@Composable fun SearchAppBar( title: @Composable () -&gt; Unit, searchText: String, onSearchTextChange: (String) -&gt; Unit, onClearClick: () -&gt; Unit, snackbarHostState: SnackbarHostState, navigationIcon: @Composable (() -&gt; Unit)? = null, actions: @Composable (() -&gt; Unit)? = null, scrollBehavior: TopAppBarScrollBehavior? = null, defaultContent: @Composable BoxScope.(bottomPadding: Dp, closeSearch: () -&gt; Unit) -&gt; Unit = { _, _ -&gt; }, searchContent: @Composable BoxScope.(bottomPadding: Dp, closeSearch: () -&gt; Unit) -&gt; Unit = { _, _ -&gt; } )</ID>
+    <ID>LongMethod:SegmentedList.kt$@Composable fun SegmentedColumn( modifier: Modifier = Modifier, title: String = "", content: SegmentedColumnScope.() -&gt; Unit, )</ID>
+    <ID>LongMethod:SettingsMaterial.kt$@Composable fun SettingPagerMaterial( uiState: SettingsUiState, actions: SettingsScreenActions, bottomInnerPadding: Dp, )</ID>
+    <ID>LongMethod:SettingsMiuix.kt$@Composable fun SettingPagerMiuix( uiState: SettingsUiState, actions: SettingsScreenActions, bottomInnerPadding: Dp, )</ID>
+    <ID>LongMethod:SsaidScreen.kt$@Composable private fun SsaidScreenMiuix( state: SsaidUiState, actions: SsaidActions, )</ID>
+    <ID>LongMethod:SsaidScreen.kt$@OptIn(ExperimentalMaterial3Api::class) @Composable private fun SsaidScreenMaterial( state: SsaidUiState, actions: SsaidActions, snackbarHost: SnackbarHostState, )</ID>
+    <ID>LongMethod:SuperSearchBar.kt$@Composable fun SearchStatus.SearchPager( onSearchStatusChange: (SearchStatus) -&gt; Unit, defaultResult: @Composable () -&gt; Unit, expandBar: @Composable (SearchStatus, (SearchStatus) -&gt; Unit, Dp) -&gt; Unit = { searchStatus, onStatusChange, padding -&gt; SearchBar(searchStatus, onStatusChange, padding) }, searchBarTopPadding: Dp = 12.dp, result: @Composable () -&gt; Unit )</ID>
+    <ID>LongMethod:ToolsScreen.kt$@Composable private fun ToolsScreenMiuix( uiState: dev.neekolor.appcanvasfaker.ui.screen.settings.SettingsUiState, viewModel: SettingsViewModel, onBack: () -&gt; Unit, )</ID>
+    <ID>LongParameterList:AboutMiuix.kt$( state: AboutUiState, actions: AboutScreenActions, innerPadding: PaddingValues, topAppBarScrollBehavior: ScrollBehavior, lazyListState: LazyListState, scrollProgress: Float, onLogoHeightChanged: (Int) -&gt; Unit, eggHolder: EasterEggHolder, scope: CoroutineScope, )</ID>
+    <ID>LongParameterList:BgEffectConfig.kt$BgEffectConfig.Config$( val points: FloatArray, val colors1: FloatArray, val colors2: FloatArray, val colors3: FloatArray, val colorInterpPeriod: Float, val lightOffset: Float, val saturateOffset: Float, val pointOffset: Float, )</ID>
+    <ID>LongParameterList:BgEffectModifier.kt$( painter: BgEffectPainter, preset: BgEffectConfig.Config, deviceType: DeviceType, isDarkTheme: Boolean, surface: Color, effectBackground: Boolean, isFullSize: Boolean, playing: Boolean, colorStage: () -&gt; Float, alpha: () -&gt; Float, )</ID>
+    <ID>LongParameterList:BgEffectModifier.kt$BgEffectNode$( painter: BgEffectPainter, preset: BgEffectConfig.Config, deviceType: DeviceType, isDarkTheme: Boolean, surface: Color, effectBackground: Boolean, isFullSize: Boolean, playing: Boolean, colorStage: () -&gt; Float, alpha: () -&gt; Float, )</ID>
+    <ID>LongParameterList:BgEffectModifier.kt$BgEffectNode$( private var painter: BgEffectPainter, private var preset: BgEffectConfig.Config, private var deviceType: DeviceType, private var isDarkTheme: Boolean, private var surface: Color, private var effectBackground: Boolean, private var isFullSize: Boolean, private var playing: Boolean, private var colorStage: () -&gt; Float, private var alpha: () -&gt; Float, )</ID>
+    <ID>LongParameterList:BitmapHooks.kt$BitmapHooks$( module: XposedInterface, packageName: String, mode: ProtectionMode, seed: Long, context: Context?, enableLogging: Boolean, param: XposedModuleInterface.PackageLoadedParam, hookGetPixel: Boolean, hookTextMetrics: Boolean, hookGlReadPixels: Boolean )</ID>
+    <ID>LongParameterList:DampedDragAnimation.kt$DampedDragAnimation$( private val animationScope: CoroutineScope, val initialValue: Float, val valueRange: ClosedRange&lt;Float&gt;, val visibilityThreshold: Float, val initialScale: Float, val pressedScale: Float, val canDrag: (Offset) -&gt; Boolean = { true }, val onDragStarted: DampedDragAnimation.(position: Offset) -&gt; Unit, val onDragStopped: DampedDragAnimation.() -&gt; Unit, val onDrag: DampedDragAnimation.(size: IntSize, dragAmount: Offset) -&gt; Unit, )</ID>
+    <ID>LongParameterList:EditText.kt$( modifier: Modifier = Modifier, title: String, value: String, onValueChange: (String) -&gt; Unit = {}, summary: String? = null, textHint: String = "", enabled: Boolean = true, keyboardOptions: KeyboardOptions = KeyboardOptions.Default, titleColor: BasicComponentColors = EditTextDefaults.titleColor(), summaryColor: BasicComponentColors = EditTextDefaults.summaryColor(), rightActionColor: BasicComponentColors = EditTextDefaults.rightActionColors(), isError: Boolean = false, )</ID>
+    <ID>LongParameterList:ExpressiveDialog.kt$( onDismissRequest: () -&gt; Unit, confirmButton: @Composable () -&gt; Unit, modifier: Modifier = Modifier, dismissButton: (@Composable () -&gt; Unit)? = null, icon: (@Composable () -&gt; Unit)? = null, title: (@Composable () -&gt; Unit)? = null, text: (@Composable () -&gt; Unit)? = null, shape: Shape = MaterialTheme.shapes.extraLarge, containerColor: Color = AlertDialogDefaults.containerColor, iconContentColor: Color = AlertDialogDefaults.iconContentColor, titleContentColor: Color = AlertDialogDefaults.titleContentColor, textContentColor: Color = AlertDialogDefaults.textContentColor, tonalElevation: Dp = AlertDialogDefaults.TonalElevation, properties: DialogProperties = DialogProperties(), )</ID>
+    <ID>LongParameterList:ExpressiveScaffold.kt$( modifier: Modifier = Modifier, topBar: @Composable () -&gt; Unit = {}, bottomBar: @Composable () -&gt; Unit = {}, snackbarHost: @Composable () -&gt; Unit = {}, floatingActionButton: @Composable () -&gt; Unit = {}, floatingActionButtonPosition: FabPosition = FabPosition.End, containerColor: Color = MaterialTheme.colorScheme.surfaceContainer, contentColor: Color = contentColorFor(containerColor), contentWindowInsets: WindowInsets = ScaffoldDefaults.contentWindowInsets, content: @Composable (PaddingValues) -&gt; Unit, )</ID>
+    <ID>LongParameterList:ExpressiveSwitch.kt$( checked: Boolean, onCheckedChange: ((Boolean) -&gt; Unit)?, modifier: Modifier = Modifier, thumbContent: (@Composable () -&gt; Unit)? = null, enabled: Boolean = true, colors: SwitchColors = expressiveSwitchColors(), interactionSource: MutableInteractionSource = remember { MutableInteractionSource() }, showThumbIcon: Boolean = true, )</ID>
+    <ID>LongParameterList:ExpressiveSwitch.kt$( checkedIconColor: Color = MaterialTheme.colorScheme.primary, uncheckedIconColor: Color = MaterialTheme.colorScheme.surfaceContainerHighest, disabledCheckedThumbColor: Color = MaterialTheme.colorScheme.surface.copy(alpha = 0.38f), disabledCheckedTrackColor: Color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.12f), disabledCheckedIconColor: Color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.12f), disabledUncheckedThumbColor: Color = MaterialTheme.colorScheme.outline.copy(alpha = 0.38f), disabledUncheckedTrackColor: Color = MaterialTheme.colorScheme.surfaceContainerHighest.copy(alpha = 0.12f), disabledUncheckedBorderColor: Color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.12f), disabledUncheckedIconColor: Color = MaterialTheme.colorScheme.surfaceContainerHighest, )</ID>
+    <ID>LongParameterList:FingerprintEngine.kt$FingerprintEngine$( pixels: IntArray, width: Int, height: Int, offset: Int, stride: Int, originX: Int, originY: Int, mode: ProtectionMode, seed: Long )</ID>
+    <ID>LongParameterList:FingerprintEngine.kt$FingerprintEngine$( pixels: IntArray, width: Int, height: Int, offset: Int, stride: Int, originX: Int, originY: Int, seed: Long )</ID>
+    <ID>LongParameterList:SearchBar.kt$( title: @Composable () -&gt; Unit, searchText: String, onSearchTextChange: (String) -&gt; Unit, onClearClick: () -&gt; Unit, snackbarHostState: SnackbarHostState, navigationIcon: @Composable (() -&gt; Unit)? = null, actions: @Composable (() -&gt; Unit)? = null, scrollBehavior: TopAppBarScrollBehavior? = null, defaultContent: @Composable BoxScope.(bottomPadding: Dp, closeSearch: () -&gt; Unit) -&gt; Unit = { _, _ -&gt; }, searchContent: @Composable BoxScope.(bottomPadding: Dp, closeSearch: () -&gt; Unit) -&gt; Unit = { _, _ -&gt; } )</ID>
+    <ID>LongParameterList:SegmentedList.kt$( checked: Boolean, onCheckedChange: (Boolean) -&gt; Unit, modifier: Modifier = Modifier, enabled: Boolean = true, colors: ListItemColors = defaultSegmentedColors(), interactionSource: MutableInteractionSource? = null, headlineContent: @Composable () -&gt; Unit, overlineContent: @Composable (() -&gt; Unit)? = null, supportingContent: @Composable (() -&gt; Unit)? = null, leadingContent: @Composable (() -&gt; Unit)? = null, trailingContent: @Composable (() -&gt; Unit)? = null, onLongClick: (() -&gt; Unit)? = null, )</ID>
+    <ID>LongParameterList:SegmentedList.kt$( icon: ImageVector? = null, title: String, summary: String? = null, items: List&lt;String&gt;, colors: ListItemColors = defaultSegmentedColors(), enabled: Boolean = true, onClick: (() -&gt; Unit)? = null, selectedIndex: Int, onItemSelected: (Int) -&gt; Unit, )</ID>
+    <ID>LongParameterList:SegmentedList.kt$( modifier: Modifier = Modifier, label: String = "", value: String, onValueChange: (String) -&gt; Unit, enabled: Boolean = true, readOnly: Boolean = false, colors: ListItemColors = defaultSegmentedColors(), textStyle: TextStyle = MaterialTheme.typography.bodyLarge, keyboardOptions: KeyboardOptions = KeyboardOptions.Default, keyboardActions: KeyboardActions = KeyboardActions.Default, singleLine: Boolean = false, maxLines: Int = if (singleLine) 1 else Int.MAX_VALUE, minLines: Int = 1, visualTransformation: VisualTransformation = VisualTransformation.None, onTextLayout: (TextLayoutResult) -&gt; Unit = {}, interactionSource: MutableInteractionSource = remember { MutableInteractionSource() }, cursorBrush: Brush = SolidColor(colorScheme.primary), placeholder: @Composable (() -&gt; Unit)? = { Text("-") }, leadingContent: @Composable (() -&gt; Unit)? = null, trailingContent: @Composable (() -&gt; Unit)? = null, supportingContent: @Composable (() -&gt; Unit)? = null, isError: Boolean = false )</ID>
+    <ID>LongParameterList:SegmentedList.kt$( modifier: Modifier = Modifier, onClick: (() -&gt; Unit)? = null, onLongClick: (() -&gt; Unit)? = null, enabled: Boolean = true, colors: ListItemColors = defaultSegmentedColors(), interactionSource: MutableInteractionSource? = null, headlineContent: @Composable () -&gt; Unit, overlineContent: @Composable (() -&gt; Unit)? = null, supportingContent: @Composable (() -&gt; Unit)? = null, leadingContent: @Composable (() -&gt; Unit)? = null, trailingContent: @Composable (() -&gt; Unit)? = null, )</ID>
+    <ID>LongParameterList:SegmentedList.kt$( selected: Boolean, onClick: () -&gt; Unit, modifier: Modifier = Modifier, enabled: Boolean = true, colors: ListItemColors = defaultSegmentedColors(), interactionSource: MutableInteractionSource? = null, headlineContent: @Composable () -&gt; Unit, overlineContent: @Composable (() -&gt; Unit)? = null, supportingContent: @Composable (() -&gt; Unit)? = null, leadingContent: @Composable (() -&gt; Unit)? = null, trailingContent: @Composable (() -&gt; Unit)? = null, onLongClick: (() -&gt; Unit)? = null, )</ID>
+    <ID>LongParameterList:SuperEditArrow.kt$( modifier: Modifier = Modifier, title: String, titleColor: BasicComponentColors = BasicComponentDefaults.titleColor(), defaultValue: Int = -1, summaryColor: BasicComponentColors = BasicComponentDefaults.summaryColor(), startAction: @Composable (() -&gt; Unit)? = null, insideMargin: PaddingValues = BasicComponentDefaults.InsideMargin, enabled: Boolean = true, onValueChange: ((Int) -&gt; Unit)? = null )</ID>
+    <ID>LongParameterList:TonalCard.kt$( modifier: Modifier = Modifier, containerColor: Color = MaterialTheme.colorScheme.surfaceBright, contentColor: Color = contentColorFor(containerColor), shape: Shape = MaterialTheme.shapes.large, enabled: Boolean = true, onClick: (() -&gt; Unit)? = null, onLongClick: (() -&gt; Unit)? = null, content: @Composable () -&gt; Unit, )</ID>
+    <ID>MatchingDeclarationName:AboutUtils.kt$LinkInfo</ID>
+    <ID>MatchingDeclarationName:MenuPositionProvider.kt$ListPopupDefaults</ID>
+    <ID>MatchingDeclarationName:Routes.kt$Route : NavKeyParcelable</ID>
+    <ID>MaxLineLength:ColorPaletteScreenMiuix.kt$AnimatedVisibility</ID>
+    <ID>MaxLineLength:Dialog.kt$ConfirmDialogVisualsImpl.Companion$val Empty: ConfirmDialogVisuals = ConfirmDialogVisualsImpl("", "", isMarkdown = false, isHtml = false, confirm = null, dismiss = null)</ID>
+    <ID>MayBeConst:FingerprintEngine.kt$FingerprintEngine$/** H-02 GL 通道域隔离盐：避免 GL 序号噪声与位图坐标噪声同键。 */ private val GL_DOMAIN_SALT: Long = 0x1B873593L</ID>
+    <ID>NestedBlockDepth:FilterNumber.kt$FilterNumber$private fun filterInputNumber( inputTextFieldValue: TextFieldValue, lastInputTextFieldValue: TextFieldValue, minValue: Int = Int.MIN_VALUE, maxValue: Int = Int.MAX_VALUE, ): TextFieldValue</ID>
+    <ID>NewLineAtEndOfFile:AboutMaterial.kt$dev.neekolor.appcanvasfaker.ui.screen.about.AboutMaterial.kt</ID>
+    <ID>NewLineAtEndOfFile:AboutMiuix.kt$dev.neekolor.appcanvasfaker.ui.screen.about.AboutMiuix.kt</ID>
+    <ID>NewLineAtEndOfFile:AboutScreen.kt$dev.neekolor.appcanvasfaker.ui.screen.about.AboutScreen.kt</ID>
+    <ID>NewLineAtEndOfFile:AboutUiState.kt$dev.neekolor.appcanvasfaker.ui.screen.about.AboutUiState.kt</ID>
+    <ID>NewLineAtEndOfFile:AppCanvasFakerApplication.kt$dev.neekolor.appcanvasfaker.AppCanvasFakerApplication.kt</ID>
+    <ID>NewLineAtEndOfFile:AppIconCache.kt$dev.neekolor.appcanvasfaker.ui.util.AppIconCache.kt</ID>
+    <ID>NewLineAtEndOfFile:AppIconImage.kt$dev.neekolor.appcanvasfaker.ui.component.AppIconImage.kt</ID>
+    <ID>NewLineAtEndOfFile:AppListMaterial.kt$dev.neekolor.appcanvasfaker.ui.screen.applist.AppListMaterial.kt</ID>
+    <ID>NewLineAtEndOfFile:AppListMiuix.kt$dev.neekolor.appcanvasfaker.ui.screen.applist.AppListMiuix.kt</ID>
+    <ID>NewLineAtEndOfFile:AppListScreen.kt$dev.neekolor.appcanvasfaker.ui.screen.applist.AppListScreen.kt</ID>
+    <ID>NewLineAtEndOfFile:AppListUiState.kt$dev.neekolor.appcanvasfaker.ui.screen.applist.AppListUiState.kt</ID>
+    <ID>NewLineAtEndOfFile:AppListViewModel.kt$dev.neekolor.appcanvasfaker.ui.screen.applist.AppListViewModel.kt</ID>
+    <ID>NewLineAtEndOfFile:AppProfileMaterial.kt$dev.neekolor.appcanvasfaker.ui.screen.appprofile.AppProfileMaterial.kt</ID>
+    <ID>NewLineAtEndOfFile:AppProfileMiuix.kt$dev.neekolor.appcanvasfaker.ui.screen.appprofile.AppProfileMiuix.kt</ID>
+    <ID>NewLineAtEndOfFile:BgEffectBackground.kt$dev.neekolor.appcanvasfaker.ui.component.miuix.effect.BgEffectBackground.kt</ID>
+    <ID>NewLineAtEndOfFile:BgEffectConfig.kt$dev.neekolor.appcanvasfaker.ui.component.miuix.effect.BgEffectConfig.kt</ID>
+    <ID>NewLineAtEndOfFile:BgEffectModifier.kt$dev.neekolor.appcanvasfaker.ui.component.miuix.effect.BgEffectModifier.kt</ID>
+    <ID>NewLineAtEndOfFile:BgEffectPainter.kt$dev.neekolor.appcanvasfaker.ui.component.miuix.effect.BgEffectPainter.kt</ID>
+    <ID>NewLineAtEndOfFile:BitmapHooks.kt$dev.neekolor.appcanvasfaker.hook.BitmapHooks.kt</ID>
+    <ID>NewLineAtEndOfFile:BlurExt.kt$dev.neekolor.appcanvasfaker.ui.util.BlurExt.kt</ID>
+    <ID>NewLineAtEndOfFile:BottomBar.kt$dev.neekolor.appcanvasfaker.ui.component.bottombar.BottomBar.kt</ID>
+    <ID>NewLineAtEndOfFile:BottomBarMaterial.kt$dev.neekolor.appcanvasfaker.ui.component.bottombar.BottomBarMaterial.kt</ID>
+    <ID>NewLineAtEndOfFile:BottomBarMiuix.kt$dev.neekolor.appcanvasfaker.ui.component.bottombar.BottomBarMiuix.kt</ID>
+    <ID>NewLineAtEndOfFile:ColorBlendToken.kt$dev.neekolor.appcanvasfaker.ui.component.miuix.effect.ColorBlendToken.kt</ID>
+    <ID>NewLineAtEndOfFile:ColorPaletteScreen.kt$dev.neekolor.appcanvasfaker.ui.screen.colorpalette.ColorPaletteScreen.kt</ID>
+    <ID>NewLineAtEndOfFile:ColorPaletteScreenMaterial.kt$dev.neekolor.appcanvasfaker.ui.screen.colorpalette.ColorPaletteScreenMaterial.kt</ID>
+    <ID>NewLineAtEndOfFile:ColorPaletteScreenMiuix.kt$dev.neekolor.appcanvasfaker.ui.screen.colorpalette.ColorPaletteScreenMiuix.kt</ID>
+    <ID>NewLineAtEndOfFile:ColorPaletteUiState.kt$dev.neekolor.appcanvasfaker.ui.screen.colorpalette.ColorPaletteUiState.kt</ID>
+    <ID>NewLineAtEndOfFile:Colors.kt$dev.neekolor.appcanvasfaker.ui.theme.Colors.kt</ID>
+    <ID>NewLineAtEndOfFile:ConfigRepository.kt$dev.neekolor.appcanvasfaker.core.ConfigRepository.kt</ID>
+    <ID>NewLineAtEndOfFile:DampedDragAnimation.kt$dev.neekolor.appcanvasfaker.ui.component.miuix.animation.DampedDragAnimation.kt</ID>
+    <ID>NewLineAtEndOfFile:DeferredContent.kt$dev.neekolor.appcanvasfaker.ui.util.DeferredContent.kt</ID>
+    <ID>NewLineAtEndOfFile:DeviceType.kt$dev.neekolor.appcanvasfaker.ui.component.miuix.effect.DeviceType.kt</ID>
+    <ID>NewLineAtEndOfFile:Dialog.kt$dev.neekolor.appcanvasfaker.ui.component.dialog.Dialog.kt</ID>
+    <ID>NewLineAtEndOfFile:DialogMiuix.kt$dev.neekolor.appcanvasfaker.ui.component.dialog.DialogMiuix.kt</ID>
+    <ID>NewLineAtEndOfFile:DragGestureInspector.kt$dev.neekolor.appcanvasfaker.ui.component.miuix.modifier.DragGestureInspector.kt</ID>
+    <ID>NewLineAtEndOfFile:DropdownItem.kt$dev.neekolor.appcanvasfaker.ui.component.miuix.DropdownItem.kt</ID>
+    <ID>NewLineAtEndOfFile:EditText.kt$dev.neekolor.appcanvasfaker.ui.component.miuix.EditText.kt</ID>
+    <ID>NewLineAtEndOfFile:ExpressiveDialog.kt$dev.neekolor.appcanvasfaker.ui.component.material.ExpressiveDialog.kt</ID>
+    <ID>NewLineAtEndOfFile:ExpressiveScaffold.kt$dev.neekolor.appcanvasfaker.ui.component.material.ExpressiveScaffold.kt</ID>
+    <ID>NewLineAtEndOfFile:ExpressiveSwitch.kt$dev.neekolor.appcanvasfaker.ui.component.material.ExpressiveSwitch.kt</ID>
+    <ID>NewLineAtEndOfFile:FingerprintCollector.kt$dev.neekolor.appcanvasfaker.scanner.fingerprint.FingerprintCollector.kt</ID>
+    <ID>NewLineAtEndOfFile:FingerprintEngine.kt$dev.neekolor.appcanvasfaker.core.FingerprintEngine.kt</ID>
+    <ID>NewLineAtEndOfFile:FloatingBottomBar.kt$dev.neekolor.appcanvasfaker.ui.component.FloatingBottomBar.kt</ID>
+    <ID>NewLineAtEndOfFile:HardwareReaders.kt$dev.neekolor.appcanvasfaker.scanner.fingerprint.HardwareReaders.kt</ID>
+    <ID>NewLineAtEndOfFile:HashUtils.kt$dev.neekolor.appcanvasfaker.util.HashUtils.kt</ID>
+    <ID>NewLineAtEndOfFile:HomeMaterial.kt$dev.neekolor.appcanvasfaker.ui.screen.home.HomeMaterial.kt</ID>
+    <ID>NewLineAtEndOfFile:HomeMiuix.kt$dev.neekolor.appcanvasfaker.ui.screen.home.HomeMiuix.kt</ID>
+    <ID>NewLineAtEndOfFile:HomeScreen.kt$dev.neekolor.appcanvasfaker.ui.screen.home.HomeScreen.kt</ID>
+    <ID>NewLineAtEndOfFile:HomeUiState.kt$dev.neekolor.appcanvasfaker.ui.screen.home.HomeUiState.kt</ID>
+    <ID>NewLineAtEndOfFile:InteractiveHighlight.kt$dev.neekolor.appcanvasfaker.ui.component.miuix.animation.InteractiveHighlight.kt</ID>
+    <ID>NewLineAtEndOfFile:KeyEventBlocker.kt$dev.neekolor.appcanvasfaker.ui.component.KeyEventBlocker.kt</ID>
+    <ID>NewLineAtEndOfFile:LogMaterial.kt$dev.neekolor.appcanvasfaker.ui.screen.log.LogMaterial.kt</ID>
+    <ID>NewLineAtEndOfFile:LogScreen.kt$dev.neekolor.appcanvasfaker.ui.screen.log.LogScreen.kt</ID>
+    <ID>NewLineAtEndOfFile:LogUiState.kt$dev.neekolor.appcanvasfaker.ui.screen.log.LogUiState.kt</ID>
+    <ID>NewLineAtEndOfFile:LogViewModel.kt$dev.neekolor.appcanvasfaker.ui.viewmodel.LogViewModel.kt</ID>
+    <ID>NewLineAtEndOfFile:MainActivity.kt$dev.neekolor.appcanvasfaker.ui.MainActivity.kt</ID>
+    <ID>NewLineAtEndOfFile:MainActivityUiState.kt$dev.neekolor.appcanvasfaker.ui.viewmodel.MainActivityUiState.kt</ID>
+    <ID>NewLineAtEndOfFile:MainActivityViewModel.kt$dev.neekolor.appcanvasfaker.ui.viewmodel.MainActivityViewModel.kt</ID>
+    <ID>NewLineAtEndOfFile:MaterialTheme.kt$dev.neekolor.appcanvasfaker.ui.theme.MaterialTheme.kt</ID>
+    <ID>NewLineAtEndOfFile:MenuPositionProvider.kt$dev.neekolor.appcanvasfaker.ui.component.MenuPositionProvider.kt</ID>
+    <ID>NewLineAtEndOfFile:MiuixTheme.kt$dev.neekolor.appcanvasfaker.ui.theme.MiuixTheme.kt</ID>
+    <ID>NewLineAtEndOfFile:Models.kt$dev.neekolor.appcanvasfaker.core.Models.kt</ID>
+    <ID>NewLineAtEndOfFile:NavigationRailMaterial.kt$dev.neekolor.appcanvasfaker.ui.component.bottombar.NavigationRailMaterial.kt</ID>
+    <ID>NewLineAtEndOfFile:NavigationRailMiuix.kt$dev.neekolor.appcanvasfaker.ui.component.bottombar.NavigationRailMiuix.kt</ID>
+    <ID>NewLineAtEndOfFile:Navigator.kt$dev.neekolor.appcanvasfaker.ui.navigation3.Navigator.kt</ID>
+    <ID>NewLineAtEndOfFile:NonPixelSignals.kt$dev.neekolor.appcanvasfaker.scanner.fingerprint.NonPixelSignals.kt</ID>
+    <ID>NewLineAtEndOfFile:OS3BgFrag.kt$dev.neekolor.appcanvasfaker.ui.component.miuix.effect.OS3BgFrag.kt</ID>
+    <ID>NewLineAtEndOfFile:ObserveAsEvents.kt$dev.neekolor.appcanvasfaker.ui.component.ObserveAsEvents.kt</ID>
+    <ID>NewLineAtEndOfFile:OffscreenRenderers.kt$dev.neekolor.appcanvasfaker.scanner.fingerprint.OffscreenRenderers.kt</ID>
+    <ID>NewLineAtEndOfFile:PagerNavigationSpring.kt$dev.neekolor.appcanvasfaker.ui.component.PagerNavigationSpring.kt</ID>
+    <ID>NewLineAtEndOfFile:PixelReaders.kt$dev.neekolor.appcanvasfaker.scanner.fingerprint.PixelReaders.kt</ID>
+    <ID>NewLineAtEndOfFile:ProbeView.kt$dev.neekolor.appcanvasfaker.scanner.ui.ProbeView.kt</ID>
+    <ID>NewLineAtEndOfFile:Routes.kt$dev.neekolor.appcanvasfaker.ui.navigation3.Routes.kt</ID>
+    <ID>NewLineAtEndOfFile:ScaleDialog.kt$dev.neekolor.appcanvasfaker.ui.component.miuix.ScaleDialog.kt</ID>
+    <ID>NewLineAtEndOfFile:ScrollToTop.kt$dev.neekolor.appcanvasfaker.ui.component.ScrollToTop.kt</ID>
+    <ID>NewLineAtEndOfFile:SearchBar.kt$dev.neekolor.appcanvasfaker.ui.component.material.SearchBar.kt</ID>
+    <ID>NewLineAtEndOfFile:SearchStatus.kt$dev.neekolor.appcanvasfaker.ui.component.SearchStatus.kt</ID>
+    <ID>NewLineAtEndOfFile:SearchViewModelHelper.kt$dev.neekolor.appcanvasfaker.ui.viewmodel.SearchViewModelHelper.kt</ID>
+    <ID>NewLineAtEndOfFile:SettingsMaterial.kt$dev.neekolor.appcanvasfaker.ui.screen.settings.SettingsMaterial.kt</ID>
+    <ID>NewLineAtEndOfFile:SettingsMiuix.kt$dev.neekolor.appcanvasfaker.ui.screen.settings.SettingsMiuix.kt</ID>
+    <ID>NewLineAtEndOfFile:SettingsRepository.kt$dev.neekolor.appcanvasfaker.data.repository.SettingsRepository.kt</ID>
+    <ID>NewLineAtEndOfFile:SettingsRepositoryImpl.kt$dev.neekolor.appcanvasfaker.data.repository.SettingsRepositoryImpl.kt</ID>
+    <ID>NewLineAtEndOfFile:SettingsScreen.kt$dev.neekolor.appcanvasfaker.ui.screen.settings.SettingsScreen.kt</ID>
+    <ID>NewLineAtEndOfFile:SettingsUiState.kt$dev.neekolor.appcanvasfaker.ui.screen.settings.SettingsUiState.kt</ID>
+    <ID>NewLineAtEndOfFile:SettingsViewModel.kt$dev.neekolor.appcanvasfaker.ui.viewmodel.SettingsViewModel.kt</ID>
+    <ID>NewLineAtEndOfFile:SnackBar.kt$dev.neekolor.appcanvasfaker.ui.component.material.SnackBar.kt</ID>
+    <ID>NewLineAtEndOfFile:StatusTag.kt$dev.neekolor.appcanvasfaker.ui.component.statustag.StatusTag.kt</ID>
+    <ID>NewLineAtEndOfFile:StatusTagMaterial.kt$dev.neekolor.appcanvasfaker.ui.component.statustag.StatusTagMaterial.kt</ID>
+    <ID>NewLineAtEndOfFile:StatusTagMiuix.kt$dev.neekolor.appcanvasfaker.ui.component.statustag.StatusTagMiuix.kt</ID>
+    <ID>NewLineAtEndOfFile:SuperEditArrow.kt$dev.neekolor.appcanvasfaker.ui.component.miuix.SuperEditArrow.kt</ID>
+    <ID>NewLineAtEndOfFile:SuperSearchBar.kt$dev.neekolor.appcanvasfaker.ui.component.miuix.SuperSearchBar.kt</ID>
+    <ID>NewLineAtEndOfFile:ThemeExt.kt$dev.neekolor.appcanvasfaker.ui.theme.ThemeExt.kt</ID>
+    <ID>NewLineAtEndOfFile:TonalCard.kt$dev.neekolor.appcanvasfaker.ui.component.material.TonalCard.kt</ID>
+    <ID>NewLineAtEndOfFile:TopBarBackButton.kt$dev.neekolor.appcanvasfaker.ui.component.material.TopBarBackButton.kt</ID>
+    <ID>NewLineAtEndOfFile:UiMode.kt$dev.neekolor.appcanvasfaker.ui.UiMode.kt</ID>
+    <ID>NewLineAtEndOfFile:ViewCapturers.kt$dev.neekolor.appcanvasfaker.scanner.fingerprint.ViewCapturers.kt</ID>
+    <ID>NewLineAtEndOfFile:WarningCard.kt$dev.neekolor.appcanvasfaker.ui.component.miuix.WarningCard.kt</ID>
+    <ID>NewLineAtEndOfFile:WarningLevel.kt$dev.neekolor.appcanvasfaker.ui.component.WarningLevel.kt</ID>
+    <ID>NewLineAtEndOfFile:WindowSize.kt$dev.neekolor.appcanvasfaker.ui.util.WindowSize.kt</ID>
+    <ID>ReturnCount:AppIconCache.kt$AppIconCache$internal fun getMainUserId(context: Context): Int</ID>
+    <ID>ReturnCount:BitmapHooks.kt$BitmapHooks$private fun compressFake( chain: XposedInterface.Chain, packageName: String, mode: ProtectionMode, seed: Long, context: Context?, enableLogging: Boolean ): Boolean</ID>
+    <ID>ReturnCount:BitmapHooks.kt$BitmapHooks$private fun handleCopyPixelsToBuffer( chain: XposedInterface.Chain, packageName: String, mode: ProtectionMode, seed: Long, context: Context?, enableLogging: Boolean ): Any?</ID>
+    <ID>ReturnCount:ConfigRepository.kt$ConfigRepository$private fun isValidConfig(c: JSONObject): Boolean</ID>
+    <ID>ReturnCount:DragGestureInspector.kt$private suspend inline fun AwaitPointerEventScope.awaitDragOrUp( pointerId: PointerId ): PointerInputChange?</ID>
+    <ID>ReturnCount:DragGestureInspector.kt$private suspend inline fun AwaitPointerEventScope.drag( pointerId: PointerId, onDrag: (PointerInputChange) -&gt; Unit ): PointerInputChange?</ID>
+    <ID>ReturnCount:FingerprintEngine.kt$FingerprintEngine$fun applyGlPixels( buffer: ByteBuffer, startPosition: Int, width: Int, height: Int, seed: Long ): Int</ID>
+    <ID>ReturnCount:HardwareReaders.kt$HardwareReaders$fun glReadPixels(width: Int = 128, height: Int = 128): String</ID>
+    <ID>ReturnCount:HardwareReaders.kt$HardwareReaders$private fun createEglDisplay(): Pair&lt;EGLDisplay, EGLConfig&gt;?</ID>
+    <ID>ReturnCount:Lens.kt$fun BackdropEffectScope.lens( refractionHeight: Float, refractionAmount: Float, depthEffect: Boolean = false, chromaticAberration: Float = 0f, )</ID>
+    <ID>ReturnCount:SsaidManager.kt$SsaidManager$private fun lineMatches(line: String, packageName: String): Boolean</ID>
+    <ID>ReturnCount:SsaidViewModel.kt$SsaidViewModel$private suspend fun buildState(gen: Int): SsaidUiState</ID>
+    <ID>ReturnCount:StatsProvider.kt$StatsProvider$override fun call(method: String, arg: String?, extras: Bundle?): Bundle?</ID>
+    <ID>ReturnCount:ViewCapturers.kt$ViewCapturers$fun buildDrawingCache(view: View): String</ID>
+    <ID>SwallowedException:LibXposedInit.kt$LibXposedInit$t: Throwable</ID>
+    <ID>TooGenericExceptionCaught:AppIconCache.kt$AppIconCache$e: Exception</ID>
+    <ID>TooGenericExceptionCaught:AppListViewModel.kt$AppListViewModel$t: Throwable</ID>
+    <ID>TooGenericExceptionCaught:BitmapHooks.kt$BitmapHooks$t: Throwable</ID>
+    <ID>TooGenericExceptionCaught:HardwareReaders.kt$HardwareReaders$e: Throwable</ID>
+    <ID>TooGenericExceptionCaught:LibXposedInit.kt$LibXposedInit$t: Throwable</ID>
+    <ID>TooGenericExceptionCaught:NonPixelSignals.kt$NonPixelSignals$e: Throwable</ID>
+    <ID>TooGenericExceptionCaught:ViewCapturers.kt$ViewCapturers$e: Throwable</ID>
+    <ID>TooManyFunctions:ConfigRepository.kt$ConfigRepository</ID>
+    <ID>TopLevelPropertyNaming:SegmentedList.kt$private const val SegmentedSpringDamping = 0.9f</ID>
+    <ID>TopLevelPropertyNaming:SegmentedList.kt$private const val SegmentedSpringStiffness = 800f</ID>
+    <ID>UnusedParameter:BitmapHooks.kt$BitmapHooks$packageName: String</ID>
+    <ID>UnusedParameter:ConfigRepository.kt$ConfigRepository$modeName: String</ID>
+    <ID>UnusedParameter:ConfigRepository.kt$ConfigRepository$seed: Long</ID>
+    <ID>UnusedParameter:FingerprintCollector.kt$FingerprintCollector$context: Context</ID>
+    <ID>UnusedParameter:FingerprintEngine.kt$FingerprintEngine$mode: ProtectionMode</ID>
+    <ID>UnusedParameter:HomeScreen.kt$navigator: Navigator</ID>
+    <ID>UnusedPrivateMember:HomeMaterial.kt$@Preview(name = "Home Activated", showBackground = true) @Composable private fun HomeActivatedPreview()</ID>
+    <ID>UnusedPrivateMember:HomeMaterial.kt$@Preview(name = "Home Not Activated", showBackground = true) @Composable private fun HomeNotActivatedPreview()</ID>
+    <ID>UnusedPrivateMember:HomeMiuix.kt$@Preview(name = "Home Activated", showBackground = true) @Composable private fun HomeActivatedPreview()</ID>
+    <ID>UnusedPrivateMember:HomeMiuix.kt$@Preview(name = "Home Not Activated", showBackground = true) @Composable private fun HomeNotActivatedPreview()</ID>
+    <ID>UnusedPrivateProperty:ProbeView.kt$ProbeView$private val paint = Paint(Paint.ANTI_ALIAS_FLAG)</ID>
+  </CurrentIssues>
+</SmellBaseline>
