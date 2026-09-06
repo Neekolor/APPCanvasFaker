@@ -20,6 +20,14 @@ data class AppRule(
     val lastHookTime: Long = 0L
 )
 
+/** Hook 统计行：某包被 Hook 的累计次数与末次时间（调用方负责后台线程）。 */
+data class HookStat(
+    val packageName: String,
+    val enabled: Boolean,
+    val count: Long,
+    val lastTime: Long
+)
+
 data class InstalledApp(
     val label: String,
     val packageName: String,

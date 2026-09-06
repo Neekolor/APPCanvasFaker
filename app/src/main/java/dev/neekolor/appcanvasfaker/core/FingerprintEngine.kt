@@ -4,7 +4,7 @@ import java.nio.ByteBuffer
 
 /**
  * 伪装算法：与读取路径无关，只依赖位图绝对坐标 (x, y) + seed，保证 A1/A3/A4/A4b 结果一致。
- * v0.6.0 扩展：H-01 单点读取（getPixel）、H-02 GL 帧缓冲直读、H-05 文本度量微扰。
+ * v0.6.0 扩展：A2 单点读取（getPixel）、D1 GL 帧缓冲直读、E1 文本度量微扰。
  */
 object FingerprintEngine {
 
@@ -24,7 +24,7 @@ object FingerprintEngine {
     }
 
     /**
-     * H-01 单点扰动（getPixel）：与 A1 同源算法按绝对坐标取噪，
+     * A2 单点扰动（getPixel）：与 A1 同源算法按绝对坐标取噪，
      * 保证"同一物理像素在整图读取与单点读取下扰动一致"的坐标绑定性质。
      */
     fun perturbPoint(color: Int, x: Int, y: Int, seed: Long): Int {
@@ -36,7 +36,7 @@ object FingerprintEngine {
     }
 
     /**
-     * H-05 文本度量相对微扰因子：输入键 = seed ⊕ 文本内容哈希 ⊕ textSize（0.1px 离散），
+     * E1 文本度量相对微扰因子：输入键 = seed ⊕ 文本内容哈希 ⊕ textSize（0.1px 离散），
      * 同输入恒同输出（否则自定义布局会在帧间抖动）；幅度 ∈ ±[0.3%, 0.7%]，符号由哈希派生。
      */
     fun textFactor(seed: Long, textHash: Long, textSizePx: Float): Float {
@@ -51,11 +51,11 @@ object FingerprintEngine {
         return if (negative) -f else f
     }
 
-    /** H-05 度量值统一施加方式：原值 × (1 + factor)。 */
+    /** E1 度量值统一施加方式：原值 × (1 + factor)。 */
     fun scaleMetric(value: Float, factor: Float): Float = value * (1f + factor)
 
     /**
-     * H-05 getTextWidths：输出数组逐元缩放，输入键与返回计数语义由调用方保持。
+     * E1 getTextWidths：输出数组逐元缩放，输入键与返回计数语义由调用方保持。
      * 空数组直接返回，避免无意义遍历。
      */
     fun scaleWidths(widths: FloatArray, factor: Float) {
@@ -63,7 +63,7 @@ object FingerprintEngine {
     }
 
     /**
-     * H-05 getFontMetricsInt：整数度量字段同比缩放（四舍五入保证确定性）。
+     * E1 getFontMetricsInt：整数度量字段同比缩放（四舍五入保证确定性）。
      * leading 不动（与浮点版 FontMetrics 决策一致）。
      */
     fun scaleFontMetricsInt(fm: android.graphics.Paint.FontMetricsInt, factor: Float) {
@@ -73,10 +73,10 @@ object FingerprintEngine {
         fm.bottom = scaleIntMetric(fm.bottom, factor)
     }
 
-    /** H-05 整数度量值统一施加方式：round(原值 × (1 + factor))。 */
+    /** E1 整数度量值统一施加方式：round(原值 × (1 + factor))。 */
     fun scaleIntMetric(value: Int, factor: Float): Int = Math.round(value * (1f + factor))
 
-    /** H-05 文本边界框：以左上角为锚点缩放宽高，保持确定性。 */
+    /** E1 文本边界框：以左上角为锚点缩放宽高，保持确定性。 */
     fun scaleBounds(rect: android.graphics.Rect, factor: Float) {
         val w = rect.width()
         val h = rect.height()
@@ -85,7 +85,7 @@ object FingerprintEngine {
     }
 
     /**
-     * H-02 GL 帧缓冲直读扰动：对 RGBA/UNSIGNED_BYTE 直接缓冲按像素序号均匀施加偏置噪声。
+     * D1 GL 帧缓冲直读扰动：对 RGBA/UNSIGNED_BYTE 直接缓冲按像素序号均匀施加偏置噪声。
      * 该通道与位图通道本就没有对齐承诺，故噪声键用线性序号而非坐标；
      * 仅处理直接 ByteBuffer，其余布局宁可放过不伪装。
      *
@@ -168,6 +168,6 @@ object FingerprintEngine {
         return z xor (z ushr 31)
     }
 
-    /** H-02 GL 通道域隔离盐：避免 GL 序号噪声与位图坐标噪声同键。 */
+    /** D1 GL 通道域隔离盐：避免 GL 序号噪声与位图坐标噪声同键。 */
     private val GL_DOMAIN_SALT: Long = 0x1B873593L
 }

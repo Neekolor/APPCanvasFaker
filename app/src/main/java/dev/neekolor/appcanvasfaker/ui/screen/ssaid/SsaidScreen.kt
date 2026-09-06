@@ -24,6 +24,8 @@ import androidx.compose.foundation.layout.safeDrawing
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.systemBars
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.verticalScroll
@@ -104,6 +106,8 @@ import top.yukonga.miuix.kmp.icon.extended.Back
 import top.yukonga.miuix.kmp.icon.extended.MoreCircle
 import top.yukonga.miuix.kmp.overlay.OverlayListPopup
 import top.yukonga.miuix.kmp.theme.MiuixTheme
+import top.yukonga.miuix.kmp.utils.overScrollVertical
+import top.yukonga.miuix.kmp.utils.scrollEndHaptic
 
 /** SSAID 管理页：settings_ssaid.xml 全部条目的列表 + 逐条随机化/删除（root，真写系统文件）。 */
 @Composable
@@ -270,21 +274,25 @@ private fun SsaidScreenMiuix(
                 if (state.items.isEmpty()) {
                     EmptyBox(Modifier.padding(innerPadding))
                 } else {
-                    // 对齐应用列表页（AppListMiuix.AppItem）形态：每条目一张独立 Card，
-                    // showIndication 按压动效；上方 SmallTitle 计数与设置页模式一致
-                    Column(
+                    // 对齐应用列表页：LazyColumn + 回弹 + 触底震动 + 嵌套滚动（条目少时同样保留手感）
+                    LazyColumn(
                         modifier = Modifier
                             .fillMaxSize()
-                            .verticalScroll(rememberScrollState())
-                            .padding(
-                                top = innerPadding.calculateTopPadding() + 8.dp,
-                                bottom = innerPadding.calculateBottomPadding() + 16.dp,
-                            ),
+                            .scrollEndHaptic()
+                            .overScrollVertical()
+                            .nestedScroll(scrollBehavior.nestedScrollConnection),
+                        contentPadding = PaddingValues(
+                            top = innerPadding.calculateTopPadding() + 8.dp,
+                            bottom = innerPadding.calculateBottomPadding() + 16.dp,
+                        ),
+                        overscrollEffect = null,
                     ) {
-                        SmallTitle(
-                            text = stringResource(R.string.ssaid_count_title, state.items.size),
-                        )
-                        state.items.forEach { item ->
+                        item {
+                            SmallTitle(
+                                text = stringResource(R.string.ssaid_count_title, state.items.size),
+                            )
+                        }
+                        items(state.items, key = { it.packageName }) { item ->
                             SsaidListCard(
                                 item = item,
                                 enabled = buttonsEnabled(state.busyPkg),
@@ -378,6 +386,8 @@ private fun SsaidScreenMaterial(
                             .fillMaxSize()
                             .nestedScroll(scrollBehavior.nestedScrollConnection)
                             .verticalScroll(rememberScrollState())
+                            .scrollEndHaptic()
+                            .overScrollVertical()
                             .padding(paddingValues),
                     ) {
                         // 条目计数标题：与 Miuix 版 SmallTitle 对齐

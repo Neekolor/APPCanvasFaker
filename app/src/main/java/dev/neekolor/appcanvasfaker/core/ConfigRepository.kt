@@ -36,6 +36,14 @@ class ConfigRepository(private val context: Context) {
     private val prefs: SharedPreferences
         get() = RemoteBridge.remote() ?: localPrefs
 
+    /**
+     * 统计面（计数/hash/时间/日志/今日）：只读写本地。
+     * Hook 进程的远端 prefs 只读（官方约束），统计回写走 StatsReceiver 广播落本地；
+     * 远端只剩 config_json 分发。见 ADR D16。
+     */
+    private val stats: SharedPreferences
+        get() = localPrefs
+
     private val pm: PackageManager get() = context.packageManager
 
     // ---------- 公开接口（UI 契约） ----------
@@ -46,10 +54,10 @@ class ConfigRepository(private val context: Context) {
             packageName = pkg,
             enabled = rule?.optBoolean("enabled", false) ?: false,
             seed = rule?.optLong("seed", 0L) ?: 0L,
-            lastCanvasHash = prefs.getString(KEY_PKG_HASH(pkg), null)
+            lastCanvasHash = stats.getString(KEY_PKG_HASH(pkg), null)
                 ?.let { HashUtils.foldHash16(it) } ?: "暂无",
-            hookCount = prefs.getLong(KEY_PKG_COUNT(pkg), 0L),
-            lastHookTime = prefs.getLong(KEY_PKG_LAST_TIME(pkg), 0L)
+            hookCount = stats.getLong(KEY_PKG_COUNT(pkg), 0L),
+            lastHookTime = stats.getLong(KEY_PKG_LAST_TIME(pkg), 0L)
         )
     }
 
@@ -100,6 +108,61 @@ class ConfigRepository(private val context: Context) {
         return count
     }
 
+    /**
+     * Hook 统计：全部已配置规则包的次数与末次时间，按次数降序。
+     * 读本地统计面（毫秒级），调用方仍建议放后台线程。
+     */
+    fun hookStats(): List<HookStat> {
+        val rules = config().optJSONObject("rules") ?: return emptyList()
+        val out = ArrayList<HookStat>()
+        val it = rules.keys()
+        while (it.hasNext()) {
+            val pkg = it.next()
+            val rule = rules.optJSONObject(pkg)
+            out.add(
+                HookStat(
+                    packageName = pkg,
+                    enabled = rule?.optBoolean("enabled", false) ?: false,
+                    count = stats.getLong(KEY_PKG_COUNT(pkg), 0L),
+                    lastTime = stats.getLong(KEY_PKG_LAST_TIME(pkg), 0L)
+                )
+            )
+        }
+        return out.sortedByDescending { it.count }
+    }
+
+    /**
+     * Hook 命中落盘（供 StatsReceiver，调用方为 UI 进程广播线程）：
+     * 包计数/hash/时间 + 全局/今日 + 可选日志，全部写本地统计面。
+     */
+    fun recordHookHit(pkg: String, fingerprint: String, timestamp: Long) {
+        synchronized(writeLock) {
+            val e = stats.edit()
+            e.putLong(KEY_PKG_COUNT(pkg), stats.getLong(KEY_PKG_COUNT(pkg), 0L) + 1L)
+            e.putString(KEY_PKG_HASH(pkg), fingerprint)
+            e.putLong(KEY_PKG_LAST_TIME(pkg), timestamp)
+            e.putLong(KEY_GLOBAL_COUNT, stats.getLong(KEY_GLOBAL_COUNT, 0L) + 1L)
+            val today = todayStr()
+            if (stats.getString(KEY_TODAY_DATE, "") != today) {
+                e.putString(KEY_TODAY_DATE, today)
+                e.putLong(KEY_TODAY_COUNT, 1L)
+            } else {
+                e.putLong(KEY_TODAY_COUNT, stats.getLong(KEY_TODAY_COUNT, 0L) + 1L)
+            }
+            if (config().optBoolean("enable_logging", true)) {
+                appendLogLocked(
+                    JSONObject()
+                        .put("ts", timestamp)
+                        .put("level", "I")
+                        .put("tag", "Hook")
+                        .put("msg", pkg)
+                        .put("pkg", pkg)
+                )
+            }
+            e.apply()
+        }
+    }
+
     /** 同步快速读取：应用版本名（BuildConfig，无 IO）。 */
     fun versionName(): String = BuildConfig.VERSION_NAME
 
@@ -147,7 +210,7 @@ class ConfigRepository(private val context: Context) {
      * 按固定方法计算 7 种标准化指纹（审计 N-12/N-13：全部口径复用 scanner 采集器，
      * 统一 320×160 标准画布，与配套扫描器应用三方互比；A4b 更正为 JPEG 压缩口径）：
      * - A1 getPixels / A3 copyPixelsToBuffer / A4 compress(PNG) / A4b compress(JPEG)
-     * - A2 getPixel 单点（H-01）/ E1 Paint 文本度量（H-05）/ D1 glReadPixels（H-02）
+     * - A2 getPixel 单点（A2）/ E1 Paint 文本度量（E1）/ D1 glReadPixels（D1）
      * [seed] 非空时先对画布像素施加扰动，模拟 hook 后状态。
      */
     private fun collectFingerprints(seed: Long?): List<FingerprintValue> {
@@ -216,7 +279,7 @@ class ConfigRepository(private val context: Context) {
 
     // ---------- v0.6.0 Hook 扩展开关（全局项，随 read_config 最小下发） ----------
 
-    /** H-01 getPixel 单点读取：现存裸露缺口（scanner A2），默认开。 */
+    /** A2 getPixel 单点读取：现存裸露缺口（scanner A2），默认开。 */
     fun hookGetPixel(): Boolean = config().optBoolean("hook_getpixel", true)
 
     fun setHookGetPixel(enabled: Boolean) {
@@ -227,7 +290,7 @@ class ConfigRepository(private val context: Context) {
         }
     }
 
-    /** H-05 Paint 文本度量族：结构性逃逸口（scanner E1），默认开；排版异常时可关。 */
+    /** E1 Paint 文本度量族：结构性逃逸口（scanner E1），默认开；排版异常时可关。 */
     fun hookTextMetrics(): Boolean = config().optBoolean("hook_text_metrics", true)
 
     fun setHookTextMetrics(enabled: Boolean) {
@@ -238,7 +301,7 @@ class ConfigRepository(private val context: Context) {
         }
     }
 
-    /** H-02 GLES20.glReadPixels GPU 直读（scanner D1）：默认关——会扰动目标应用自身的 GL 读回（游戏录像/推流等）。 */
+    /** D1 GLES20.glReadPixels GPU 直读（scanner D1）：默认关——会扰动目标应用自身的 GL 读回（游戏录像/推流等）。 */
     fun hookGlReadPixels(): Boolean = config().optBoolean("hook_glreadpixels", false)
 
     fun setHookGlReadPixels(enabled: Boolean) {
@@ -265,7 +328,7 @@ class ConfigRepository(private val context: Context) {
         val arr = logsArray()
         arr.put(entry)
         while (arr.length() > MAX_LOGS) arr.remove(0)
-        prefs.edit().putString(KEY_LOGS, arr.toString()).apply()
+        stats.edit().putString(KEY_LOGS, arr.toString()).apply()
     }
 
     fun getLogs(): List<LogEntry> {
@@ -290,9 +353,8 @@ class ConfigRepository(private val context: Context) {
 
     fun clearLogs() {
         synchronized(writeLock) {
-            // 双写：本地与远端同时清空，避免切换通道后旧日志"复活"
+            // 统计面只在本地：清本地即全清（远端不存统计）
             localPrefs.edit().putString(KEY_LOGS, "[]").apply()
-            RemoteBridge.remote()?.edit()?.putString(KEY_LOGS, "[]")?.apply()
         }
     }
 
@@ -301,7 +363,7 @@ class ConfigRepository(private val context: Context) {
             moduleActive = isFrameworkActive(),
             frameworkName = "libxposed",
             frameworkApi = "102",
-            totalHookCount = prefs.getLong(KEY_GLOBAL_COUNT, 0L),
+            totalHookCount = stats.getLong(KEY_GLOBAL_COUNT, 0L),
             todayHookCount = todayCount(),
             widevineId = widevineId(),
             versionName = BuildConfig.VERSION_NAME,
@@ -374,7 +436,7 @@ class ConfigRepository(private val context: Context) {
 
     /**
      * 绑定瞬间把本地配置推远端（本地胜出）：覆盖"未激活时配好规则、
-     * 激活后远端还是空"的断档。统计类 key 不回填（只看远端最新）。
+     * 激活后远端还是空"的断档。只推 config_json；统计面本就只在本地。
      */
     fun pushLocalConfigToRemote() {
         val remote = RemoteBridge.remote() ?: return
@@ -390,20 +452,21 @@ class ConfigRepository(private val context: Context) {
         put("hook_getpixel", true)
         put("hook_text_metrics", true)
         put("hook_glreadpixels", false)
+        put("hook_pixelcopy", true)
         put("rules", JSONObject())
     }
 
     private fun logsArray(): JSONArray = runCatching {
-        JSONArray(prefs.getString(KEY_LOGS, "[]"))
+        JSONArray(stats.getString(KEY_LOGS, "[]"))
     }.getOrElse { JSONArray() }
 
     private fun todayCount(): Long = synchronized(writeLock) {
         val today = todayStr()
-        if (prefs.getString(KEY_TODAY_DATE, "") != today) {
-            prefs.edit().putString(KEY_TODAY_DATE, today).putLong(KEY_TODAY_COUNT, 0L).apply()
+        if (stats.getString(KEY_TODAY_DATE, "") != today) {
+            stats.edit().putString(KEY_TODAY_DATE, today).putLong(KEY_TODAY_COUNT, 0L).apply()
             return@synchronized 0L
         }
-        prefs.getLong(KEY_TODAY_COUNT, 0L)
+        stats.getLong(KEY_TODAY_COUNT, 0L)
     }
 
     private fun todayStr(): String =
@@ -438,7 +501,8 @@ class ConfigRepository(private val context: Context) {
     companion object {
         const val PREFS_NAME = "app_canvas_faker"
         const val KEY_CONFIG_JSON = RemoteConfig.KEY_CONFIG_JSON
-        // 统计 key 与远端同名（RemoteConfig 唯一口径），远端/本地互读不漂移
+        // 统计 key 名与远端同组（RemoteConfig 唯一口径），但只存本地：
+        // Hook 侧远端只读，统计回写走 StatsReceiver 广播落本地（ADR D16）
         private const val KEY_LOGS = RemoteConfig.KEY_LOGS
         private const val KEY_GLOBAL_COUNT = RemoteConfig.KEY_GLOBAL_COUNT
         private const val KEY_TODAY_COUNT = RemoteConfig.KEY_TODAY_COUNT

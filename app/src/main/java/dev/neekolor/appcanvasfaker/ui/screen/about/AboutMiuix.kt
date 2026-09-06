@@ -2,7 +2,6 @@ package dev.neekolor.appcanvasfaker.ui.screen.about
 
 import android.os.Build
 import androidx.compose.foundation.Image
-import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -36,13 +35,11 @@ import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clipToBounds
-import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.graphics.graphicsLayer
@@ -59,7 +56,6 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.launch
 import dev.neekolor.appcanvasfaker.R
@@ -102,7 +98,6 @@ fun AboutScreenMiuix(
     val lazyListState = rememberLazyListState()
     var logoHeightPx by remember { mutableIntStateOf(0) }
     val eggHolder = rememberEasterEggHolder()
-    val scope = rememberCoroutineScope()
 
     val scrollProgress by remember {
         derivedStateOf {
@@ -166,7 +161,6 @@ fun AboutScreenMiuix(
                 scrollProgress = scrollProgress,
                 onLogoHeightChanged = { logoHeightPx = it },
                 eggHolder = eggHolder,
-                scope = scope,
             )
         }
     }
@@ -182,7 +176,6 @@ private fun AboutContent(
     scrollProgress: Float,
     onLogoHeightChanged: (Int) -> Unit,
     eggHolder: EasterEggHolder,
-    scope: CoroutineScope,
 ) {
     val layoutDirection = LocalLayoutDirection.current
     val density = LocalDensity.current
@@ -489,15 +482,12 @@ private fun AboutContent(
                             )
                         }
                     }
-                    // 版权页脚：KSU 关于页没有版权卡，卡片内塞静态文本行才是"风格不符"；
-                    // 纯文本页脚（非卡片、非列表行）+ 表面无动作的连点彩蛋入口（见 EasterEgg.kt）
+                    // 版权页脚：纯文本（非卡片、非列表行）。
+                    // 彩蛋已下线（代码保留见 EasterEgg.kt）：入口手势移除，logo 正常显示。
                     Text(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(top = 12.dp)
-                            .pointerInput(Unit) {
-                                detectTapGestures { eggHolder.onClick(scope) }
-                            },
+                            .padding(top = 12.dp),
                         text = buildCopyrightText(baseFontSize = 12.sp),
                         color = colorScheme.onSurfaceVariantSummary,
                         fontSize = 12.sp,

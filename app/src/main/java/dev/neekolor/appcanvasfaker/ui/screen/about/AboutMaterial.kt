@@ -2,7 +2,6 @@ package dev.neekolor.appcanvasfaker.ui.screen.about
 
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
-import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
@@ -23,13 +22,11 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.rememberTopAppBarState
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.nestedscroll.nestedScroll
-import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.FixedScale
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
@@ -50,7 +47,6 @@ fun AboutScreenMaterial(
     actions: AboutScreenActions,
 ) {
     val eggHolder = rememberEasterEggHolder()
-    val scope = rememberCoroutineScope()
     val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior(rememberTopAppBarState())
 
     ExpressiveScaffold(
@@ -143,15 +139,12 @@ fun AboutScreenMaterial(
                         }
                     }
                 )
-                // 版权页脚：KSU 关于页没有版权卡，卡片内塞静态文本行才是"风格不符"；
-                // 纯文本页脚（非卡片、非列表行）+ 表面无动作的连点彩蛋入口（见 EasterEgg.kt）
+                // 版权页脚：纯文本（非卡片、非列表行）。
+                // 彩蛋已下线（代码保留见 EasterEgg.kt）：入口手势移除，logo 正常显示。
                 Text(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(top = 12.dp)
-                        .pointerInput(Unit) {
-                            detectTapGestures { eggHolder.onClick(scope) }
-                        },
+                        .padding(top = 12.dp),
                     text = buildCopyrightText(baseFontSize = MaterialTheme.typography.bodySmall.fontSize),
                     fontSize = MaterialTheme.typography.bodySmall.fontSize,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,

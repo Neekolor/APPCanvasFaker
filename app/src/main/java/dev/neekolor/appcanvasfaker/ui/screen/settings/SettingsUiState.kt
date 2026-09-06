@@ -44,7 +44,7 @@ data class SettingsScreenActions(
 )
 
 /**
- * 行为预设派生下标（开关顺序 H-05/H-02/C2）：
+ * 行为预设派生下标（开关顺序 E1/D1/C2）：
  * 0 默认 = 全关；1 增强 = 开/关/开；2 自定义 = 其余一切组合。
  */
 fun presetIndex(hookTextMetrics: Boolean, hookGlReadPixels: Boolean, hookPixelCopy: Boolean): Int =

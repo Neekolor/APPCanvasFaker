@@ -1,9 +1,7 @@
 package dev.neekolor.appcanvasfaker.hook
 
-import android.content.SharedPreferences
 import android.util.Log
 import dev.neekolor.appcanvasfaker.core.ProtectionMode
-import dev.neekolor.appcanvasfaker.core.RemoteBridge
 import dev.neekolor.appcanvasfaker.core.RemoteConfig
 import dev.neekolor.appcanvasfaker.util.HookLog
 import io.github.libxposed.api.XposedModule
@@ -74,7 +72,7 @@ class LibXposedInit : XposedModule() {
             .getOrNull() ?: return
         val rule = config.optJSONObject("rules")?.optJSONObject(packageName)
         if (rule != null && rule.optBoolean("enabled", false)) {
-            doInstall(packageName, param, prefs, config, rule)
+            doInstall(packageName, param, config, rule)
         } else {
             HookLog.i(TAG, "rule disabled for $packageName, skip install")
         }
@@ -83,7 +81,6 @@ class LibXposedInit : XposedModule() {
     private fun doInstall(
         packageName: String,
         param: XposedModuleInterface.PackageLoadedParam,
-        prefs: SharedPreferences,
         config: JSONObject,
         rule: JSONObject
     ) {
@@ -91,8 +88,7 @@ class LibXposedInit : XposedModule() {
         val mode = runCatching {
             ProtectionMode.valueOf(config.optString("mode", ProtectionMode.NOISE.name))
         }.getOrDefault(ProtectionMode.NOISE)
-        val enableLogging = config.optBoolean("enable_logging", true)
-        // v0.6.0 扩展开关（全局项）：H-01 默认开、H-05 默认开、H-02 默认关（副作用大）
+        // v0.6.0 扩展开关（全局项）：A2 默认开、E1 默认开、D1 默认关（副作用大）
         val hookGetPixel = config.optBoolean("hook_getpixel", true)
         val hookTextMetrics = config.optBoolean("hook_text_metrics", true)
         val hookGlReadPixels = config.optBoolean("hook_glreadpixels", false)
@@ -100,13 +96,13 @@ class LibXposedInit : XposedModule() {
         val hookPixelCopy = config.optBoolean("hook_pixelcopy", true)
 
         BitmapHooks.install(
-            this, packageName, mode, seed, prefs, enableLogging, param,
+            this, packageName, mode, seed, param,
             hookGetPixel, hookTextMetrics, hookGlReadPixels, hookPixelCopy
         )
         HookLog.i(
             TAG,
             "hooks installed for $packageName mode=$mode seed=$seed " +
-                "h01=$hookGetPixel h05=$hookTextMetrics h02=$hookGlReadPixels pcopy=$hookPixelCopy"
+                "a2=$hookGetPixel e1=$hookTextMetrics d1=$hookGlReadPixels c2=$hookPixelCopy"
         )
     }
 

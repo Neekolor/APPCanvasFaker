@@ -18,6 +18,7 @@ data class HomeUiState(
 @Immutable
 data class HomeActions(
     val onOpenHookedApps: () -> Unit,
+    val onOpenStats: () -> Unit,
     val onOpenUrl: (String) -> Unit,
 )
 

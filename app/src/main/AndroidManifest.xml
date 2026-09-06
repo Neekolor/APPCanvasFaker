@@ -27,6 +27,16 @@
             </intent-filter>
         </activity>
 
+        <!-- Hook 命中统计通道：Hook 进程发显式广播，本进程收后写本地 prefs。
+             exported 必须 true（发送方是目标应用 UID）；伪造面仅限计数展示，见 StatsReceiver。 -->
+        <receiver
+            android:name=".core.StatsReceiver"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="dev.neekolor.appcanvasfaker.action.HOOK_HIT" />
+            </intent-filter>
+        </receiver>
+
         <!-- 现代 API 不再使用 xposed 元数据：名称/描述走 label/description，
              作用域由用户在 LSPosed 中勾选（staticScope=false，无预置推荐）。 -->
     </application>

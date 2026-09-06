@@ -74,7 +74,7 @@
     <ID>MatchingDeclarationName:Routes.kt$Route : NavKeyParcelable</ID>
     <ID>MaxLineLength:ColorPaletteScreenMiuix.kt$AnimatedVisibility</ID>
     <ID>MaxLineLength:Dialog.kt$ConfirmDialogVisualsImpl.Companion$val Empty: ConfirmDialogVisuals = ConfirmDialogVisualsImpl("", "", isMarkdown = false, isHtml = false, confirm = null, dismiss = null)</ID>
-    <ID>MayBeConst:FingerprintEngine.kt$FingerprintEngine$/** H-02 GL 通道域隔离盐：避免 GL 序号噪声与位图坐标噪声同键。 */ private val GL_DOMAIN_SALT: Long = 0x1B873593L</ID>
+    <ID>MayBeConst:FingerprintEngine.kt$FingerprintEngine$/** D1 GL 通道域隔离盐：避免 GL 序号噪声与位图坐标噪声同键。 */ private val GL_DOMAIN_SALT: Long = 0x1B873593L</ID>
     <ID>NestedBlockDepth:FilterNumber.kt$FilterNumber$private fun filterInputNumber( inputTextFieldValue: TextFieldValue, lastInputTextFieldValue: TextFieldValue, minValue: Int = Int.MIN_VALUE, maxValue: Int = Int.MAX_VALUE, ): TextFieldValue</ID>
     <ID>NewLineAtEndOfFile:AboutMaterial.kt$dev.neekolor.appcanvasfaker.ui.screen.about.AboutMaterial.kt</ID>
     <ID>NewLineAtEndOfFile:AboutMiuix.kt$dev.neekolor.appcanvasfaker.ui.screen.about.AboutMiuix.kt</ID>

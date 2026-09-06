@@ -1,13 +1,13 @@
 package dev.neekolor.appcanvasfaker.hook
 
 import dev.neekolor.appcanvasfaker.util.HookLog
-import android.content.SharedPreferences
 import android.graphics.Bitmap
 import android.os.SystemClock
 import android.util.Log
+import dev.neekolor.appcanvasfaker.BuildConfig
 import dev.neekolor.appcanvasfaker.core.FingerprintEngine
 import dev.neekolor.appcanvasfaker.core.ProtectionMode
-import dev.neekolor.appcanvasfaker.core.RemoteConfig
+import dev.neekolor.appcanvasfaker.core.StatsReceiver
 import dev.neekolor.appcanvasfaker.util.HashUtils
 import io.github.libxposed.api.XposedInterface
 import io.github.libxposed.api.XposedModuleInterface
@@ -22,9 +22,9 @@ import java.util.concurrent.Executors
 /**
  * Hook 链实现：
  * - A1 getPixels / A3 copyPixelsToBuffer / A4+A4b compress（v0.5.0 起现役）
- * - H-01 Bitmap.getPixel 单点读取（scanner A2）
- * - H-05 Paint 文本度量族 18 重载（scanner E1，含 getTextWidths 系与 getFontMetricsInt）
- * - H-02 GLES20.glReadPixels GPU 帧缓冲直读（scanner D1，默认关）
+ * - A2 Bitmap.getPixel 单点读取（scanner A2）
+ * - E1 Paint 文本度量族 18 重载（scanner E1，含 getTextWidths 系与 getFontMetricsInt）
+ * - D1 GLES20.glReadPixels GPU 帧缓冲直读（scanner D1，默认关）
  * - C2 PixelCopy.request 监听器包装（scanner C2 延迟持有例外，默认开）
  * 递归保护：ThreadLocal 标志，compress 内层 fake.compress 直接 proceed 放行。
  * 新增三链均为热路径：不做跨进程统计、不加锁、不逐次打日志，
@@ -37,24 +37,23 @@ object BitmapHooks {
     private const val GL_RGBA = 0x1908
     private const val GL_UNSIGNED_BYTE = 0x1401
 
-    /** H-05 文本哈希采样上限：长文本只混入前 N 字符 + 总长，控制热路径开销且保持确定性。 */
+    /** E1 文本哈希采样上限：长文本只混入前 N 字符 + 总长，控制热路径开销且保持确定性。 */
     private const val TEXT_SAMPLE_CHARS = 48
 
     // compress 内部递归标志：置位时内层 getPixels/compress 放行，避免死循环
     private val insideFake = ThreadLocal<Boolean>()
 
-    // 统计节流：每包距上次记录 <1s 跳过（哈希 + 远端写放后台，允许轻度丢失）
+    // 统计节流：每包距上次记录 <1s 跳过（哈希 + 广播上报放后台，允许轻度丢失）
     private const val STATS_MIN_INTERVAL_MS = 1000L
-    private const val MAX_REMOTE_LOGS = 1000
     private val lastStatsTime = ConcurrentHashMap<String, Long>()
+    /** 去重：同包同状态（seed:hash）只上报一次（见 recordStats）。 */
+    private val lastSentHash = ConcurrentHashMap<String, String>()
 
     fun install(
         module: XposedInterface,
         packageName: String,
         mode: ProtectionMode,
         seed: Long,
-        remotePrefs: SharedPreferences?,
-        enableLogging: Boolean,
         param: XposedModuleInterface.PackageLoadedParam,
         hookGetPixel: Boolean,
         hookTextMetrics: Boolean,
@@ -75,13 +74,13 @@ object BitmapHooks {
             Int::class.javaPrimitiveType
         )
         module.hook(getPixels).intercept { chain ->
-            handleGetPixels(chain, packageName, mode, seed, remotePrefs, enableLogging)
+            handleGetPixels(chain, packageName, mode, seed)
         }
 
         // A3 Bitmap.copyPixelsToBuffer(java.nio.Buffer dst)
         val copyPixelsToBuffer = bitmapClass.getDeclaredMethod("copyPixelsToBuffer", Buffer::class.java)
         module.hook(copyPixelsToBuffer).intercept { chain ->
-            handleCopyPixelsToBuffer(chain, packageName, mode, seed, remotePrefs, enableLogging)
+            handleCopyPixelsToBuffer(chain, packageName, mode, seed)
         }
 
         // A4/A4b Bitmap.compress(CompressFormat format, int quality, OutputStream stream)
@@ -92,10 +91,10 @@ object BitmapHooks {
             OutputStream::class.java
         )
         module.hook(compress).intercept { chain ->
-            handleCompress(chain, packageName, mode, seed, remotePrefs, enableLogging)
+            handleCompress(chain, packageName, mode, seed)
         }
 
-        // H-01 Bitmap.getPixel(int x, int y)：单点读取逃逸口（scanner A2）
+        // A2 Bitmap.getPixel(int x, int y)：单点读取逃逸口（scanner A2）
         if (hookGetPixel) {
             runCatching {
                 val getPixel = bitmapClass.getDeclaredMethod(
@@ -106,15 +105,15 @@ object BitmapHooks {
                 module.hook(getPixel).intercept { chain ->
                     handleGetPixel(chain, packageName, seed)
                 }
-            }.onFailure { Log.w(TAG, "H-01 hook getPixel unavailable", it) }
+            }.onFailure { Log.w(TAG, "A2 hook getPixel unavailable", it) }
         }
 
-        // H-05 Paint 文本度量族（scanner E1）：逐重载独立注册，缺失的重载静默跳过
+        // E1 Paint 文本度量族（scanner E1）：逐重载独立注册，缺失的重载静默跳过
         if (hookTextMetrics) {
             installTextMetricHooks(module, packageName, seed, param)
         }
 
-        // H-02 GLES20.glReadPixels：GPU 直读旁路（scanner D1），默认关、副作用自负
+        // D1 GLES20.glReadPixels：GPU 直读旁路（scanner D1），默认关、副作用自负
         if (hookGlReadPixels) {
             runCatching {
                 val gles20 = param.defaultClassLoader.loadClass("android.opengl.GLES20")
@@ -131,7 +130,7 @@ object BitmapHooks {
                 module.hook(glReadPixels).intercept { chain ->
                     handleGlReadPixels(chain, packageName, seed)
                 }
-            }.onFailure { Log.w(TAG, "H-02 hook glReadPixels unavailable", it) }
+            }.onFailure { Log.w(TAG, "D1 hook glReadPixels unavailable", it) }
         }
 
         // C2 PixelCopy.request 系列：拷贝完成监听器包装（scanner C2 延迟持有例外）
@@ -140,7 +139,7 @@ object BitmapHooks {
         }
     }
 
-    /** H-05：注册 Paint 度量族 Java 层重载（measureText×4 / getTextBounds×2 /
+    /** E1：注册 Paint 度量族 Java 层重载（measureText×4 / getTextBounds×2 /
      *  getFontMetrics×2 / breakText×4 / getTextWidths×4 / getFontMetricsInt×2）。
      *  单个重载缺失不影响其余安装；每个重载绑定独立的"文本哈希提取器"。 */
     private fun installTextMetricHooks(
@@ -158,7 +157,7 @@ object BitmapHooks {
             runCatching {
                 val m = paintClass.getDeclaredMethod(name, *types)
                 module.hook(m).intercept { chain -> handler(chain) }
-            }.onFailure { Log.w(TAG, "H-05 hook $name unavailable", it) }
+            }.onFailure { Log.w(TAG, "E1 hook $name unavailable", it) }
         }
 
         // measureText ×4
@@ -253,10 +252,10 @@ object BitmapHooks {
             android.graphics.Paint.FontMetricsInt::class.java)
     }
 
-    // ---------- H-01 / H-02 / H-05 处理器 ----------
+    // ---------- A2 / D1 / E1 处理器 ----------
 
     /**
-     * H-01：int native，proceed 后按位图绝对坐标施加单点扰动。
+     * A2：int native，proceed 后按位图绝对坐标施加单点扰动。
      * 与 A1 同源噪声算法（stableNoise(seed, y, x)），保证坐标绑定性质：
      * 整图读取与单点读取对同一物理像素产生一致扰动。
      */
@@ -280,7 +279,7 @@ object BitmapHooks {
     }
 
     /**
-     * H-02：void native，proceed 后对 RGBA/UNSIGNED_BYTE 帧缓冲数据按像素序号均匀扰动。
+     * D1：void native，proceed 后对 RGBA/UNSIGNED_BYTE 帧缓冲数据按像素序号均匀扰动。
      * GLES30 PBO 异步路径在 Java 层无数据可拦，属已知理论上限（见评估报告 v2.1）。
      */
     private fun handleGlReadPixels(
@@ -302,7 +301,7 @@ object BitmapHooks {
             if (format == GL_RGBA && type == GL_UNSIGNED_BYTE && buffer is java.nio.ByteBuffer) {
                 runCatching {
                     FingerprintEngine.applyGlPixels(buffer, startPos, width, height, seed)
-                }.onFailure { Log.e(TAG, "H-02 glReadPixels apply failed for $packageName", it) }
+                }.onFailure { Log.e(TAG, "D1 glReadPixels apply failed for $packageName", it) }
             }
             return null
         } catch (t: Throwable) {
@@ -311,7 +310,7 @@ object BitmapHooks {
         }
     }
 
-    /** H-05 浮点度量通用处理：proceed 后按确定性因子缩放。失败时回退原值不破坏布局。 */
+    /** E1 浮点度量通用处理：proceed 后按确定性因子缩放。失败时回退原值不破坏布局。 */
     private fun handleFloatMetric(
         chain: XposedInterface.Chain,
         packageName: String,
@@ -330,7 +329,7 @@ object BitmapHooks {
         }
     }
 
-    /** H-05 getTextBounds：出参 Rect 以左上角为锚点确定性缩放宽高。 */
+    /** E1 getTextBounds：出参 Rect 以左上角为锚点确定性缩放宽高。 */
     private fun handleBoundsMetric(
         chain: XposedInterface.Chain,
         packageName: String,
@@ -344,7 +343,7 @@ object BitmapHooks {
             val rect = chain.getArg(3) as? android.graphics.Rect ?: return null
             val factor = metricFactor(chain.getThisObject() as? android.graphics.Paint, seed, hashOf(chain))
             runCatching { FingerprintEngine.scaleBounds(rect, factor) }
-                .onFailure { Log.e(TAG, "H-05 getTextBounds scale failed for $packageName", it) }
+                .onFailure { Log.e(TAG, "E1 getTextBounds scale failed for $packageName", it) }
             return null
         } catch (t: Throwable) {
             if (!proceeded) runCatching { chain.proceed() }
@@ -352,7 +351,7 @@ object BitmapHooks {
         }
     }
 
-    /** H-05 getFontMetrics()：新建 FontMetrics 的四个主字段统一缩放（leading 不动）。 */
+    /** E1 getFontMetrics()：新建 FontMetrics 的四个主字段统一缩放（leading 不动）。 */
     private fun handleFontMetricsNew(
         chain: XposedInterface.Chain,
         packageName: String,
@@ -371,7 +370,7 @@ object BitmapHooks {
         }
     }
 
-    /** H-05 getFontMetrics(FontMetrics)：填充式重载，字段与返回值一并缩放保持自洽。 */
+    /** E1 getFontMetrics(FontMetrics)：填充式重载，字段与返回值一并缩放保持自洽。 */
     private fun handleFontMetricsInto(
         chain: XposedInterface.Chain,
         packageName: String,
@@ -392,7 +391,7 @@ object BitmapHooks {
     }
 
     /**
-     * H-05 getTextWidths：只缩放输出数组各元，返回的字符计数保持原值——
+     * E1 getTextWidths：只缩放输出数组各元，返回的字符计数保持原值——
      * 与 breakText 同理，计数扰动可能引发调用方按错误下标切片；空数组直接返回。
      */
     private fun handleWidthsMetric(
@@ -418,7 +417,7 @@ object BitmapHooks {
         }
     }
 
-    /** H-05 getFontMetricsInt()：新建整数度量的四个主字段同比缩放（leading 不动）。 */
+    /** E1 getFontMetricsInt()：新建整数度量的四个主字段同比缩放（leading 不动）。 */
     private fun handleFontMetricsIntNew(
         chain: XposedInterface.Chain,
         packageName: String,
@@ -437,7 +436,7 @@ object BitmapHooks {
         }
     }
 
-    /** H-05 getFontMetricsInt(FontMetricsInt)：填充式重载，字段与返回值一并缩放保持自洽。 */
+    /** E1 getFontMetricsInt(FontMetricsInt)：填充式重载，字段与返回值一并缩放保持自洽。 */
     private fun handleFontMetricsIntInto(
         chain: XposedInterface.Chain,
         packageName: String,
@@ -458,7 +457,7 @@ object BitmapHooks {
     }
 
     /**
-     * H-05 breakText：只改写 measuredWidth[0]，返回的可容纳字符数保持原值——
+     * E1 breakText：只改写 measuredWidth[0]，返回的可容纳字符数保持原值——
      * 计数若被扰动可能引发调用方按错误下标切片，风险不可控；宽度偏差 ≤0.7% 无感知。
      */
     private fun handleBreakText(
@@ -476,7 +475,7 @@ object BitmapHooks {
             if (mw != null && mw.isNotEmpty()) {
                 val factor = metricFactor(chain.getThisObject() as? android.graphics.Paint, seed, hashOf(chain))
                 runCatching { mw[0] = FingerprintEngine.scaleMetric(mw[0], factor) }
-                    .onFailure { Log.e(TAG, "H-05 breakText scale failed for $packageName", it) }
+                    .onFailure { Log.e(TAG, "E1 breakText scale failed for $packageName", it) }
             }
             return count
         } catch (t: Throwable) {
@@ -586,7 +585,7 @@ object BitmapHooks {
         bitmap.setPixels(pixels, 0, w, 0, 0, w, h)
     }
 
-    // ---------- H-05 文本哈希 ----------
+    // ---------- E1 文本哈希 ----------
     //
     // 输入键的"文本内容"部分：前 [TEXT_SAMPLE_CHARS] 字符采样 + 全长混入，
     // SplitMix64 终混保证均匀分布；同输入恒同输出，不同输入高概率不同键。
@@ -630,8 +629,6 @@ object BitmapHooks {
         packageName: String,
         mode: ProtectionMode,
         seed: Long,
-        remotePrefs: SharedPreferences?,
-        enableLogging: Boolean
     ): Any? {
         var proceeded = false
         try {
@@ -651,7 +648,7 @@ object BitmapHooks {
             }.onFailure { Log.e(TAG, "A1 applyPixels failed for $packageName", it) }
             // compress 内部读取像素时也触发本 hook（天然一致），但统计只在最外层记一次
             if (insideFake.get() != true) {
-                recordStats(packageName, seed, pixels, remotePrefs, enableLogging)
+                recordStats(packageName, seed, pixels)
             }
         } catch (t: Throwable) {
             // 仅可能来自参数读取或原生调用本身：确保原方法已执行后原样上抛，绝不静默吞掉
@@ -667,8 +664,6 @@ object BitmapHooks {
         packageName: String,
         mode: ProtectionMode,
         seed: Long,
-        remotePrefs: SharedPreferences?,
-        enableLogging: Boolean
     ): Any? {
         var proceeded = false
         try {
@@ -723,7 +718,7 @@ object BitmapHooks {
                     }
                 }
                 if (insideFake.get() != true) {
-                    recordStats(packageName, seed, fake, remotePrefs, enableLogging)
+                    recordStats(packageName, seed, fake)
                 }
             }
         } catch (t: Throwable) {
@@ -740,15 +735,13 @@ object BitmapHooks {
         packageName: String,
         mode: ProtectionMode,
         seed: Long,
-        remotePrefs: SharedPreferences?,
-        enableLogging: Boolean
     ): Any? {
         if (insideFake.get() == true) {
             return chain.proceed()
         }
         insideFake.set(true)
         try {
-            return compressFake(chain, packageName, mode, seed, remotePrefs, enableLogging)
+            return compressFake(chain, packageName, mode, seed)
         } finally {
             insideFake.remove()
         }
@@ -764,8 +757,6 @@ object BitmapHooks {
         packageName: String,
         mode: ProtectionMode,
         seed: Long,
-        remotePrefs: SharedPreferences?,
-        enableLogging: Boolean
     ): Boolean {
         val format = chain.getArg(0) as Bitmap.CompressFormat
         val quality = chain.getArg(1) as Int
@@ -795,7 +786,7 @@ object BitmapHooks {
         if (faked != null) {
             // 写入失败（对端流问题）时直接上抛交由调用方感知——此时绝不能再回退重写
             stream.write(faked.second)
-            recordStats(packageName, seed, faked.first, remotePrefs, enableLogging)
+            recordStats(packageName, seed, faked.first)
             return true
         }
         // 伪装失败（如 HARDWARE 位图读不出像素）：按原样执行原始编码，
@@ -807,8 +798,10 @@ object BitmapHooks {
     private fun proceedRaw(chain: XposedInterface.Chain): Boolean = chain.proceed() as Boolean
 
     /**
-     * 统计：每包 1 秒节流 + 共享后台线程执行（哈希 + 跨进程 call），不拖目标 App 主线程。
+     * 统计：每包 1 秒节流 + 共享后台线程执行（哈希 + 广播上报），不拖目标 App 主线程。
      * 使用进程级共享的守护线程，避免每次统计都创建/销毁线程。
+     * 上报去重：噪声确定故同 seed 哈希稳定，同进程同状态只报一次；
+     * reseed/新进程首击触发上报。计数语义 = 去重后的命中会话数。
      */
     private val statsExecutor: java.util.concurrent.ExecutorService =
         Executors.newSingleThreadExecutor { r ->
@@ -818,11 +811,8 @@ object BitmapHooks {
     private fun recordStats(
         packageName: String,
         seed: Long,
-        pixels: IntArray,
-        remotePrefs: SharedPreferences?,
-        enableLogging: Boolean
+        pixels: IntArray
     ) {
-        if (remotePrefs == null) return
         val now = SystemClock.elapsedRealtime()
         val last = lastStatsTime.put(packageName, now)
         if (last != null && now - last < STATS_MIN_INTERVAL_MS) return
@@ -830,61 +820,38 @@ object BitmapHooks {
             statsExecutor.execute {
                 runCatching {
                     val fp = fingerprintOf(pixels)
-                    writeRemoteStats(remotePrefs, packageName, seed, fp, enableLogging)
+                    val key = "$seed:$fp"
+                    if (lastSentHash.put(packageName, key) == key) return@execute
+                    sendHookHit(packageName, seed, fp)
                 }.onFailure { Log.e(TAG, "recordStats failed", it) }
             }
         }
     }
 
-    /** 远端统计写：key 与 UI 侧本地同名（见 RemoteConfig），计数允许轻度丢失。 */
-    private fun writeRemoteStats(
-        prefs: SharedPreferences,
-        packageName: String,
-        seed: Long,
-        fingerprint: String,
-        enableLogging: Boolean
-    ) {
-        val timestamp = System.currentTimeMillis()
-        val editor = prefs.edit()
-        editor.putLong(
-            RemoteConfig.pkgCount(packageName),
-            prefs.getLong(RemoteConfig.pkgCount(packageName), 0L) + 1L
-        )
-        editor.putString(RemoteConfig.pkgHash(packageName), fingerprint)
-        editor.putLong(RemoteConfig.pkgLastTime(packageName), timestamp)
-        editor.putLong(
-            RemoteConfig.KEY_GLOBAL_COUNT,
-            prefs.getLong(RemoteConfig.KEY_GLOBAL_COUNT, 0L) + 1L
-        )
-        rollRemoteToday(prefs, editor)
-        if (enableLogging) {
-            val arr = runCatching {
-                org.json.JSONArray(prefs.getString(RemoteConfig.KEY_LOGS, "[]"))
-            }.getOrElse { org.json.JSONArray() }
-            arr.put(
-                org.json.JSONObject()
-                    .put("ts", timestamp)
-                    .put("level", "I")
-                    .put("tag", "Hook")
-                    .put("msg", packageName)
-                    .put("pkg", packageName)
+    /**
+     * Hook 命中上报：显式广播给模块自身 StatsReceiver（见 ADR D16）。
+     * 远端 prefs 在被 Hook 进程只读，旧的直写路径全灭（计数恒 0 的根因），已删除。
+     * Context 取自宿主进程 Application（公开静态方法，反射直取，无需隐藏 API 豁免）。
+     */
+    private fun sendHookHit(packageName: String, seed: Long, fingerprint: String) {
+        val app = runCatching {
+            Class.forName("android.app.ActivityThread")
+                .getDeclaredMethod("currentApplication")
+                .apply { isAccessible = true }
+                .invoke(null) as? android.content.Context
+        }.getOrNull() ?: return
+        val intent = android.content.Intent(StatsReceiver.ACTION_HOOK_HIT).apply {
+            component = android.content.ComponentName(
+                BuildConfig.APPLICATION_ID,
+                BuildConfig.APPLICATION_ID + ".core.StatsReceiver"
             )
-            while (arr.length() > MAX_REMOTE_LOGS) arr.remove(0)
-            editor.putString(RemoteConfig.KEY_LOGS, arr.toString())
+            putExtra(StatsReceiver.EXTRA_PKG, packageName)
+            putExtra(StatsReceiver.EXTRA_HASH, fingerprint)
+            putExtra(StatsReceiver.EXTRA_SEED, seed)
+            putExtra(StatsReceiver.EXTRA_TIME, System.currentTimeMillis())
         }
-        editor.apply()
-    }
-
-    private fun rollRemoteToday(prefs: SharedPreferences, editor: SharedPreferences.Editor) {
-        val today = java.text.SimpleDateFormat("yyyy-MM-dd", java.util.Locale.ROOT)
-            .format(java.util.Date())
-        val count = if (prefs.getString(RemoteConfig.KEY_TODAY_DATE, "") != today) {
-            editor.putString(RemoteConfig.KEY_TODAY_DATE, today)
-            1L
-        } else {
-            prefs.getLong(RemoteConfig.KEY_TODAY_COUNT, 0L) + 1L
-        }
-        editor.putLong(RemoteConfig.KEY_TODAY_COUNT, count)
+        runCatching { app.sendBroadcast(intent) }
+            .onFailure { Log.e(TAG, "sendHookHit failed for $packageName", it) }
     }
 
     /** 指纹哈希：超大数组抽样控制开销。 */
