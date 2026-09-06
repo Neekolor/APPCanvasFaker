@@ -15,12 +15,12 @@ import androidx.compose.foundation.layout.systemBars
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.Article
-import androidx.compose.material.icons.rounded.Badge
 import androidx.compose.material.icons.rounded.ContactPage
 import androidx.compose.material.icons.rounded.Dashboard
 import androidx.compose.material.icons.rounded.Fence
 import androidx.compose.material.icons.rounded.History
 import androidx.compose.material.icons.rounded.Palette
+import androidx.compose.material.icons.rounded.Tune
 import androidx.compose.material.icons.rounded.Update
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
@@ -172,6 +172,32 @@ fun SettingPagerMiuix(
                             .padding(top = 12.dp)
                             .fillMaxWidth(),
                     ) {
+                        OverlayDropdownPreference(
+                            title = stringResource(id = R.string.settings_preset),
+                            summary = stringResource(id = R.string.settings_preset_summary),
+                            items = listOf(
+                                stringResource(id = R.string.settings_preset_default),
+                                stringResource(id = R.string.settings_preset_boost),
+                                stringResource(id = R.string.settings_preset_custom)
+                            ),
+                            startAction = {
+                                Icon(
+                                    Icons.Rounded.Tune,
+                                    modifier = Modifier.padding(end = 6.dp),
+                                    contentDescription = stringResource(id = R.string.settings_preset),
+                                    tint = colorScheme.onBackground
+                                )
+                            },
+                            selectedIndex = presetIndex(uiState.hookTextMetrics, uiState.hookGlReadPixels, uiState.hookPixelCopy),
+                            onSelectedIndexChange = actions.onSetPreset
+                        )
+                    }
+
+                    Card(
+                        modifier = Modifier
+                            .padding(top = 12.dp)
+                            .fillMaxWidth(),
+                    ) {
                         val tools = stringResource(id = R.string.settings_profile_template)
                         ArrowPreference(
                             title = tools,
@@ -184,25 +210,8 @@ fun SettingPagerMiuix(
                                     tint = colorScheme.onBackground
                                 )
                             },
-                            onClick = actions.onOpenTools
+                            onClick = actions.onOpenToolset
                         )
-                        // SSAID 管理入口：仅在实验性功能中启用后显示
-                        if (uiState.ssaidEnabled) {
-                            val ssaid = stringResource(id = R.string.settings_ssaid)
-                            ArrowPreference(
-                                title = ssaid,
-                                summary = stringResource(id = R.string.settings_ssaid_summary),
-                                startAction = {
-                                    Icon(
-                                        Icons.Rounded.Badge,
-                                        modifier = Modifier.padding(end = 6.dp),
-                                        contentDescription = ssaid,
-                                        tint = colorScheme.onBackground
-                                    )
-                                },
-                                onClick = actions.onOpenSsaid
-                            )
-                        }
                         val log = stringResource(id = R.string.settings_log)
                         ArrowPreference(
                             title = log,

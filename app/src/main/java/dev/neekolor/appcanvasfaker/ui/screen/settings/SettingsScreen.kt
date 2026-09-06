@@ -6,6 +6,7 @@ import androidx.compose.ui.unit.Dp
 import androidx.lifecycle.compose.LifecycleResumeEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
+import dev.neekolor.appcanvasfaker.ui.LocalMainPagerState
 import dev.neekolor.appcanvasfaker.ui.LocalUiMode
 import dev.neekolor.appcanvasfaker.ui.UiMode
 import dev.neekolor.appcanvasfaker.ui.navigation3.Navigator
@@ -19,6 +20,7 @@ fun SettingPager(
 ) {
     val viewModel = viewModel<SettingsViewModel>()
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    val mainPagerState = LocalMainPagerState.current
 
     LifecycleResumeEffect(Unit) {
         viewModel.refresh()
@@ -36,10 +38,11 @@ fun SettingPager(
         onSetHookTextMetrics = viewModel::setHookTextMetrics,
         onSetHookGlReadPixels = viewModel::setHookGlReadPixels,
         onSetSsaidEnabled = viewModel::setSsaidEnabled,
-        onOpenTools = { navigator.push(Route.Tools) },
+        onOpenToolset = { mainPagerState.animateToPage(2) },
         onOpenSsaid = { navigator.push(Route.Ssaid) },
         onOpenLog = { navigator.push(Route.Log) },
         onOpenAbout = { navigator.push(Route.About) },
+        onSetPreset = viewModel::applyPreset,
     )
 
     when (LocalUiMode.current) {

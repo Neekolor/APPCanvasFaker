@@ -19,7 +19,7 @@
     <string name="force_stop_app">强制停止</string>
     <string name="restart_app">重新启动</string>
     <string name="settings_profile_template">实验性功能</string>
-    <string name="settings_profile_template_summary">尚在验证中的实验性 Hook 开关，按需启用。</string>
+    <string name="settings_profile_template_summary">伪装开关与实用工具集合，前往"工具"页查看。</string>
     <string name="settings_check_update">检查更新</string>
     <string name="settings_check_update_summary">在应用启动后自动检查是否有最新版</string>
     <string name="settings_enable_predictive_back">预测性返回手势</string>
@@ -82,6 +82,11 @@
     <string name="settings_hook_glreadpixels_summary">拦截 GLES20.glReadPixels 直读旁路；可能影响游戏录像、直播推流等应用自身的 GL 读回，默认关闭</string>
     <string name="settings_hook_pixelcopy">随机化屏幕拷贝</string>
     <string name="settings_hook_pixelcopy_summary">拷贝完成时对目标位图施加确定性扰动，覆盖延迟读取例外；应用内截屏分享异常时可临时关闭</string>
+    <string name="settings_preset">行为预设</string>
+    <string name="settings_preset_summary">一键切换整体伪装强度（主线伪装恒开不受影响）</string>
+    <string name="settings_preset_default">默认</string>
+    <string name="settings_preset_boost">增强</string>
+    <string name="settings_preset_custom">自定义</string>
     <string name="nav_rail_expand">展开导航栏</string>
     <string name="nav_rail_collapse">收起导航栏</string>
     <string name="home_not_activated">模块未激活</string>
@@ -129,7 +134,7 @@
     <string name="tools_title">实验性功能</string>
     <string name="app_search_hint">搜索应用</string>
     <string name="search_no_result">未找到匹配的应用</string>
-    <string name="nav_pending">待定</string>
+    <string name="nav_pending">工具</string>
     <string name="home_checking">{}</string>
     <string name="ssaid_count_title">共 %d 个条目</string>
     <string name="ssaid_copied">SSAID 已复制到剪贴板</string>
