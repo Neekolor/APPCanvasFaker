@@ -80,6 +80,8 @@
     <string name="settings_hook_text_metrics_summary">对 Paint 文本度量施加 ≤0.7% 确定性微扰；若个别应用自绘排版异常可临时关闭</string>
     <string name="settings_hook_glreadpixels">随机化 GPU 帧缓冲读取</string>
     <string name="settings_hook_glreadpixels_summary">拦截 GLES20.glReadPixels 直读旁路；可能影响游戏录像、直播推流等应用自身的 GL 读回，默认关闭</string>
+    <string name="settings_hook_pixelcopy">随机化屏幕拷贝</string>
+    <string name="settings_hook_pixelcopy_summary">拷贝完成时对目标位图施加确定性扰动，覆盖延迟读取例外；应用内截屏分享异常时可临时关闭</string>
     <string name="nav_rail_expand">展开导航栏</string>
     <string name="nav_rail_collapse">收起导航栏</string>
     <string name="home_not_activated">模块未激活</string>

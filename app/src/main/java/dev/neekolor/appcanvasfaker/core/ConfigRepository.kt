@@ -25,7 +25,7 @@ import java.util.Locale
  *   读优先远端，配置写双写，绑定瞬间本地配置一次性推远端（本地胜出）。
  * - hook 进程只经远端读写（见 LibXposedInit / BitmapHooks），统计 key 与本地同名。
  * 配置 JSON 结构：{ mode, enable_logging, hook_getpixel, hook_text_metrics,
- * hook_glreadpixels, rules: { pkg: {enabled, seed} } }
+ * hook_glreadpixels, hook_pixelcopy, rules: { pkg: {enabled, seed} } }
  */
 class ConfigRepository(private val context: Context) {
 
@@ -245,6 +245,17 @@ class ConfigRepository(private val context: Context) {
         synchronized(writeLock) {
             val c = config()
             c.put("hook_glreadpixels", enabled)
+            saveConfig(c)
+        }
+    }
+
+    /** C2 PixelCopy.request 监听器包装（scanner C2 延迟持有例外）：默认开；截图分享类场景异常时可关。 */
+    fun hookPixelCopy(): Boolean = config().optBoolean("hook_pixelcopy", true)
+
+    fun setHookPixelCopy(enabled: Boolean) {
+        synchronized(writeLock) {
+            val c = config()
+            c.put("hook_pixelcopy", enabled)
             saveConfig(c)
         }
     }
