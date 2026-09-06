@@ -34,6 +34,8 @@
     <string name="settings_hook_text_metrics_summary">Apply ≤0.7% deterministic perturbation to Paint text metrics; turn off if a self-drawn layout looks off</string>
     <string name="settings_hook_glreadpixels">Randomize GPU framebuffer reads</string>
     <string name="settings_hook_glreadpixels_summary">Hook GLES20.glReadPixels direct read; may affect apps\' own GL readback such as game recording or live streaming, off by default</string>
+    <string name="settings_hook_pixelcopy">Randomize screen copies</string>
+    <string name="settings_hook_pixelcopy_summary">Apply deterministic perturbation to the target bitmap when a copy completes; covers delayed-read exceptions. Turn off if in-app screenshots look wrong</string>
     <string name="processing">Processing…</string>
     <string name="refresh_pulling">Pull down to refresh</string>
     <string name="refresh_release">Release to refresh</string>

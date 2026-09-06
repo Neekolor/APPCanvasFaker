@@ -16,9 +16,11 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Badge
+import androidx.compose.material.icons.filled.ContentCopy
 import androidx.compose.material.icons.filled.TextFields
 import androidx.compose.material.icons.filled.ViewInAr
 import androidx.compose.material.icons.rounded.Badge
+import androidx.compose.material.icons.rounded.ContentCopy
 import androidx.compose.material.icons.rounded.TextFields
 import androidx.compose.material.icons.rounded.ViewInAr
 import androidx.compose.material3.LargeFlexibleTopAppBar
@@ -181,6 +183,21 @@ private fun ToolsScreenMiuix(
                             checked = uiState.hookGlReadPixels,
                             onCheckedChange = viewModel::setHookGlReadPixels
                         )
+                        val pixelCopy = stringResource(id = R.string.settings_hook_pixelcopy)
+                        SwitchPreference(
+                            title = pixelCopy,
+                            summary = stringResource(id = R.string.settings_hook_pixelcopy_summary),
+                            startAction = {
+                                Icon(
+                                    Icons.Rounded.ContentCopy,
+                                    modifier = Modifier.padding(end = 6.dp),
+                                    contentDescription = pixelCopy,
+                                    tint = colorScheme.onBackground
+                                )
+                            },
+                            checked = uiState.hookPixelCopy,
+                            onCheckedChange = viewModel::setHookPixelCopy
+                        )
                         // 「启用随机化 SSAID」：控制设置页 SSAID 管理入口的显示（默认关）
                         val ssaid = stringResource(id = R.string.tools_ssaid_switch)
                         SwitchPreference(
@@ -259,6 +276,15 @@ private fun ToolsScreenMaterial(
                             summary = stringResource(id = R.string.settings_hook_glreadpixels_summary),
                             checked = uiState.hookGlReadPixels,
                             onCheckedChange = viewModel::setHookGlReadPixels
+                        )
+                    },
+                    {
+                        SegmentedSwitchItem(
+                            icon = Icons.Filled.ContentCopy,
+                            title = stringResource(id = R.string.settings_hook_pixelcopy),
+                            summary = stringResource(id = R.string.settings_hook_pixelcopy_summary),
+                            checked = uiState.hookPixelCopy,
+                            onCheckedChange = viewModel::setHookPixelCopy
                         )
                     },
                     {

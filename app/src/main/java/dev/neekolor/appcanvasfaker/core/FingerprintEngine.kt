@@ -54,6 +54,28 @@ object FingerprintEngine {
     /** H-05 度量值统一施加方式：原值 × (1 + factor)。 */
     fun scaleMetric(value: Float, factor: Float): Float = value * (1f + factor)
 
+    /**
+     * H-05 getTextWidths：输出数组逐元缩放，输入键与返回计数语义由调用方保持。
+     * 空数组直接返回，避免无意义遍历。
+     */
+    fun scaleWidths(widths: FloatArray, factor: Float) {
+        for (i in widths.indices) widths[i] = scaleMetric(widths[i], factor)
+    }
+
+    /**
+     * H-05 getFontMetricsInt：整数度量字段同比缩放（四舍五入保证确定性）。
+     * leading 不动（与浮点版 FontMetrics 决策一致）。
+     */
+    fun scaleFontMetricsInt(fm: android.graphics.Paint.FontMetricsInt, factor: Float) {
+        fm.top = scaleIntMetric(fm.top, factor)
+        fm.ascent = scaleIntMetric(fm.ascent, factor)
+        fm.descent = scaleIntMetric(fm.descent, factor)
+        fm.bottom = scaleIntMetric(fm.bottom, factor)
+    }
+
+    /** H-05 整数度量值统一施加方式：round(原值 × (1 + factor))。 */
+    fun scaleIntMetric(value: Int, factor: Float): Int = Math.round(value * (1f + factor))
+
     /** H-05 文本边界框：以左上角为锚点缩放宽高，保持确定性。 */
     fun scaleBounds(rect: android.graphics.Rect, factor: Float) {
         val w = rect.width()

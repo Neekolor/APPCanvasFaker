@@ -23,8 +23,9 @@ import java.util.concurrent.Executors
  * Hook 链实现：
  * - A1 getPixels / A3 copyPixelsToBuffer / A4+A4b compress（v0.5.0 起现役）
  * - H-01 Bitmap.getPixel 单点读取（scanner A2）
- * - H-05 Paint 文本度量族（scanner E1）
+ * - H-05 Paint 文本度量族 18 重载（scanner E1，含 getTextWidths 系与 getFontMetricsInt）
  * - H-02 GLES20.glReadPixels GPU 帧缓冲直读（scanner D1，默认关）
+ * - C2 PixelCopy.request 监听器包装（scanner C2 延迟持有例外，默认开）
  * 递归保护：ThreadLocal 标志，compress 内层 fake.compress 直接 proceed 放行。
  * 新增三链均为热路径：不做跨进程统计、不加锁、不逐次打日志，
  * 仅做纯数学扰动；原生异常语义与宿主一致（proceed 失败原样上抛）。
@@ -57,7 +58,8 @@ object BitmapHooks {
         param: XposedModuleInterface.PackageLoadedParam,
         hookGetPixel: Boolean,
         hookTextMetrics: Boolean,
-        hookGlReadPixels: Boolean
+        hookGlReadPixels: Boolean,
+        hookPixelCopy: Boolean
     ) {
         val bitmapClass = param.defaultClassLoader.loadClass("android.graphics.Bitmap")
 
@@ -131,10 +133,16 @@ object BitmapHooks {
                 }
             }.onFailure { Log.w(TAG, "H-02 hook glReadPixels unavailable", it) }
         }
+
+        // C2 PixelCopy.request 系列：拷贝完成监听器包装（scanner C2 延迟持有例外）
+        if (hookPixelCopy) {
+            installPixelCopyHooks(module, packageName, param)
+        }
     }
 
-    /** H-05：注册 Paint 度量族全部 Java 层重载。单个重载缺失不影响其余安装。
-     *  每个重载绑定独立的"文本哈希提取器"，从本次调用的参数中确定性地导出输入键。 */
+    /** H-05：注册 Paint 度量族 Java 层重载（measureText×4 / getTextBounds×2 /
+     *  getFontMetrics×2 / breakText×4 / getTextWidths×4 / getFontMetricsInt×2）。
+     *  单个重载缺失不影响其余安装；每个重载绑定独立的"文本哈希提取器"。 */
     private fun installTextMetricHooks(
         module: XposedInterface,
         packageName: String,
@@ -215,6 +223,34 @@ object BitmapHooks {
                 textHashOf(ch.getArg(0) as? CharSequence, ch.getArg(1) as Int, ch.getArg(2) as Int)
             }
         }, CharSequence::class.java, tInt, tInt, tBool, tFloat, FloatArray::class.java)
+
+        // getTextWidths ×4（返回的字符计数不动，只缩放输出数组各元）
+        hook("getTextWidths", { c ->
+            handleWidthsMetric(c, packageName, seed, 1) { ch ->
+                val t = ch.getArg(0) as? String
+                textHashOf(t, 0, t?.length ?: 0)
+            }
+        }, String::class.java, FloatArray::class.java)
+        hook("getTextWidths", { c ->
+            handleWidthsMetric(c, packageName, seed, 3) { ch ->
+                textHashOf(ch.getArg(0) as? String, ch.getArg(1) as Int, ch.getArg(2) as Int)
+            }
+        }, String::class.java, tInt, tInt, FloatArray::class.java)
+        hook("getTextWidths", { c ->
+            handleWidthsMetric(c, packageName, seed, 3) { ch ->
+                textHashOf(ch.getArg(0) as? CharArray, ch.getArg(1) as Int, ch.getArg(2) as Int)
+            }
+        }, CharArray::class.java, tInt, tInt, FloatArray::class.java)
+        hook("getTextWidths", { c ->
+            handleWidthsMetric(c, packageName, seed, 3) { ch ->
+                textHashOf(ch.getArg(0) as? CharSequence, ch.getArg(1) as Int, ch.getArg(2) as Int)
+            }
+        }, CharSequence::class.java, tInt, tInt, FloatArray::class.java)
+
+        // getFontMetricsInt ×2（度量族无文本输入，因子仅由 seed + textSize 决定；leading 不动）
+        hook("getFontMetricsInt", { c -> handleFontMetricsIntNew(c, packageName, seed) })
+        hook("getFontMetricsInt", { c -> handleFontMetricsIntInto(c, packageName, seed) },
+            android.graphics.Paint.FontMetricsInt::class.java)
     }
 
     // ---------- H-01 / H-02 / H-05 处理器 ----------
@@ -356,6 +392,72 @@ object BitmapHooks {
     }
 
     /**
+     * H-05 getTextWidths：只缩放输出数组各元，返回的字符计数保持原值——
+     * 与 breakText 同理，计数扰动可能引发调用方按错误下标切片；空数组直接返回。
+     */
+    private fun handleWidthsMetric(
+        chain: XposedInterface.Chain,
+        packageName: String,
+        seed: Long,
+        widthsIndex: Int,
+        hashOf: (XposedInterface.Chain) -> Long
+    ): Any? {
+        var proceeded = false
+        try {
+            proceeded = true
+            val count = chain.proceed() as Int
+            val widths = chain.getArg(widthsIndex) as? FloatArray
+            if (widths != null && widths.isNotEmpty()) {
+                val factor = metricFactor(chain.getThisObject() as? android.graphics.Paint, seed, hashOf(chain))
+                FingerprintEngine.scaleWidths(widths, factor)
+            }
+            return count
+        } catch (t: Throwable) {
+            if (!proceeded) runCatching { chain.proceed() }
+            throw t
+        }
+    }
+
+    /** H-05 getFontMetricsInt()：新建整数度量的四个主字段同比缩放（leading 不动）。 */
+    private fun handleFontMetricsIntNew(
+        chain: XposedInterface.Chain,
+        packageName: String,
+        seed: Long
+    ): Any? {
+        var proceeded = false
+        try {
+            proceeded = true
+            val fm = chain.proceed() as? android.graphics.Paint.FontMetricsInt ?: return null
+            val factor = metricFactor(chain.getThisObject() as? android.graphics.Paint, seed, 0L)
+            FingerprintEngine.scaleFontMetricsInt(fm, factor)
+            return fm
+        } catch (t: Throwable) {
+            if (!proceeded) runCatching { chain.proceed() }
+            throw t
+        }
+    }
+
+    /** H-05 getFontMetricsInt(FontMetricsInt)：填充式重载，字段与返回值一并缩放保持自洽。 */
+    private fun handleFontMetricsIntInto(
+        chain: XposedInterface.Chain,
+        packageName: String,
+        seed: Long
+    ): Any? {
+        var proceeded = false
+        try {
+            proceeded = true
+            val original = chain.proceed() as Int
+            val fm = chain.getArg(0) as? android.graphics.Paint.FontMetricsInt
+            val factor = metricFactor(chain.getThisObject() as? android.graphics.Paint, seed, 0L)
+            if (fm != null) FingerprintEngine.scaleFontMetricsInt(fm, factor)
+            return FingerprintEngine.scaleIntMetric(original, factor)
+        } catch (t: Throwable) {
+            if (!proceeded) runCatching { chain.proceed() }
+            throw t
+        }
+    }
+
+    /**
      * H-05 breakText：只改写 measuredWidth[0]，返回的可容纳字符数保持原值——
      * 计数若被扰动可能引发调用方按错误下标切片，风险不可控；宽度偏差 ≤0.7% 无感知。
      */
@@ -394,6 +496,94 @@ object BitmapHooks {
         fm.ascent = FingerprintEngine.scaleMetric(fm.ascent, factor)
         fm.descent = FingerprintEngine.scaleMetric(fm.descent, factor)
         fm.bottom = FingerprintEngine.scaleMetric(fm.bottom, factor)
+    }
+
+    // ---------- C2 PixelCopy 监听器包装 ----------
+    //
+    // 回填 Bitmap 被即时标准读取时本已落入像素漏斗；此包装只补
+    // "消费方长期持有引用延迟读取/跨进程传递"的例外：拷贝成功回调时把
+    // 目标位图存毒一层（经 A1 同源噪声），再转发原回调。
+    // 存毒后后续标准读取会再叠一层确定性扰动——C2 内容本无跨路径对齐
+    // 承诺，不破坏一致性；同一目标位图重复拷贝会累积层数（确定性，只与
+    // 操作序列有关）。任何失败 fail-open：只转发原回调，不破坏应用行为。
+
+    private fun installPixelCopyHooks(
+        module: XposedInterface,
+        packageName: String,
+        param: XposedModuleInterface.PackageLoadedParam
+    ) {
+        val pixelCopyClass = runCatching {
+            param.defaultClassLoader.loadClass("android.view.PixelCopy")
+        }.onFailure { Log.w(TAG, "C2 PixelCopy class unavailable", it) }.getOrNull() ?: return
+        val listenerClass = runCatching {
+            param.defaultClassLoader.loadClass("android.view.PixelCopy\$OnPixelCopiedListener")
+        }.onFailure { Log.w(TAG, "C2 PixelCopy listener unavailable", it) }.getOrNull() ?: return
+        val tRect = android.graphics.Rect::class.java
+        val tBitmap = android.graphics.Bitmap::class.java
+        val tHandler = android.os.Handler::class.java
+        val surfaceView = runCatching { param.defaultClassLoader.loadClass("android.view.SurfaceView") }.getOrNull()
+        val surface = runCatching { param.defaultClassLoader.loadClass("android.view.Surface") }.getOrNull()
+        val window = runCatching { param.defaultClassLoader.loadClass("android.view.Window") }.getOrNull()
+        // 5 个 request 重载：因版本缺失的重载静默跳过，其余独立安装
+        val candidates = listOfNotNull(
+            surfaceView?.let { arrayOf(it, tRect, tBitmap, listenerClass, tHandler) },
+            surface?.let { arrayOf(it, tRect, tBitmap, listenerClass, tHandler) },
+            surface?.let { arrayOf(it, tBitmap, listenerClass, tHandler) },
+            window?.let { arrayOf(it, tRect, tBitmap, listenerClass, tHandler) },
+            window?.let { arrayOf(it, tBitmap, listenerClass, tHandler) }
+        )
+        for (types in candidates) {
+            runCatching {
+                val m = pixelCopyClass.getDeclaredMethod("request", *types)
+                module.hook(m).intercept { chain ->
+                    handlePixelCopy(chain, packageName, listenerClass)
+                }
+            }.onFailure { Log.w(TAG, "C2 hook PixelCopy.request unavailable", it) }
+        }
+    }
+
+    /** C2：按参数类型定位目标位图与监听器，换参送入代理监听器后继续执行。 */
+    private fun handlePixelCopy(
+        chain: XposedInterface.Chain,
+        packageName: String,
+        listenerClass: Class<*>
+    ): Any? {
+        val args = chain.getArgs().toMutableList()
+        val bitmapIndex = args.indexOfFirst { it is android.graphics.Bitmap }
+        val listenerIndex = args.indexOfFirst { listenerClass.isInstance(it) }
+        val bitmap = args.getOrNull(bitmapIndex) as? android.graphics.Bitmap
+        val original = args.getOrNull(listenerIndex)
+        if (bitmapIndex < 0 || listenerIndex < 0 || bitmap == null || original == null) {
+            return chain.proceed()
+        }
+        val proxy = java.lang.reflect.Proxy.newProxyInstance(
+            listenerClass.classLoader, arrayOf(listenerClass)
+        ) { _, method, proxyArgs ->
+            if (method.name == "onPixelCopied") {
+                val result = (proxyArgs?.getOrNull(0) as? Int) ?: -1
+                if (result == android.view.PixelCopy.SUCCESS) {
+                    runCatching { poisonPixelCopyTarget(bitmap) }
+                        .onFailure { Log.e(TAG, "C2 poison failed for $packageName", it) }
+                }
+            }
+            method.invoke(original, *(proxyArgs ?: emptyArray()))
+        }
+        args[listenerIndex] = proxy
+        return chain.proceed(args.toTypedArray())
+    }
+
+    /**
+     * C2 存毒：经标准 getPixels 读出（触发 A1 链，附带一层同源噪声）再
+     * setPixels 写回，使延迟读取/跨进程传递等非标准消费同样拿到假像素。
+     * 调用方负责 fail-open（回收/硬件位图、超大位图 OOM 均直接放过）。
+     */
+    private fun poisonPixelCopyTarget(bitmap: android.graphics.Bitmap) {
+        val w = bitmap.width
+        val h = bitmap.height
+        if (w <= 0 || h <= 0) return
+        val pixels = IntArray(w * h)
+        bitmap.getPixels(pixels, 0, w, 0, 0, w, h)
+        bitmap.setPixels(pixels, 0, w, 0, 0, w, h)
     }
 
     // ---------- H-05 文本哈希 ----------

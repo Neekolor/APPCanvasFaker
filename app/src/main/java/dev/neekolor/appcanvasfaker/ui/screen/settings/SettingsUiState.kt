@@ -23,6 +23,7 @@ data class SettingsUiState(
     val enableLogging: Boolean = true,
     val hookTextMetrics: Boolean = true,
     val hookGlReadPixels: Boolean = false,
+    val hookPixelCopy: Boolean = true,
     val ssaidEnabled: Boolean = false,
 )
 

@@ -96,15 +96,17 @@ class LibXposedInit : XposedModule() {
         val hookGetPixel = config.optBoolean("hook_getpixel", true)
         val hookTextMetrics = config.optBoolean("hook_text_metrics", true)
         val hookGlReadPixels = config.optBoolean("hook_glreadpixels", false)
+        // v0.8.4 C2 监听器包装开关（全局项）：默认开——应用内 PixelCopy 极少承载用户可见内容
+        val hookPixelCopy = config.optBoolean("hook_pixelcopy", true)
 
         BitmapHooks.install(
             this, packageName, mode, seed, prefs, enableLogging, param,
-            hookGetPixel, hookTextMetrics, hookGlReadPixels
+            hookGetPixel, hookTextMetrics, hookGlReadPixels, hookPixelCopy
         )
         HookLog.i(
             TAG,
             "hooks installed for $packageName mode=$mode seed=$seed " +
-                "h01=$hookGetPixel h05=$hookTextMetrics h02=$hookGlReadPixels"
+                "h01=$hookGetPixel h05=$hookTextMetrics h02=$hookGlReadPixels pcopy=$hookPixelCopy"
         )
     }
 

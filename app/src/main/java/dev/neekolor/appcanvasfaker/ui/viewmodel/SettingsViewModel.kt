@@ -46,6 +46,7 @@ class SettingsViewModel(
                     enableLogging = configRepo.enableLogging(),
                     hookTextMetrics = configRepo.hookTextMetrics(),
                     hookGlReadPixels = configRepo.hookGlReadPixels(),
+                    hookPixelCopy = configRepo.hookPixelCopy(),
                     ssaidEnabled = repo.ssaidEnabled,
                 )
             }
@@ -100,6 +101,11 @@ class SettingsViewModel(
     fun setHookGlReadPixels(enabled: Boolean) {
         configRepo.setHookGlReadPixels(enabled)
         _uiState.update { it.copy(hookGlReadPixels = enabled) }
+    }
+
+    fun setHookPixelCopy(enabled: Boolean) {
+        configRepo.setHookPixelCopy(enabled)
+        _uiState.update { it.copy(hookPixelCopy = enabled) }
     }
 
     /** 「启用随机化 SSAID」开关：控制设置页"SSAID 管理"入口的显示（纯 UI 设置，不下发 hook 进程）。 */
