@@ -125,10 +125,13 @@ fun SsaidScreen() {
     val deleteText = stringResource(R.string.delete)
     val randomizeConfirm = stringResource(R.string.ssaid_randomize_confirm)
     val deleteConfirm = stringResource(R.string.ssaid_delete_confirm)
-    val randomizeSuccess = stringResource(R.string.ssaid_randomize_success)
-    val deleteSuccess = stringResource(R.string.ssaid_delete_success)
-    val reloadFailed = stringResource(R.string.ssaid_reload_failed)
     val operationFailed = stringResource(R.string.ssaid_operation_failed)
+    val restartRequired = stringResource(R.string.ssaid_restart_required)
+    val rebootTitle = stringResource(R.string.ssaid_reboot_title)
+    val rebootContent = stringResource(R.string.ssaid_reboot_content)
+    val rebootLater = stringResource(R.string.reboot_later)
+    val rebootNow = stringResource(R.string.reboot_now)
+    val rebootFailed = stringResource(R.string.reboot_failed)
 
     fun showResult(message: String) {
         if (uiMode == UiMode.Material) {
@@ -142,19 +145,27 @@ fun SsaidScreen() {
     var pendingRandomize by remember { mutableStateOf<String?>(null) }
     var pendingDelete by remember { mutableStateOf<String?>(null) }
 
+    // 重启确认弹窗：与随机化/删除确认卡同组件，左"稍后重启"右红色"重启"
+    val rebootDialog = rememberConfirmDialog(onConfirm = {
+        scope.launch {
+            if (!viewModel.reboot()) showResult(rebootFailed)
+        }
+    })
     val randomizeDialog = rememberConfirmDialog(onConfirm = {
         val pkg = pendingRandomize ?: return@rememberConfirmDialog
         scope.launch {
             viewModel.setBusy(pkg)
             val (written, reloaded) = viewModel.randomize(pkg)
             viewModel.setBusy(null)
-            showResult(
-                when {
-                    written && reloaded -> randomizeSuccess
-                    written -> reloadFailed
-                    else -> operationFailed
-                }
-            )
+            if (written) {
+                showResult(restartRequired)
+                rebootDialog.showConfirm(
+                    title = rebootTitle, content = rebootContent,
+                    confirm = rebootNow, dismiss = rebootLater, dangerConfirm = true
+                )
+            } else {
+                showResult(operationFailed)
+            }
         }
     })
     val deleteDialog = rememberConfirmDialog(onConfirm = {
@@ -163,16 +174,17 @@ fun SsaidScreen() {
             viewModel.setBusy(pkg)
             val (written, reloaded) = viewModel.delete(pkg)
             viewModel.setBusy(null)
-            showResult(
-                when {
-                    written && reloaded -> deleteSuccess
-                    written -> reloadFailed
-                    else -> operationFailed
-                }
-            )
+            if (written) {
+                showResult(restartRequired)
+                rebootDialog.showConfirm(
+                    title = rebootTitle, content = rebootContent,
+                    confirm = rebootNow, dismiss = rebootLater, dangerConfirm = true
+                )
+            } else {
+                showResult(operationFailed)
+            }
         }
     })
-
     val actions = SsaidActions(
         onBack = dropUnlessResumed { navigator.pop() },
         onRandomize = { pkg ->

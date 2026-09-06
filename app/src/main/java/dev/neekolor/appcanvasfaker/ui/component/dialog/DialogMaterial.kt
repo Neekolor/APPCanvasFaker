@@ -61,6 +61,13 @@ fun ConfirmDialogMaterial(
                     onClick = {
                         confirm()
                         showDialog.value = false
+                    },
+                    colors = if (visuals.dangerConfirm) {
+                        androidx.compose.material3.ButtonDefaults.textButtonColors(
+                            contentColor = MaterialTheme.colorScheme.error
+                        )
+                    } else {
+                        androidx.compose.material3.ButtonDefaults.textButtonColors()
                     }
                 ) {
                     Text(visuals.confirm ?: stringResource(id = android.R.string.ok))

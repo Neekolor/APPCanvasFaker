@@ -43,6 +43,14 @@
     <string name="settings_preset_custom">Custom</string>
     <string name="stats_title">Hook stats</string>
     <string name="stats_empty">No hook counts yet — use an app first</string>
+    <string name="ssaid_restart_required">SSAID randomized, please restart the app</string>
+    <string name="ssaid_reboot_title">Reboot device</string>
+    <string name="ssaid_reboot_content">SSAID has been written. A reboot is required to take effect. Reboot now?</string>
+    <string name="reboot_later">Later</string>
+    <string name="reboot_now">Reboot</string>
+    <string name="reboot_failed">Failed to send reboot command, please reboot manually</string>
+    <string name="fingerprints_title">Fingerprint baseline</string>
+    <string name="fingerprints_summary">View untainted baseline fingerprints of this device</string>
     <string name="processing">Processing…</string>
     <string name="refresh_pulling">Pull down to refresh</string>
     <string name="refresh_release">Release to refresh</string>

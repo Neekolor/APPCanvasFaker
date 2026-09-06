@@ -313,6 +313,11 @@ fun LogScreenMiuix(
                         ),
                         overscrollEffect = null,
                     ) {
+                        if (!state.loggingEnabled) {
+                            item(key = "logging_disabled_banner") {
+                                LoggingDisabledBannerMiuix(onOpenSettings = actions.onOpenSettings)
+                            }
+                        }
                         logEntriesSection(
                             items = state.visibleItems,
                             emptyText = emptyText,

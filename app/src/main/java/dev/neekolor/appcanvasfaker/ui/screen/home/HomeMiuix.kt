@@ -37,7 +37,6 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import dev.neekolor.appcanvasfaker.R
-import dev.neekolor.appcanvasfaker.core.FingerprintValue
 import dev.neekolor.appcanvasfaker.ui.theme.LocalEnableBlur
 import dev.neekolor.appcanvasfaker.ui.theme.isInDarkTheme
 import dev.neekolor.appcanvasfaker.ui.util.BlurredBar
@@ -336,16 +335,10 @@ private fun InfoCard(state: HomeUiState) {
         ) {
             InfoText(
                 title = stringResource(R.string.app_version),
-                content = state.versionName
+                content = state.versionName,
+                bottomPadding = 0.dp
             )
-            state.standardFingerprints.forEachIndexed { index, fingerprint ->
-                InfoText(
-                    title = fingerprint.displayTitle(),
-                    content = fingerprint.hash,
-                    bottomPadding = if (index == state.standardFingerprints.lastIndex) 0.dp else 24.dp
-                )
-            }
-            // 模块自身不可被 Hook：此处恒为本机未污染基准；通道故障时明示
+            // 标准指纹值已移至"工具"页指纹基准二级页；此处保留版本与基线说明
             Text(
                 text = stringResource(R.string.home_baseline_note),
                 fontSize = MiuixTheme.textStyles.body2.fontSize,
@@ -390,12 +383,6 @@ private val previewState = HomeUiState(
     versionName = "0.3.0",
     hookedAppCount = 3,
     totalHookCount = 128L,
-    standardFingerprints = listOf(
-        FingerprintValue("A1", "像素直读（getPixels）", "9f86d081884c7d659a2feaa0c55ad015"),
-        FingerprintValue("A3", "缓冲拷贝（copyPixelsToBuffer）", "60303ae22b998861bce3b28f33eec1be"),
-        FingerprintValue("A4", "压缩读取（compress）", "fdbd8e75a67f29f701a4e040385e2e23"),
-        FingerprintValue("A4b", "尺寸采样（getImageSizes）", "5d41402abc4b2a76b9719d911017c592"),
-    ),
 )
 
 @Preview(name = "Home Activated", showBackground = true)

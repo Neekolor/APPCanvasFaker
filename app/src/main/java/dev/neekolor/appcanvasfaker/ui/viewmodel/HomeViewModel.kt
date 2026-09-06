@@ -57,20 +57,18 @@ class HomeViewModel(
         versionName = configRepository.versionName(),
         hookedAppCount = configRepository.hookedAppCountQuick(),
         totalHookCount = configRepository.totalHookCount(),
-        standardFingerprints = emptyList(),
         isLoading = true,
     )
 
     fun refresh() {
         viewModelScope.launch {
             val newState = withContext(Dispatchers.IO) { buildState() }
-            // 只更新计数与指纹；激活状态由服务事件 + 超时兜底统一裁决，
+            // 只更新计数；激活状态由服务事件 + 超时兜底统一裁决，
             // 避免绑定仍在进行中被误判为"未激活"
             _uiState.update { currentState ->
                 currentState.copy(
                     hookedAppCount = newState.hookedAppCount,
                     totalHookCount = newState.totalHookCount,
-                    standardFingerprints = newState.standardFingerprints,
                     remoteChannelOk = newState.remoteChannelOk,
                 )
             }
@@ -84,7 +82,6 @@ class HomeViewModel(
             versionName = snapshot.versionName,
             hookedAppCount = configRepository.enabledAppCount(),
             totalHookCount = snapshot.totalHookCount,
-            standardFingerprints = configRepository.standardFingerprints(),
             isLoading = false,
             remoteChannelOk = probeRemoteChannel(),
         )
