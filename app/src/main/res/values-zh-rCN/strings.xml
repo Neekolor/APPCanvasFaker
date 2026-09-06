@@ -89,6 +89,14 @@
     <string name="settings_preset_custom">自定义</string>
     <string name="stats_title">Hook 统计</string>
     <string name="stats_empty">还没有 Hook 计数，去用一次再回来</string>
+    <string name="ssaid_restart_required">SSAID已随机化，请重启应用</string>
+    <string name="ssaid_reboot_title">重启手机</string>
+    <string name="ssaid_reboot_content">SSAID 已写入系统，需要重启手机才能生效。现在重启吗？</string>
+    <string name="reboot_later">稍后重启</string>
+    <string name="reboot_now">重启</string>
+    <string name="reboot_failed">重启指令发送失败，请手动重启手机</string>
+    <string name="fingerprints_title">指纹基准</string>
+    <string name="fingerprints_summary">查看本机未污染的标准指纹值</string>
     <string name="nav_rail_expand">展开导航栏</string>
     <string name="nav_rail_collapse">收起导航栏</string>
     <string name="home_not_activated">模块未激活</string>

@@ -48,5 +48,9 @@ sealed interface Route : NavKey, Parcelable {
 
     @Parcelize
     @Serializable
+    data object Fingerprints : Route
+
+    @Parcelize
+    @Serializable
     data class AppProfile(val packageName: String) : Route
 }

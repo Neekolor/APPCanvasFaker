@@ -20,10 +20,11 @@ import java.util.Locale
 
 /**
  * UI 进程数据源：官方 RemotePreferences 路线。
- * - 本地 SharedPreferences（app_canvas_faker）为主：未激活也能配规则；
- * - 服务绑定后远端（LSPosed 数据库，同组 [RemoteConfig.GROUP]）为影：
- *   读优先远端，配置写双写，绑定瞬间本地配置一次性推远端（本地胜出）。
- * - hook 进程只经远端读写（见 LibXposedInit / BitmapHooks），统计 key 与本地同名。
+ * - 本地 SharedPreferences（app_canvas_faker）是唯一真实来源：UI 读一律走本地；
+ * - 远端（LSPosed 数据库，同组 [RemoteConfig.GROUP]）只是分发给 Hook 进程的副本：
+ *   配置写双写，绑定瞬间本地配置一次性推远端（本地胜出），UI 永不读远端
+ *   （远端读可能返回过期快照，见 ADR D16）。
+ * - hook 进程经远端读配置（见 LibXposedInit），统计经广播回本进程落本地。
  * 配置 JSON 结构：{ mode, enable_logging, hook_getpixel, hook_text_metrics,
  * hook_glreadpixels, hook_pixelcopy, rules: { pkg: {enabled, seed} } }
  */
@@ -32,9 +33,13 @@ class ConfigRepository(private val context: Context) {
     private val localPrefs: SharedPreferences =
         context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
 
-    /** 读/单写走远端（绑定时），否则本地；配置保存与清日志额外双写不断档。 */
+    /**
+     * UI 侧一律读本地：本地是唯一真实来源（每次保存双写，绑定瞬间推远端，本地胜出），
+     * 远端只是分发给 Hook 进程的副本——实测远端读在绑定后可能返回过期快照
+     * （关日志后日志页横幅出不来的根因），UI 读远端会被带偏。远端只写不读。
+     */
     private val prefs: SharedPreferences
-        get() = RemoteBridge.remote() ?: localPrefs
+        get() = localPrefs
 
     /**
      * 统计面（计数/hash/时间/日志/今日）：只读写本地。

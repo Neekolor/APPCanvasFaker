@@ -89,6 +89,14 @@ class SsaidViewModel(application: Application) : AndroidViewModel(application) {
         _uiState.update { it.copy(busyPkg = packageName) }
     }
 
+    /**
+     * 重启手机（root）：SSAID 写盘后的生效手段。
+     * 调用方保证已二次确认，且在 IO 上下文调用（RootShell 要求）。
+     */
+    suspend fun reboot(): Boolean = withContext(Dispatchers.IO) {
+        RootShell.exec("reboot").isSuccess
+    }
+
     /** 顶栏菜单切换"显示系统应用"：持久化后整表重读（过滤在 buildState 内做）。 */
     fun toggleShowSystemApps() {
         val newValue = !_uiState.value.showSystemApps

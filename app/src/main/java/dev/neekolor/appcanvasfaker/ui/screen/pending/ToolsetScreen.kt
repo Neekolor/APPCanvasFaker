@@ -19,10 +19,12 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.Badge
 import androidx.compose.material.icons.filled.ContentCopy
+import androidx.compose.material.icons.filled.Fingerprint
 import androidx.compose.material.icons.filled.TextFields
 import androidx.compose.material.icons.filled.ViewInAr
 import androidx.compose.material.icons.rounded.Badge
 import androidx.compose.material.icons.rounded.ContentCopy
+import androidx.compose.material.icons.rounded.Fingerprint
 import androidx.compose.material.icons.rounded.TextFields
 import androidx.compose.material.icons.rounded.ViewInAr
 import androidx.compose.material3.Icon
@@ -85,8 +87,8 @@ fun ToolsetScreen(
     }
 
     when (LocalUiMode.current) {
-        UiMode.Miuix -> ToolsetScreenMiuix(uiState, viewModel, { navigator.push(Route.Ssaid) }, bottomInnerPadding)
-        UiMode.Material -> ToolsetScreenMaterial(uiState, viewModel, { navigator.push(Route.Ssaid) }, bottomInnerPadding)
+        UiMode.Miuix -> ToolsetScreenMiuix(uiState, viewModel, { navigator.push(Route.Ssaid) }, { navigator.push(Route.Fingerprints) }, bottomInnerPadding)
+        UiMode.Material -> ToolsetScreenMaterial(uiState, viewModel, { navigator.push(Route.Ssaid) }, { navigator.push(Route.Fingerprints) }, bottomInnerPadding)
     }
 }
 
@@ -95,6 +97,7 @@ private fun ToolsetScreenMiuix(
     uiState: SettingsUiState,
     viewModel: SettingsViewModel,
     onOpenSsaid: () -> Unit,
+    onOpenFingerprints: () -> Unit,
     bottomInnerPadding: Dp,
 ) {
     val scrollBehavior = MiuixScrollBehavior()
@@ -134,6 +137,28 @@ private fun ToolsetScreenMiuix(
         ) {
             item {
                 Card(modifier = Modifier.fillMaxWidth()) {
+                    val fingerprints = stringResource(id = R.string.fingerprints_title)
+                    ArrowPreference(
+                        title = fingerprints,
+                        summary = stringResource(id = R.string.fingerprints_summary),
+                        startAction = {
+                            MiuixIcon(
+                                Icons.Rounded.Fingerprint,
+                                modifier = Modifier.padding(end = 6.dp),
+                                contentDescription = fingerprints,
+                                tint = colorScheme.onBackground
+                            )
+                        },
+                        onClick = onOpenFingerprints
+                    )
+                }
+            }
+            item {
+                Card(
+                    modifier = Modifier
+                        .padding(top = 8.dp)
+                        .fillMaxWidth(),
+                ) {
                     val textMetrics = stringResource(id = R.string.settings_hook_text_metrics)
                     SwitchPreference(
                         title = "$textMetrics（E1）",
@@ -253,6 +278,7 @@ private fun ToolsetScreenMaterial(
     uiState: SettingsUiState,
     viewModel: SettingsViewModel,
     onOpenSsaid: () -> Unit,
+    onOpenFingerprints: () -> Unit,
     bottomInnerPadding: Dp,
 ) {
     ExpressiveScaffold(
@@ -338,7 +364,29 @@ private fun ToolsetScreenMaterial(
             )
             if (uiState.ssaidEnabled) {
                 val ssaid = stringResource(id = R.string.settings_ssaid)
-                SegmentedColumn(
+            SegmentedColumn(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp, vertical = 4.dp),
+                content = listOf(
+                    {
+                        val fingerprints = stringResource(id = R.string.fingerprints_title)
+                        SegmentedListItem(
+                            onClick = onOpenFingerprints,
+                            headlineContent = { Text(fingerprints) },
+                            supportingContent = { Text(stringResource(id = R.string.fingerprints_summary)) },
+                            leadingContent = { Icon(Icons.Filled.Fingerprint, fingerprints) },
+                            trailingContent = {
+                                Icon(
+                                    Icons.AutoMirrored.Filled.KeyboardArrowRight,
+                                    null
+                                )
+                            }
+                        )
+                    }
+                )
+            )
+            SegmentedColumn(
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(horizontal = 16.dp, vertical = 4.dp),
