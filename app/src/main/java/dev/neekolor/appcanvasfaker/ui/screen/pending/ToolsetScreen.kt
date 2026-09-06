@@ -1,19 +1,18 @@
-﻿package dev.neekolor.appcanvasfaker.ui.screen.pending
+package dev.neekolor.appcanvasfaker.ui.screen.pending
 
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.WindowInsetsSides
 import androidx.compose.foundation.layout.add
 import androidx.compose.foundation.layout.displayCutout
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawing
 import androidx.compose.foundation.layout.systemBars
+import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
@@ -61,6 +60,8 @@ import top.yukonga.miuix.kmp.basic.MiuixScrollBehavior
 import top.yukonga.miuix.kmp.basic.Scaffold
 import top.yukonga.miuix.kmp.basic.TopAppBar
 import top.yukonga.miuix.kmp.basic.Icon as MiuixIcon
+import top.yukonga.miuix.kmp.utils.overScrollVertical
+import top.yukonga.miuix.kmp.utils.scrollEndHaptic
 import top.yukonga.miuix.kmp.preference.ArrowPreference
 import top.yukonga.miuix.kmp.preference.SwitchPreference
 import top.yukonga.miuix.kmp.theme.MiuixTheme.colorScheme
@@ -115,21 +116,27 @@ private fun ToolsetScreenMiuix(
         popupHost = { },
         contentWindowInsets = WindowInsets.systemBars.add(WindowInsets.displayCutout).only(WindowInsetsSides.Horizontal),
     ) { innerPadding ->
-        Box(
+        // 对齐应用列表页：LazyColumn + 回弹 + 触底震动 + 嵌套滚动；
+        // 四开关各一张独立卡片，8dp 紧凑间距（设置页为 12dp）。
+        LazyColumn(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(innerPadding)
-                .padding(bottom = bottomInnerPadding),
+                .scrollEndHaptic()
+                .overScrollVertical()
+                .nestedScroll(scrollBehavior.nestedScrollConnection),
+            contentPadding = PaddingValues(
+                top = innerPadding.calculateTopPadding() + 12.dp,
+                bottom = innerPadding.calculateBottomPadding() + bottomInnerPadding + 12.dp,
+                start = 12.dp,
+                end = 12.dp
+            ),
+            overscrollEffect = null,
         ) {
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 12.dp, vertical = 12.dp),
-            ) {
+            item {
                 Card(modifier = Modifier.fillMaxWidth()) {
                     val textMetrics = stringResource(id = R.string.settings_hook_text_metrics)
                     SwitchPreference(
-                        title = textMetrics,
+                        title = "$textMetrics（E1）",
                         summary = stringResource(id = R.string.settings_hook_text_metrics_summary),
                         startAction = {
                             MiuixIcon(
@@ -142,9 +149,17 @@ private fun ToolsetScreenMiuix(
                         checked = uiState.hookTextMetrics,
                         onCheckedChange = viewModel::setHookTextMetrics
                     )
+                }
+            }
+            item {
+                Card(
+                    modifier = Modifier
+                        .padding(top = 8.dp)
+                        .fillMaxWidth(),
+                ) {
                     val glReadPixels = stringResource(id = R.string.settings_hook_glreadpixels)
                     SwitchPreference(
-                        title = glReadPixels,
+                        title = "$glReadPixels（D1）",
                         summary = stringResource(id = R.string.settings_hook_glreadpixels_summary),
                         startAction = {
                             MiuixIcon(
@@ -157,9 +172,17 @@ private fun ToolsetScreenMiuix(
                         checked = uiState.hookGlReadPixels,
                         onCheckedChange = viewModel::setHookGlReadPixels
                     )
+                }
+            }
+            item {
+                Card(
+                    modifier = Modifier
+                        .padding(top = 8.dp)
+                        .fillMaxWidth(),
+                ) {
                     val pixelCopy = stringResource(id = R.string.settings_hook_pixelcopy)
                     SwitchPreference(
-                        title = pixelCopy,
+                        title = "$pixelCopy（C2）",
                         summary = stringResource(id = R.string.settings_hook_pixelcopy_summary),
                         startAction = {
                             MiuixIcon(
@@ -172,6 +195,14 @@ private fun ToolsetScreenMiuix(
                         checked = uiState.hookPixelCopy,
                         onCheckedChange = viewModel::setHookPixelCopy
                     )
+                }
+            }
+            item {
+                Card(
+                    modifier = Modifier
+                        .padding(top = 8.dp)
+                        .fillMaxWidth(),
+                ) {
                     val ssaidSwitch = stringResource(id = R.string.tools_ssaid_switch)
                     SwitchPreference(
                         title = ssaidSwitch,
@@ -188,10 +219,12 @@ private fun ToolsetScreenMiuix(
                         onCheckedChange = viewModel::setSsaidEnabled
                     )
                 }
-                if (uiState.ssaidEnabled) {
+            }
+            if (uiState.ssaidEnabled) {
+                item {
                     Card(
                         modifier = Modifier
-                            .padding(top = 12.dp)
+                            .padding(top = 8.dp)
                             .fillMaxWidth(),
                     ) {
                         val ssaid = stringResource(id = R.string.settings_ssaid)
@@ -210,7 +243,6 @@ private fun ToolsetScreenMiuix(
                         )
                     }
                 }
-                Spacer(Modifier.height(12.dp))
             }
         }
     }
@@ -243,35 +275,56 @@ private fun ToolsetScreenMaterial(
             SegmentedColumn(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = 16.dp, vertical = 8.dp),
+                    .padding(horizontal = 16.dp, vertical = 4.dp),
                 content = listOf(
                     {
                         SegmentedSwitchItem(
                             icon = Icons.Filled.TextFields,
-                            title = stringResource(id = R.string.settings_hook_text_metrics),
+                            title = stringResource(id = R.string.settings_hook_text_metrics) + "（E1）",
                             summary = stringResource(id = R.string.settings_hook_text_metrics_summary),
                             checked = uiState.hookTextMetrics,
                             onCheckedChange = viewModel::setHookTextMetrics
                         )
-                    },
+                    }
+                )
+            )
+            SegmentedColumn(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp, vertical = 4.dp),
+                content = listOf(
                     {
                         SegmentedSwitchItem(
                             icon = Icons.Filled.ViewInAr,
-                            title = stringResource(id = R.string.settings_hook_glreadpixels),
+                            title = stringResource(id = R.string.settings_hook_glreadpixels) + "（D1）",
                             summary = stringResource(id = R.string.settings_hook_glreadpixels_summary),
                             checked = uiState.hookGlReadPixels,
                             onCheckedChange = viewModel::setHookGlReadPixels
                         )
-                    },
+                    }
+                )
+            )
+            SegmentedColumn(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp, vertical = 4.dp),
+                content = listOf(
                     {
                         SegmentedSwitchItem(
                             icon = Icons.Filled.ContentCopy,
-                            title = stringResource(id = R.string.settings_hook_pixelcopy),
+                            title = stringResource(id = R.string.settings_hook_pixelcopy) + "（C2）",
                             summary = stringResource(id = R.string.settings_hook_pixelcopy_summary),
                             checked = uiState.hookPixelCopy,
                             onCheckedChange = viewModel::setHookPixelCopy
                         )
-                    },
+                    }
+                )
+            )
+            SegmentedColumn(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp, vertical = 4.dp),
+                content = listOf(
                     {
                         SegmentedSwitchItem(
                             icon = Icons.Filled.Badge,
@@ -288,7 +341,7 @@ private fun ToolsetScreenMaterial(
                 SegmentedColumn(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(horizontal = 16.dp, vertical = 8.dp),
+                        .padding(horizontal = 16.dp, vertical = 4.dp),
                     content = listOf(
                         {
                             SegmentedListItem(

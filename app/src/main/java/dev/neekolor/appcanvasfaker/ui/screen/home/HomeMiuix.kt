@@ -264,7 +264,7 @@ private fun StatusCard(
                     .weight(1f),
                 title = stringResource(R.string.hook_count),
                 count = state.totalHookCount.toString(),
-                onClick = {},
+                onClick = actions.onOpenStats,
             )
         }
     }
@@ -401,11 +401,11 @@ private val previewState = HomeUiState(
 @Preview(name = "Home Activated", showBackground = true)
 @Composable
 private fun HomeActivatedPreview() {
-    StatusCard(state = previewState, actions = HomeActions({}, {}))
+    StatusCard(state = previewState, actions = HomeActions({}, {}, {}))
 }
 
 @Preview(name = "Home Not Activated", showBackground = true)
 @Composable
 private fun HomeNotActivatedPreview() {
-    StatusCard(state = previewState.copy(moduleActive = false), actions = HomeActions({}, {}))
+    StatusCard(state = previewState.copy(moduleActive = false), actions = HomeActions({}, {}, {}))
 }

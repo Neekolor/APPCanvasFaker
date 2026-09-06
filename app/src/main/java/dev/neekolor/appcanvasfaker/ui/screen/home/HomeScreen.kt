@@ -14,6 +14,7 @@ import dev.neekolor.appcanvasfaker.ui.LocalMainPagerState
 import dev.neekolor.appcanvasfaker.ui.LocalUiMode
 import dev.neekolor.appcanvasfaker.ui.UiMode
 import dev.neekolor.appcanvasfaker.ui.navigation3.Navigator
+import dev.neekolor.appcanvasfaker.ui.navigation3.Route
 import dev.neekolor.appcanvasfaker.ui.viewmodel.HomeViewModel
 
 @Composable
@@ -38,6 +39,7 @@ fun HomePager(
 
     val actions = HomeActions(
         onOpenHookedApps = { mainPagerState.animateToPage(1) },
+        onOpenStats = { navigator.push(Route.Stats) },
         onOpenUrl = uriHandler::openUri,
     )
 

@@ -67,6 +67,7 @@ import dev.neekolor.appcanvasfaker.ui.screen.pending.ToolsetScreen
 import dev.neekolor.appcanvasfaker.ui.screen.settings.SettingPager
 import dev.neekolor.appcanvasfaker.ui.screen.applist.AppListPager
 import dev.neekolor.appcanvasfaker.ui.screen.ssaid.SsaidScreen
+import dev.neekolor.appcanvasfaker.ui.screen.stats.StatsScreen
 import dev.neekolor.appcanvasfaker.ui.theme.AppCanvasFakerTheme
 import dev.neekolor.appcanvasfaker.ui.theme.LocalColorMode
 import dev.neekolor.appcanvasfaker.ui.theme.LocalEnableBlur
@@ -151,6 +152,7 @@ class MainActivity : ComponentActivity() {
                                 entry<Route.Log> { LogScreen() }
                                 entry<Route.ColorPalette> { ColorPaletteScreen() }
                                 entry<Route.Ssaid> { SsaidScreen() }
+                                entry<Route.Stats> { StatsScreen() }
                                 entry<Route.AppProfile> { key -> AppProfileScreen(key.packageName) }
                                 entry<Route.Home> { mainScreenEntry() }
                                 entry<Route.AppList> { mainScreenEntry() }
