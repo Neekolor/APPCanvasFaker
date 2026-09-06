@@ -36,8 +36,18 @@ data class SettingsScreenActions(
     val onSetHookTextMetrics: (Boolean) -> Unit,
     val onSetHookGlReadPixels: (Boolean) -> Unit,
     val onSetSsaidEnabled: (Boolean) -> Unit,
-    val onOpenTools: () -> Unit,
+    val onOpenToolset: () -> Unit,
     val onOpenSsaid: () -> Unit,
     val onOpenLog: () -> Unit,
     val onOpenAbout: () -> Unit,
+    val onSetPreset: (Int) -> Unit,
 )
+
+/**
+ * 行为预设派生下标（开关顺序 H-05/H-02/C2）：
+ * 0 默认 = 全关；1 增强 = 开/关/开；2 自定义 = 其余一切组合。
+ */
+fun presetIndex(hookTextMetrics: Boolean, hookGlReadPixels: Boolean, hookPixelCopy: Boolean): Int =
+    if (!hookTextMetrics && !hookGlReadPixels && !hookPixelCopy) 0
+    else if (hookTextMetrics && !hookGlReadPixels && hookPixelCopy) 1
+    else 2

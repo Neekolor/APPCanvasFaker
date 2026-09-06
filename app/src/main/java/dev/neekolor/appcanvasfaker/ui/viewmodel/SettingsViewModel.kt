@@ -108,6 +108,28 @@ class SettingsViewModel(
         _uiState.update { it.copy(hookPixelCopy = enabled) }
     }
 
+    /**
+     * 行为预设：0 默认（开关全关）/ 1 增强（开/关/开，按 H-05/H-02/C2 顺序）/
+     * 2 自定义（保持现状的纯展示态，不写配置——派生下标会自动落回实际组合）。
+     */
+    fun applyPreset(index: Int) {
+        when (index) {
+            0 -> {
+                configRepo.setHookTextMetrics(false)
+                configRepo.setHookGlReadPixels(false)
+                configRepo.setHookPixelCopy(false)
+                _uiState.update { it.copy(hookTextMetrics = false, hookGlReadPixels = false, hookPixelCopy = false) }
+            }
+            1 -> {
+                configRepo.setHookTextMetrics(true)
+                configRepo.setHookGlReadPixels(false)
+                configRepo.setHookPixelCopy(true)
+                _uiState.update { it.copy(hookTextMetrics = true, hookGlReadPixels = false, hookPixelCopy = true) }
+            }
+            else -> Unit
+        }
+    }
+
     /** 「启用随机化 SSAID」开关：控制设置页"SSAID 管理"入口的显示（纯 UI 设置，不下发 hook 进程）。 */
     fun setSsaidEnabled(enabled: Boolean) {
         repo.ssaidEnabled = enabled

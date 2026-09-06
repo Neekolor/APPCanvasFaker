@@ -63,11 +63,10 @@ import dev.neekolor.appcanvasfaker.ui.screen.appprofile.AppProfileScreen
 import dev.neekolor.appcanvasfaker.ui.screen.colorpalette.ColorPaletteScreen
 import dev.neekolor.appcanvasfaker.ui.screen.home.HomePager
 import dev.neekolor.appcanvasfaker.ui.screen.log.LogScreen
-import dev.neekolor.appcanvasfaker.ui.screen.pending.PendingScreen
+import dev.neekolor.appcanvasfaker.ui.screen.pending.ToolsetScreen
 import dev.neekolor.appcanvasfaker.ui.screen.settings.SettingPager
 import dev.neekolor.appcanvasfaker.ui.screen.applist.AppListPager
 import dev.neekolor.appcanvasfaker.ui.screen.ssaid.SsaidScreen
-import dev.neekolor.appcanvasfaker.ui.screen.tools.ToolsScreen
 import dev.neekolor.appcanvasfaker.ui.theme.AppCanvasFakerTheme
 import dev.neekolor.appcanvasfaker.ui.theme.LocalColorMode
 import dev.neekolor.appcanvasfaker.ui.theme.LocalEnableBlur
@@ -151,7 +150,6 @@ class MainActivity : ComponentActivity() {
                                 entry<Route.About> { AboutScreen() }
                                 entry<Route.Log> { LogScreen() }
                                 entry<Route.ColorPalette> { ColorPaletteScreen() }
-                                entry<Route.Tools> { ToolsScreen() }
                                 entry<Route.Ssaid> { SsaidScreen() }
                                 entry<Route.AppProfile> { key -> AppProfileScreen(key.packageName) }
                                 entry<Route.Home> { mainScreenEntry() }
@@ -252,7 +250,7 @@ fun MainScreen(
                     when (page) {
                         0 -> if (isCurrentPage || contentReady) HomePager(navController, bottomInnerPadding, isCurrentPage)
                         1 -> if (isCurrentPage || contentReady) AppListPager(navController, bottomInnerPadding, isCurrentPage)
-                        2 -> if (isCurrentPage || contentReady) PendingScreen(bottomInnerPadding, isCurrentPage)
+                        2 -> if (isCurrentPage || contentReady) ToolsetScreen(bottomInnerPadding, navController, isCurrentPage)
                         3 -> if (isCurrentPage || contentReady) SettingPager(navController, bottomInnerPadding)
                     }
                 }

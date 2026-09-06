@@ -1,13 +1,15 @@
-package dev.neekolor.appcanvasfaker.ui.screen.tools
+﻿package dev.neekolor.appcanvasfaker.ui.screen.pending
 
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.WindowInsetsSides
 import androidx.compose.foundation.layout.add
 import androidx.compose.foundation.layout.displayCutout
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawing
@@ -15,6 +17,7 @@ import androidx.compose.foundation.layout.systemBars
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.Badge
 import androidx.compose.material.icons.filled.ContentCopy
 import androidx.compose.material.icons.filled.TextFields
@@ -23,6 +26,7 @@ import androidx.compose.material.icons.rounded.Badge
 import androidx.compose.material.icons.rounded.ContentCopy
 import androidx.compose.material.icons.rounded.TextFields
 import androidx.compose.material.icons.rounded.ViewInAr
+import androidx.compose.material3.Icon
 import androidx.compose.material3.LargeFlexibleTopAppBar
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -30,62 +34,67 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.graphicsLayer
-import androidx.compose.ui.platform.LocalLayoutDirection
+import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.unit.LayoutDirection
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
+import androidx.lifecycle.compose.LifecycleResumeEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import androidx.lifecycle.compose.dropUnlessResumed
 import androidx.lifecycle.viewmodel.compose.viewModel
 import dev.neekolor.appcanvasfaker.R
 import dev.neekolor.appcanvasfaker.ui.LocalUiMode
 import dev.neekolor.appcanvasfaker.ui.UiMode
 import dev.neekolor.appcanvasfaker.ui.component.material.ExpressiveScaffold
 import dev.neekolor.appcanvasfaker.ui.component.material.SegmentedColumn
+import dev.neekolor.appcanvasfaker.ui.component.material.SegmentedListItem
 import dev.neekolor.appcanvasfaker.ui.component.material.SegmentedSwitchItem
-import dev.neekolor.appcanvasfaker.ui.component.material.TopBarBackButton
 import dev.neekolor.appcanvasfaker.ui.component.material.expressiveTopAppBarColors
-import dev.neekolor.appcanvasfaker.ui.navigation3.LocalNavigator
+import dev.neekolor.appcanvasfaker.ui.navigation3.Navigator
+import dev.neekolor.appcanvasfaker.ui.navigation3.Route
+import dev.neekolor.appcanvasfaker.ui.screen.settings.SettingsUiState
 import dev.neekolor.appcanvasfaker.ui.theme.LocalEnableBlur
 import dev.neekolor.appcanvasfaker.ui.util.BlurredBar
 import dev.neekolor.appcanvasfaker.ui.util.rememberBlurBackdrop
 import dev.neekolor.appcanvasfaker.ui.viewmodel.SettingsViewModel
 import top.yukonga.miuix.kmp.basic.Card
-import top.yukonga.miuix.kmp.basic.Icon
-import top.yukonga.miuix.kmp.basic.IconButton
 import top.yukonga.miuix.kmp.basic.MiuixScrollBehavior
 import top.yukonga.miuix.kmp.basic.Scaffold
 import top.yukonga.miuix.kmp.basic.TopAppBar
-import top.yukonga.miuix.kmp.blur.layerBackdrop
-import top.yukonga.miuix.kmp.icon.MiuixIcons
-import top.yukonga.miuix.kmp.icon.extended.Back
+import top.yukonga.miuix.kmp.basic.Icon as MiuixIcon
+import top.yukonga.miuix.kmp.preference.ArrowPreference
 import top.yukonga.miuix.kmp.preference.SwitchPreference
 import top.yukonga.miuix.kmp.theme.MiuixTheme.colorScheme
 
 /**
- * "实验性功能"二级页：承载尚未稳定的 Hook 扩展开关
- * （H-05 文本度量 / H-02 GL 直读）。H-01 单点读取为常开链，不提供开关。
+ * 底栏第三项"工具"页：伪装开关、SSAID 管理与日后新工具的集合。
+ * 内容由设置页"实验性功能"二级页迁入（v0.8.5），设置页仅保留跳转入口。
  */
 @Composable
-fun ToolsScreen() {
-    val navigator = LocalNavigator.current
-    val onBack = dropUnlessResumed { navigator.pop() }
+fun ToolsetScreen(
+    bottomInnerPadding: Dp,
+    navigator: Navigator,
+    @Suppress("UNUSED_PARAMETER") isCurrentPage: Boolean,
+) {
     val viewModel = viewModel<SettingsViewModel>()
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
 
+    LifecycleResumeEffect(Unit) {
+        viewModel.refresh()
+        onPauseOrDispose { }
+    }
+
     when (LocalUiMode.current) {
-        UiMode.Miuix -> ToolsScreenMiuix(uiState, viewModel, onBack)
-        UiMode.Material -> ToolsScreenMaterial(uiState, viewModel, onBack)
+        UiMode.Miuix -> ToolsetScreenMiuix(uiState, viewModel, { navigator.push(Route.Ssaid) }, bottomInnerPadding)
+        UiMode.Material -> ToolsetScreenMaterial(uiState, viewModel, { navigator.push(Route.Ssaid) }, bottomInnerPadding)
     }
 }
 
 @Composable
-private fun ToolsScreenMiuix(
-    uiState: dev.neekolor.appcanvasfaker.ui.screen.settings.SettingsUiState,
+private fun ToolsetScreenMiuix(
+    uiState: SettingsUiState,
     viewModel: SettingsViewModel,
-    onBack: () -> Unit,
+    onOpenSsaid: () -> Unit,
+    bottomInnerPadding: Dp,
 ) {
     val scrollBehavior = MiuixScrollBehavior()
     val enableBlur = LocalEnableBlur.current
@@ -98,22 +107,7 @@ private fun ToolsScreenMiuix(
             BlurredBar(backdrop) {
                 TopAppBar(
                     color = barColor,
-                    title = stringResource(R.string.tools_title),
-                    navigationIcon = {
-                        IconButton(
-                            onClick = onBack,
-                        ) {
-                            val layoutDirection = LocalLayoutDirection.current
-                            Icon(
-                                modifier = Modifier.graphicsLayer {
-                                    if (layoutDirection == LayoutDirection.Rtl) scaleX = -1f
-                                },
-                                imageVector = MiuixIcons.Back,
-                                contentDescription = null,
-                                tint = colorScheme.onSurface,
-                            )
-                        }
-                    },
+                    title = stringResource(R.string.nav_pending),
                     scrollBehavior = scrollBehavior,
                 )
             }
@@ -124,116 +118,115 @@ private fun ToolsScreenMiuix(
         Box(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(innerPadding),
+                .padding(innerPadding)
+                .padding(bottom = bottomInnerPadding),
         ) {
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(horizontal = 12.dp, vertical = 12.dp),
             ) {
-                // 实验性功能说明（审计 W-06）
-                Card(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(bottom = 12.dp),
-                ) {
-                    Text(
-                        text = stringResource(R.string.tools_note),
-                        modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp),
-                        fontSize = 13.sp,
-                        color = colorScheme.onSurfaceVariantSummary,
+                Card(modifier = Modifier.fillMaxWidth()) {
+                    val textMetrics = stringResource(id = R.string.settings_hook_text_metrics)
+                    SwitchPreference(
+                        title = textMetrics,
+                        summary = stringResource(id = R.string.settings_hook_text_metrics_summary),
+                        startAction = {
+                            MiuixIcon(
+                                Icons.Rounded.TextFields,
+                                modifier = Modifier.padding(end = 6.dp),
+                                contentDescription = textMetrics,
+                                tint = colorScheme.onBackground
+                            )
+                        },
+                        checked = uiState.hookTextMetrics,
+                        onCheckedChange = viewModel::setHookTextMetrics
+                    )
+                    val glReadPixels = stringResource(id = R.string.settings_hook_glreadpixels)
+                    SwitchPreference(
+                        title = glReadPixels,
+                        summary = stringResource(id = R.string.settings_hook_glreadpixels_summary),
+                        startAction = {
+                            MiuixIcon(
+                                Icons.Rounded.ViewInAr,
+                                modifier = Modifier.padding(end = 6.dp),
+                                contentDescription = glReadPixels,
+                                tint = colorScheme.onBackground
+                            )
+                        },
+                        checked = uiState.hookGlReadPixels,
+                        onCheckedChange = viewModel::setHookGlReadPixels
+                    )
+                    val pixelCopy = stringResource(id = R.string.settings_hook_pixelcopy)
+                    SwitchPreference(
+                        title = pixelCopy,
+                        summary = stringResource(id = R.string.settings_hook_pixelcopy_summary),
+                        startAction = {
+                            MiuixIcon(
+                                Icons.Rounded.ContentCopy,
+                                modifier = Modifier.padding(end = 6.dp),
+                                contentDescription = pixelCopy,
+                                tint = colorScheme.onBackground
+                            )
+                        },
+                        checked = uiState.hookPixelCopy,
+                        onCheckedChange = viewModel::setHookPixelCopy
+                    )
+                    val ssaidSwitch = stringResource(id = R.string.tools_ssaid_switch)
+                    SwitchPreference(
+                        title = ssaidSwitch,
+                        summary = stringResource(id = R.string.tools_ssaid_switch_summary),
+                        startAction = {
+                            MiuixIcon(
+                                Icons.Rounded.Badge,
+                                modifier = Modifier.padding(end = 6.dp),
+                                contentDescription = ssaidSwitch,
+                                tint = colorScheme.onBackground
+                            )
+                        },
+                        checked = uiState.ssaidEnabled,
+                        onCheckedChange = viewModel::setSsaidEnabled
                     )
                 }
-                Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 12.dp),
-                ) {
-                    val textMetrics = stringResource(id = R.string.settings_hook_text_metrics)
+                if (uiState.ssaidEnabled) {
                     Card(
                         modifier = Modifier
+                            .padding(top = 12.dp)
                             .fillMaxWidth(),
                     ) {
-                        SwitchPreference(
-                            title = textMetrics,
-                            summary = stringResource(id = R.string.settings_hook_text_metrics_summary),
-                            startAction = {
-                                Icon(
-                                    Icons.Rounded.TextFields,
-                                    modifier = Modifier.padding(end = 6.dp),
-                                    contentDescription = textMetrics,
-                                    tint = colorScheme.onBackground
-                                )
-                            },
-                            checked = uiState.hookTextMetrics,
-                            onCheckedChange = viewModel::setHookTextMetrics
-                        )
-                        val glReadPixels = stringResource(id = R.string.settings_hook_glreadpixels)
-                        SwitchPreference(
-                            title = glReadPixels,
-                            summary = stringResource(id = R.string.settings_hook_glreadpixels_summary),
-                            startAction = {
-                                Icon(
-                                    Icons.Rounded.ViewInAr,
-                                    modifier = Modifier.padding(end = 6.dp),
-                                    contentDescription = glReadPixels,
-                                    tint = colorScheme.onBackground
-                                )
-                            },
-                            checked = uiState.hookGlReadPixels,
-                            onCheckedChange = viewModel::setHookGlReadPixels
-                        )
-                        val pixelCopy = stringResource(id = R.string.settings_hook_pixelcopy)
-                        SwitchPreference(
-                            title = pixelCopy,
-                            summary = stringResource(id = R.string.settings_hook_pixelcopy_summary),
-                            startAction = {
-                                Icon(
-                                    Icons.Rounded.ContentCopy,
-                                    modifier = Modifier.padding(end = 6.dp),
-                                    contentDescription = pixelCopy,
-                                    tint = colorScheme.onBackground
-                                )
-                            },
-                            checked = uiState.hookPixelCopy,
-                            onCheckedChange = viewModel::setHookPixelCopy
-                        )
-                        // 「启用随机化 SSAID」：控制设置页 SSAID 管理入口的显示（默认关）
-                        val ssaid = stringResource(id = R.string.tools_ssaid_switch)
-                        SwitchPreference(
+                        val ssaid = stringResource(id = R.string.settings_ssaid)
+                        ArrowPreference(
                             title = ssaid,
-                            summary = stringResource(id = R.string.tools_ssaid_switch_summary),
+                            summary = stringResource(id = R.string.settings_ssaid_summary),
                             startAction = {
-                                Icon(
+                                MiuixIcon(
                                     Icons.Rounded.Badge,
                                     modifier = Modifier.padding(end = 6.dp),
                                     contentDescription = ssaid,
                                     tint = colorScheme.onBackground
                                 )
                             },
-                            checked = uiState.ssaidEnabled,
-                            onCheckedChange = viewModel::setSsaidEnabled
+                            onClick = onOpenSsaid
                         )
                     }
                 }
+                Spacer(Modifier.height(12.dp))
             }
         }
     }
 }
 
 @Composable
-private fun ToolsScreenMaterial(
-    uiState: dev.neekolor.appcanvasfaker.ui.screen.settings.SettingsUiState,
+private fun ToolsetScreenMaterial(
+    uiState: SettingsUiState,
     viewModel: SettingsViewModel,
-    onBack: () -> Unit,
+    onOpenSsaid: () -> Unit,
+    bottomInnerPadding: Dp,
 ) {
     ExpressiveScaffold(
         topBar = {
             LargeFlexibleTopAppBar(
-                title = { Text(stringResource(R.string.tools_title)) },
-                navigationIcon = {
-                    TopBarBackButton(onClick = onBack)
-                },
+                title = { Text(stringResource(R.string.nav_pending)) },
                 colors = expressiveTopAppBarColors(),
                 windowInsets = WindowInsets.safeDrawing.only(WindowInsetsSides.Top + WindowInsetsSides.Horizontal),
             )
@@ -244,17 +237,9 @@ private fun ToolsScreenMaterial(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(innerPadding)
+                .padding(bottom = bottomInnerPadding)
                 .verticalScroll(rememberScrollState()),
         ) {
-            // 实验性功能说明（审计 W-06）
-            Text(
-                text = stringResource(R.string.tools_note),
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 20.dp, vertical = 10.dp),
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                fontSize = 13.sp,
-            )
             SegmentedColumn(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -298,6 +283,30 @@ private fun ToolsScreenMaterial(
                     }
                 )
             )
+            if (uiState.ssaidEnabled) {
+                val ssaid = stringResource(id = R.string.settings_ssaid)
+                SegmentedColumn(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp, vertical = 8.dp),
+                    content = listOf(
+                        {
+                            SegmentedListItem(
+                                onClick = onOpenSsaid,
+                                headlineContent = { Text(ssaid) },
+                                supportingContent = { Text(stringResource(id = R.string.settings_ssaid_summary)) },
+                                leadingContent = { Icon(Icons.Filled.Badge, ssaid) },
+                                trailingContent = {
+                                    Icon(
+                                        Icons.AutoMirrored.Filled.KeyboardArrowRight,
+                                        null
+                                    )
+                                }
+                            )
+                        }
+                    )
+                )
+            }
         }
     }
 }

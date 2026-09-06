@@ -13,11 +13,11 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Article
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
-import androidx.compose.material.icons.filled.Badge
 import androidx.compose.material.icons.filled.ContactPage
 import androidx.compose.material.icons.filled.Fence
 import androidx.compose.material.icons.filled.History
 import androidx.compose.material.icons.filled.Palette
+import androidx.compose.material.icons.filled.Tune
 import androidx.compose.material.icons.filled.Update
 import androidx.compose.material.icons.rounded.Dashboard
 import androidx.compose.material3.Icon
@@ -127,14 +127,32 @@ fun SettingPagerMaterial(
             )
 
             val tools = stringResource(id = R.string.settings_profile_template)
-            val ssaid = stringResource(id = R.string.settings_ssaid)
             val log = stringResource(id = R.string.settings_log)
+            SegmentedColumn(
+                modifier = Modifier.padding(start = 16.dp, end = 16.dp, bottom = 13.dp),
+                content = listOf(
+                    {
+                        SegmentedDropdownItem(
+                            icon = Icons.Filled.Tune,
+                            title = stringResource(id = R.string.settings_preset),
+                            summary = stringResource(id = R.string.settings_preset_summary),
+                            items = listOf(
+                                stringResource(id = R.string.settings_preset_default),
+                                stringResource(id = R.string.settings_preset_boost),
+                                stringResource(id = R.string.settings_preset_custom)
+                            ),
+                            selectedIndex = presetIndex(uiState.hookTextMetrics, uiState.hookGlReadPixels, uiState.hookPixelCopy),
+                            onItemSelected = actions.onSetPreset
+                        )
+                    }
+                )
+            )
             SegmentedColumn(
                 modifier = Modifier.padding(start = 16.dp, end = 16.dp, bottom = 13.dp),
                 content = buildList {
                     add {
                         SegmentedListItem(
-                            onClick = actions.onOpenTools,
+                            onClick = actions.onOpenToolset,
                             headlineContent = { Text(tools) },
                             supportingContent = { Text(stringResource(id = R.string.settings_profile_template_summary)) },
                             leadingContent = { Icon(Icons.Filled.Fence, tools) },
@@ -145,23 +163,6 @@ fun SettingPagerMaterial(
                                 )
                             }
                         )
-                    }
-                    // SSAID 管理入口：仅在实验性功能中启用后显示
-                    if (uiState.ssaidEnabled) {
-                        add {
-                            SegmentedListItem(
-                                onClick = actions.onOpenSsaid,
-                                headlineContent = { Text(ssaid) },
-                                supportingContent = { Text(stringResource(id = R.string.settings_ssaid_summary)) },
-                                leadingContent = { Icon(Icons.Filled.Badge, ssaid) },
-                                trailingContent = {
-                                    Icon(
-                                        Icons.AutoMirrored.Filled.KeyboardArrowRight,
-                                        null
-                                    )
-                                }
-                            )
-                        }
                     }
                     add {
                         SegmentedListItem(

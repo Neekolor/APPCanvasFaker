@@ -40,10 +40,6 @@ sealed interface Route : NavKey, Parcelable {
 
     @Parcelize
     @Serializable
-    data object Tools : Route
-
-    @Parcelize
-    @Serializable
     data object Ssaid : Route
 
     @Parcelize
