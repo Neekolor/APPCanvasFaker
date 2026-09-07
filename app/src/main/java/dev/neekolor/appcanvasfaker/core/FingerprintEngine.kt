@@ -100,7 +100,7 @@ object FingerprintEngine {
     ): Int {
         val need = width * height * 4
         if (need <= 0 || !buffer.isDirect) return 0
-        // ：绝对 put 受 limit 约束，边界必须按 limit 判定（capacity > limit 时按 capacity 判会 IOOBE）
+        // 绝对 put 受 limit 约束：边界按 limit 判定，按 capacity 判会在 capacity > limit 时抛 IOOBE
         if (startPosition < 0 || startPosition + need > buffer.limit()) return 0
         val glSeed = seed xor GL_DOMAIN_SALT
         var i = 0

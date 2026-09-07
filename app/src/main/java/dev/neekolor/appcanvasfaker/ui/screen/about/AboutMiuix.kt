@@ -22,6 +22,7 @@ import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.requiredSize
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.systemBars
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListState
@@ -36,6 +37,7 @@ import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
@@ -323,10 +325,10 @@ private fun AboutContent(
                         contentDescription = null,
                     )
                 } else {
-                    // 隐藏交互激活：与原 logo 同一 100dp 容器内 Fit 完整显示（444×444 方图
+                    // 替换图激活：与原 logo 同一 100dp 容器内 Fit 完整显示（444×444 方图
                     // → 恰好铺满 100dp）。
                     // textureBlur 是为透明矢量前景设计的（DstIn 遮罩混合），套在不透明
-                    // JPG 上会异常放大/裁切（实测），故替换图不走 blur，只保留淡出。
+                    // JPG 上会异常放大/裁切，故替换图不走 blur，只保留淡出。
                     EasterEggLogoImage(
                         holder = eggHolder,
                         modifier = Modifier
@@ -482,21 +484,35 @@ private fun AboutContent(
                                 }
                             )
                         }
+                        // 检查更新：同卡片样式，点按查 GitHub Releases（见 UpdateCenter）
+                        ArrowPreference(
+                            title = stringResource(R.string.settings_check_update),
+                            onClick = actions.onCheckUpdate
+                        )
                     }
-                    // 版权页脚：纯文本（非卡片、非列表行）。
-                    // 文本切换隐藏交互：单击在两版文案间切换（旧连点换图已下线，代码保留见 EasterEgg.kt）。
+                    // 两版不等长：定宽右对齐，切换时后缀位置不动。
+                    // 宽度取值：Roboto 实测长串 147dp，取 160.dp 留余量；余量走左边，不影响后缀。
+                    // indication = null，避免整行按压背景。
                     var showAcfCopyright by remember { mutableStateOf(false) }
-                    Text(
+                    Box(
                         modifier = Modifier
                             .fillMaxWidth()
                             .padding(top = 12.dp)
-                            .clickable { showAcfCopyright = !showAcfCopyright },
-                        text = if (showAcfCopyright) buildAcfCopyrightText(baseFontSize = 12.sp)
-                            else buildCopyrightText(baseFontSize = 12.sp),
-                        color = colorScheme.onSurfaceVariantSummary,
-                        fontSize = 12.sp,
-                        textAlign = TextAlign.Center,
-                    )
+                            .clickable(
+                                indication = null,
+                                interactionSource = remember { MutableInteractionSource() }
+                            ) { showAcfCopyright = !showAcfCopyright },
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        Text(
+                            modifier = Modifier.width(160.dp),
+                            text = if (showAcfCopyright) buildAcfCopyrightText(baseFontSize = 12.sp)
+                                else buildCopyrightText(baseFontSize = 12.sp),
+                            color = colorScheme.onSurfaceVariantSummary,
+                            fontSize = 12.sp,
+                            textAlign = TextAlign.End,
+                        )
+                    }
                     Spacer(
                         Modifier.height(
                             WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding() +

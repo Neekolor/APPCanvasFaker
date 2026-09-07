@@ -3,6 +3,7 @@ package dev.neekolor.appcanvasfaker.ui.screen.about
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
@@ -15,6 +16,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.LargeFlexibleTopAppBar
@@ -95,7 +97,7 @@ fun AboutScreenMaterial(
                             )
                         }
                     } else {
-                        // 隐藏交互激活：与原 logo 同款 80dp 白底圆角容器，Fit 恰好铺满
+                        // 替换图激活：与原 logo 同款 80dp 白底圆角容器，Fit 恰好铺满
                         // （444×444 方图 → 80dp 完整显示，尺寸与原 logo 容器一致）
                         Box(
                             contentAlignment = Alignment.Center,
@@ -135,30 +137,48 @@ fun AboutScreenMaterial(
             item {
                 SegmentedColumn(
                     modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
-                    content = state.links.map { linkInfo ->
-                        {
+                    content = buildList {
+                        state.links.forEach { linkInfo ->
+                            add {
+                                SegmentedListItem(
+                                    onClick = { actions.onOpenLink(linkInfo.url) },
+                                    headlineContent = { Text(linkInfo.fullText) }
+                                )
+                            }
+                        }
+                        // 检查更新：同卡片样式，点按查 GitHub Releases（见 UpdateCenter）
+                        add {
                             SegmentedListItem(
-                                onClick = { actions.onOpenLink(linkInfo.url) },
-                                headlineContent = { Text(linkInfo.fullText) }
+                                onClick = actions.onCheckUpdate,
+                                headlineContent = { Text(stringResource(R.string.settings_check_update)) }
                             )
                         }
                     }
                 )
-                // 版权页脚：纯文本（非卡片、非列表行）。
-                // 文本切换隐藏交互：单击在两版文案间切换（旧连点换图已下线，代码保留见 EasterEgg.kt）。
+                // 两版不等长：定宽右对齐，切换时后缀位置不动。
+                // 宽度取值：Roboto 实测长串 147dp，取 160.dp 留余量；余量走左边，不影响后缀。
+                // indication = null，避免整行按压背景。
                 var showAcfCopyright by remember { mutableStateOf(false) }
-                Text(
+                Box(
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(top = 12.dp)
-                        .clickable { showAcfCopyright = !showAcfCopyright },
-                    text = if (showAcfCopyright)
-                        buildAcfCopyrightText(baseFontSize = MaterialTheme.typography.bodySmall.fontSize)
-                    else buildCopyrightText(baseFontSize = MaterialTheme.typography.bodySmall.fontSize),
-                    fontSize = MaterialTheme.typography.bodySmall.fontSize,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    textAlign = TextAlign.Center
-                )
+                        .clickable(
+                            indication = null,
+                            interactionSource = remember { MutableInteractionSource() }
+                        ) { showAcfCopyright = !showAcfCopyright },
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Text(
+                        modifier = Modifier.width(160.dp),
+                        text = if (showAcfCopyright)
+                            buildAcfCopyrightText(baseFontSize = MaterialTheme.typography.bodySmall.fontSize)
+                        else buildCopyrightText(baseFontSize = MaterialTheme.typography.bodySmall.fontSize),
+                        fontSize = MaterialTheme.typography.bodySmall.fontSize,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        textAlign = TextAlign.End
+                    )
+                }
                 Spacer(
                     Modifier.height(
                         WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding() +

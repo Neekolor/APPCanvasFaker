@@ -12,7 +12,7 @@ data class SsaidItemUi(
 ) {
     val displayName: String get() = label ?: packageName
 
-    /** 系统应用判定（与 ConfigRepository.getInstalledApps 同方法：FLAG_SYSTEM 标志位）。
+    /** 系统应用判定（与 ConfigRepository.getInstalledApps 同规则：FLAG_SYSTEM 标志位）。
      *  无 PackageManager 信息的条目（应用已卸载等）不算系统应用，不受开关过滤。 */
     val isSystemApp: Boolean
         get() = applicationInfo != null && (applicationInfo.flags and ApplicationInfo.FLAG_SYSTEM) != 0

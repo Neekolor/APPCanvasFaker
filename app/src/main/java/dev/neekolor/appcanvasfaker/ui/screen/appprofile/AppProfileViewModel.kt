@@ -49,7 +49,8 @@ class AppProfileViewModel(application: Application) : AndroidViewModel(applicati
             val fingerprints = withContext(Dispatchers.Default) {
                 runCatching { repo.simulatedFingerprints(packageName) }
                     .recoverCatching { e ->
-                        if (e is CancellationException) throw e   
+                        // 取消异常继续向上传播：页面切走时的 load 取消不算失败，不弹错误
+                        if (e is CancellationException) throw e
                         emptyList()
                     }.getOrDefault(emptyList())
             }
@@ -66,7 +67,8 @@ class AppProfileViewModel(application: Application) : AndroidViewModel(applicati
             val fingerprints = withContext(Dispatchers.Default) {
                 runCatching { repo.simulatedFingerprints(packageName) }
                     .recoverCatching { e ->
-                        if (e is CancellationException) throw e   
+                        // 同上：取消不算失败，直接传播
+                        if (e is CancellationException) throw e
                         emptyList()
                     }.getOrDefault(emptyList())
             }
@@ -89,7 +91,8 @@ class AppProfileViewModel(application: Application) : AndroidViewModel(applicati
             }
             true
         } catch (e: CancellationException) {
-            throw e   
+            // 取消继续向上传播，不视为操作失败
+            throw e
         } catch (_: Exception) {
             false
         }

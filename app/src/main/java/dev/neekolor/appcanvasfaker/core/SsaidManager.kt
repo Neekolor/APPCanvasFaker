@@ -20,7 +20,7 @@ import kotlinx.coroutines.sync.withLock
  *   任一步失败都不触碰原文件；
  * - 临时文件全部位于 /data/system/users/0/（shell 不可达）且带随机后缀。
  *
- * 仅支持 user 0；工作资料/双开用户为已知限制。
+ * 仅支持 user 0；工作资料/双开用户暂不支持。
  * 调用方负责在写入前强制停止目标应用。
  */
 object SsaidManager {
@@ -176,7 +176,7 @@ object SsaidManager {
         return true
     }
 
-    /** 让 SettingsProvider 重载文件缓存（am kill 只杀缓存态进程，失败升级强杀）。 */
+    /** 让 SettingsProvider 重载文件缓存：先 am kill（只杀缓存态进程），失败再升级强杀。 */
     private fun reloadProvider(): Boolean {
         val kill = RootShell.exec("am kill $PROVIDER_PKG")
         if (kill.isSuccess) return true

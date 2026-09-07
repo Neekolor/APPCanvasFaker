@@ -204,8 +204,8 @@ fun SettingPagerMiuix(
                                     tint = colorScheme.onBackground
                                 )
                             },
-                            // 不再跳转：保留箭头行作纯展示
-                            onClick = { }
+                            // 实验性功能 → 实验室二级页（模式切换）
+                            onClick = actions.onOpenLab
                         )
                         val log = stringResource(id = R.string.settings_log)
                         ArrowPreference(

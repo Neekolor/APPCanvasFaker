@@ -31,9 +31,11 @@ fun HomePager(
     var hasActivated by remember { mutableStateOf(false) }
     if (isCurrentPage) hasActivated = true
 
+    // 主页常驻底栏 pager，切 tab 不会重组：refresh 必须跟 isCurrentPage 跑，
+    // 否则工具页拨开关/设置改预设后回来，计数、模式、基线全是旧的。
     if (hasActivated) {
-        LaunchedEffect(Unit) {
-            viewModel.refresh()
+        LaunchedEffect(isCurrentPage) {
+            if (isCurrentPage) viewModel.refresh()
         }
     }
 

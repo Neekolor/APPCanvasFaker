@@ -147,8 +147,8 @@ fun SettingPagerMaterial(
                     }
                     add {
                         SegmentedListItem(
-                            // 不再跳转：保留箭头行作纯展示
-                            onClick = { },
+                            // 实验性功能 → 实验室二级页（模式切换）
+                            onClick = actions.onOpenLab,
                             headlineContent = { Text(tools) },
                             supportingContent = { Text(stringResource(id = R.string.settings_profile_template_summary)) },
                             leadingContent = { Icon(Icons.Outlined.Science, tools) },

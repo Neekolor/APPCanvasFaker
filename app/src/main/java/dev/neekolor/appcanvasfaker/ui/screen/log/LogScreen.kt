@@ -50,11 +50,31 @@ fun logFilterLabel(filter: LogFilter): String {
     return when (filter) {
         LogFilter.ALL -> stringResource(R.string.log_filter_all)
         LogFilter.HOOK -> stringResource(R.string.log_filter_hook)
-        // 筛选项与条目 tag 统一显示 random（存量"随机化"仅作筛选键，见 logTagLabel）
-        LogFilter.RANDOMIZE -> "random"
+        // 筛选项与条目 tag 统一显示 Random（存量"随机化"仅作筛选键，见 logTagLabel）
+        LogFilter.RANDOMIZE -> "Random"
     }
 }
 
-/** 详情弹窗全量文本：应用名 / 包名 / 类型 / 时间（su log 式等宽展示）。 */
-fun logDetailText(item: LogItem): String =
-    "${item.appLabel}\n${item.packageName}\n${logTagLabel(item.tag)} · ${item.timeText}"
+/** 详情弹窗全量文本：基本行 + 技术字段（su log 式等宽展示）。老条目无技术字段时只显示基本行。 */
+fun logDetailText(item: LogItem): String {
+    val lines = ArrayList<String>(8)
+    lines.add(item.appLabel)
+    lines.add(item.packageName)
+    lines.add("${logTagLabel(item.tag)} · ${item.timeText}")
+    item.path?.let { lines.add("path=$it") }
+    item.seed?.let { lines.add("seed=$it") }
+    if (item.hitCount != null || item.mode != null) {
+        lines.add("hit=#${item.hitCount ?: "?"} mode=${item.mode ?: "?"}")
+    }
+    if (item.newHash != null || item.moved != null) {
+        val movedText = when (item.moved) {
+            true -> "moved=true"
+            false -> "moved=false"
+            null -> "moved=first"
+        }
+        val hashText = if (item.oldHash != null) "${item.oldHash} -> ${item.newHash}"
+            else item.newHash.orEmpty()
+        lines.add("$movedText $hashText".trim())
+    }
+    return lines.joinToString("\n")
+}

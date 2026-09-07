@@ -3,7 +3,7 @@ package dev.neekolor.appcanvasfaker.ui.screen.log
 import android.content.pm.ApplicationInfo
 import androidx.compose.runtime.Immutable
 
-/** 单条 Hook/随机化日志：message 为包名，tag 为 "Hook" 或 "随机化"。 */
+/** 单条 Hook/随机化日志：message 为包名，tag 为 "Hook" 或 "随机化"。技术字段（path/seed/moved/hash/count/mode）仅详情弹窗用，存量老条目为 null。 */
 data class LogItem(
     val timestamp: Long,
     val timeText: String,
@@ -11,6 +11,13 @@ data class LogItem(
     val packageName: String,
     val appLabel: String,
     val applicationInfo: ApplicationInfo?,
+    val path: String? = null,
+    val seed: Long? = null,
+    val moved: Boolean? = null,
+    val oldHash: String? = null,
+    val newHash: String? = null,
+    val hitCount: Long? = null,
+    val mode: String? = null,
 )
 
 /** 日志筛选类型：null 表示「全部」。 */
@@ -24,9 +31,9 @@ enum class LogFilter(val tag: String?) {
     }
 }
 
-/** 日志类型展示名："随机化"存量 tag 统一显示为 random（KSU su log 方法对齐，见 §8-15）。 */
+/** 日志类型展示名："随机化"存量 tag 统一显示为 Random。 */
 fun logTagLabel(tag: String): String =
-    if (tag == LogFilter.RANDOMIZE.tag) "random" else tag
+    if (tag == LogFilter.RANDOMIZE.tag) "Random" else tag
 
 /** 时间戳 → 日期栏 key（yyyy-MM-dd，与 KSU sulog-日期文件名同格式）。 */
 fun logDateKey(timestamp: Long): String =

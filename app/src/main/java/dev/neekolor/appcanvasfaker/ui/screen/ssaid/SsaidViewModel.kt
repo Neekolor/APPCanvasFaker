@@ -17,8 +17,8 @@ import kotlinx.coroutines.withContext
 
 /**
  * SSAID 管理页：读取 settings_ssaid.xml 全部条目成列表，支持随机化/删除（均需 root）。
- * 操作经 SsaidManager 内部 Mutex 串行化；本 VM 用代次计数防止过期刷新
- * 覆盖新状态（ 同款模式），所有挂起调用显式放行取消。
+ * 写操作经 SsaidManager 内部 Mutex 串行化；本 VM 用代次计数丢弃过期协程结果，
+ * 防止旧刷新覆盖新状态；取消异常一律向上传播。
  */
 class SsaidViewModel(application: Application) : AndroidViewModel(application) {
 
@@ -29,7 +29,7 @@ class SsaidViewModel(application: Application) : AndroidViewModel(application) {
     private val _uiState = MutableStateFlow(SsaidUiState())
     val uiState: StateFlow<SsaidUiState> = _uiState.asStateFlow()
 
-    /** 代次计数：每次 load 自增，过期协程结果一律丢弃（ 模式）。 */
+    /** 代次计数：每次 load 自增，过期协程结果一律丢弃。 */
     private var generation = 0
 
     init {
@@ -49,8 +49,9 @@ class SsaidViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     /**
-     * 随机化指定条目：先强制停止目标应用（铁律），再真实改写系统文件。
-     * 返回 (written, reloaded)；busyPkg 在整个操作期间占用以互斥其他操作。
+     * 随机化指定条目：先强制停止目标应用再改写系统文件（目标若在运行，
+     * 其缓存会在稍后写盘时覆盖我们的修改）。返回 (written, reloaded)；
+     * busyPkg 在整个操作期间占用以互斥其他操作。
      */
     suspend fun randomize(packageName: String): Pair<Boolean, Boolean> =
         operate(packageName) { SsaidManager.randomize(packageName) }
@@ -63,13 +64,13 @@ class SsaidViewModel(application: Application) : AndroidViewModel(application) {
         packageName: String,
         action: suspend () -> SsaidManager.WriteResult,
     ): Pair<Boolean, Boolean> = withContext(Dispatchers.IO) {
-        // ：包名拼入 root shell 与系统文件前做格式校验（纵深防御）
+        // 包名随后拼入 root shell 与系统文件，先做格式校验（纵深防御）
         if (!packageName.matches(PACKAGE_NAME_REGEX)) {
             return@withContext false to false
         }
         val result = runCatching { action() }
             .recoverCatching { e ->
-                // ：取消必须继续向上传播，不能被 runCatching 吞成"失败"
+                // 取消必须继续向上传播，不能被 runCatching 吞成"失败"
                 if (e is CancellationException) throw e
                 SsaidManager.WriteResult(written = false, reloaded = false)
             }.getOrDefault(SsaidManager.WriteResult(written = false, reloaded = false))
@@ -126,11 +127,11 @@ class SsaidViewModel(application: Application) : AndroidViewModel(application) {
                 packageName = entry.packageName,
                 value = entry.value,
                 label = label,
-                applicationInfo = appInfo as ApplicationInfo?,
+                applicationInfo = appInfo,
             )
         }
         val items = if (showSystemApps) all else all.filterNot { it.isSystemApp }
-        // 过期保护：仅提交最新代次
+        // 过期保护：只提交最新代次的结果，旧协程算完直接丢弃
         return if (gen == generation) {
             SsaidUiState(items = items, showSystemApps = showSystemApps, loadState = SsaidLoadState.READY)
         } else {

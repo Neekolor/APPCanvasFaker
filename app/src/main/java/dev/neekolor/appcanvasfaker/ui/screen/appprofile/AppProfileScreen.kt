@@ -51,7 +51,7 @@ fun AppProfileScreen(packageName: String) {
     val confirmDialog = rememberConfirmDialog(
         onConfirm = {
             scope.launch {
-                // ：失败也要如实反馈，不再静默
+                // 成功失败都弹结果：随机化是不可逆写操作，不能让用户猜
                 val ok = viewModel.randomize(packageName)
                 showResult(if (ok) successText else failedText)
             }
@@ -68,7 +68,7 @@ fun AppProfileScreen(packageName: String) {
                 confirm = actionText,
             )
         },
-        // ：菜单操作失败同样给出反馈
+        // 菜单操作同样给反馈：后台 shell 失败前台无感知，用户会以为没点上
         onLaunchApp = {
             scope.launch {
                 if (!viewModel.launchApp(packageName)) showResult(failedText)

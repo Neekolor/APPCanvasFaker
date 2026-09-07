@@ -62,6 +62,13 @@ class LogViewModel(
                     packageName = entry.packageName ?: entry.message,
                     appLabel = label,
                     applicationInfo = appInfo,
+                    path = entry.path,
+                    seed = entry.seed,
+                    moved = entry.moved,
+                    oldHash = entry.oldHash,
+                    newHash = entry.newHash,
+                    hitCount = entry.hitCount,
+                    mode = entry.mode,
                 )
             }
             itemsFlow.value = items

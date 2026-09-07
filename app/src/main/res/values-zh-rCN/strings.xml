@@ -20,9 +20,21 @@
     <string name="force_stop_app">强制停止</string>
     <string name="restart_app">重新启动</string>
     <string name="settings_profile_template">实验性功能</string>
-    <string name="settings_profile_template_summary">伪装开关与实用工具集合，前往"工具"页查看。</string>
+    <string name="settings_profile_template_summary">伪装执行模式切换，前往实验室查看。</string>
     <string name="settings_check_update">检查更新</string>
     <string name="settings_check_update_summary">在应用启动后自动检查是否有最新版</string>
+    <string name="update_checking">正在检查新版…</string>
+    <string name="update_latest">已是最新版（%1$s）。</string>
+    <string name="update_found">发现新版 %1$s（%2$s），是否下载更新？</string>
+    <string name="update_download">下载</string>
+    <string name="update_downloading">下载中（%1$d%%）…</string>
+    <string name="update_install_now">下载完成，是否立即安装？</string>
+    <string name="update_install">安装</string>
+    <string name="update_failed">检查失败：%1$s</string>
+    <string name="lab_title">实验室</string>
+    <string name="lab_noise_summary">对读取到的像素施加确定性微扰，当前线上模式。</string>
+    <string name="lab_full_unavailable">暂未实现，敬请期待。</string>
+    <string name="lab_note">切换伪装执行模式，改动后需重启目标应用生效。</string>
     <string name="settings_enable_predictive_back">预测性返回手势</string>
     <string name="settings_enable_predictive_back_summary">启用对预测性返回手势的支持</string>
     <string name="action">执行</string>
@@ -107,6 +119,9 @@
     <string name="home_baseline_note">模块无法 Hook 自身，以上为本机未污染基准值。</string>
     <string name="home_channel_bad">远端配置通道不可用，被 Hook 应用收不到规则；请检查 LSPosed 状态并重启本应用。</string>
     <string name="app_version">应用版本</string>
+    <string name="home_hook_mode">Hook模式</string>
+    <string name="home_hooked_baselines">已hook基线</string>
+    <string name="home_impl">实现方式</string>
     <string name="hooked_apps">已Hook应用</string>
     <string name="hook_count">Hook次数</string>
     <string name="tag_hook" translatable="false">HOOK</string>

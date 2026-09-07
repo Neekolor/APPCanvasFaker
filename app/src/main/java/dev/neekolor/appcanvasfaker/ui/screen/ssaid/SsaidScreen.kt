@@ -1,5 +1,7 @@
 package dev.neekolor.appcanvasfaker.ui.screen.ssaid
 
+import android.content.ClipData
+import android.content.Context
 import android.widget.Toast
 import androidx.compose.foundation.background
 import androidx.compose.foundation.basicMarquee
@@ -25,7 +27,6 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.systemBars
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.verticalScroll
@@ -60,13 +61,11 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.nestedscroll.nestedScroll
-import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
@@ -207,7 +206,7 @@ fun SsaidScreen() {
     }
 }
 
-/** 操作按钮互斥（ 的 UI 面）：有任一操作进行中时全部按钮禁用。 */
+/** 操作按钮互斥：有任一操作进行中时全部按钮禁用，防止并发写坏系统文件。 */
 private fun buttonsEnabled(busyPkg: String?): Boolean = busyPkg == null
 
 // ========================= Miuix 皮肤 =========================
@@ -288,7 +287,7 @@ private fun SsaidScreenMiuix(
                 if (state.items.isEmpty()) {
                     EmptyBox(Modifier.padding(innerPadding))
                 } else {
-                    // 对齐应用列表页：LazyColumn + 回弹 + 触底震动 + 嵌套滚动（条目少时同样保留手感）
+                    // Miuix 设置页形态：计数小标题 + 一张大 Card 内条目行 + 分隔线
                     LazyColumn(
                         modifier = Modifier
                             .fillMaxSize()
@@ -304,15 +303,37 @@ private fun SsaidScreenMiuix(
                         item {
                             SmallTitle(
                                 text = stringResource(R.string.ssaid_count_title, state.items.size),
+                                modifier = Modifier.padding(horizontal = 20.dp),
                             )
                         }
-                        items(state.items, key = { it.packageName }) { item ->
-                            SsaidListCard(
-                                item = item,
-                                enabled = buttonsEnabled(state.busyPkg),
-                                onRandomize = { actions.onRandomize(item.packageName) },
-                                onDelete = { actions.onDelete(item.packageName) },
-                            )
+                        item {
+                            Card(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(horizontal = 12.dp),
+                            ) {
+                                Column {
+                                    state.items.forEachIndexed { index, item ->
+                                        SsaidRowMiuix(
+                                            item = item,
+                                            enabled = buttonsEnabled(state.busyPkg),
+                                            onRandomize = { actions.onRandomize(item.packageName) },
+                                            onDelete = { actions.onDelete(item.packageName) },
+                                        )
+                                        if (index < state.items.lastIndex) {
+                                            Box(
+                                                modifier = Modifier
+                                                    .padding(start = 66.dp)
+                                                    .fillMaxWidth()
+                                                    .height(0.5.dp)
+                                                    .background(
+                                                        MiuixTheme.colorScheme.onSurface.copy(alpha = 0.10f)
+                                                    ),
+                                            )
+                                        }
+                                    }
+                                }
+                            }
                         }
                     }
                 }
@@ -331,7 +352,6 @@ private fun SsaidScreenMaterial(
     snackbarHost: SnackbarHostState,
 ) {
     val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior(rememberTopAppBarState())
-    val clipboard = LocalClipboardManager.current
     val context = LocalContext.current
     val copiedText = stringResource(R.string.ssaid_copied)
 
@@ -421,8 +441,7 @@ private fun SsaidScreenMaterial(
                                 {
                                     SegmentedListItem(
                                         onClick = {
-                                            clipboard.setText(AnnotatedString(item.value))
-                                            Toast.makeText(context, copiedText, Toast.LENGTH_SHORT).show()
+                                            copySsaid(context, copiedText, item.value)
                                         },
                                         headlineContent = {
                                             Text(
@@ -506,80 +525,83 @@ fun SsaidIcon(item: SsaidItemUi, size: Int = 40) {
 }
 
 /**
- * Miuix 列表卡片：对齐应用列表页 AppItem 形态（独立 Card + showIndication 按压动效）。
+ * 复制 SSAID 值到系统剪贴板：直接走 Android ClipboardManager，
+ * 不经 Compose 的 LocalClipboardManager（该 API 已废弃）。
+ */
+private fun copySsaid(context: Context, copiedText: String, value: String) {
+    val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as android.content.ClipboardManager
+    clipboard.setPrimaryClip(ClipData.newPlainText("SSAID", value))
+    Toast.makeText(context, copiedText, Toast.LENGTH_SHORT).show()
+}
+
+/**
+ * Miuix 列表行：大 Card 内的条目形态（图标 + 三行信息 + 右侧纵向双按钮）。
  * 信息区三行：应用名 / 包名（有自定义标签时才显示）/ SSAID 值（等宽字体）。
  * 点击整行复制 SSAID 值到剪贴板。
  */
 @Composable
-private fun SsaidListCard(
+private fun SsaidRowMiuix(
     item: SsaidItemUi,
     enabled: Boolean,
     onRandomize: () -> Unit,
     onDelete: () -> Unit,
 ) {
-    val clipboard = LocalClipboardManager.current
     val context = LocalContext.current
     val copiedText = stringResource(R.string.ssaid_copied)
-    Card(
+    Row(
         modifier = Modifier
-            .padding(horizontal = 12.dp)
-            .padding(bottom = 12.dp),
-        onClick = {
-            clipboard.setText(AnnotatedString(item.value))
-            Toast.makeText(context, copiedText, Toast.LENGTH_SHORT).show()
-        },
-        showIndication = true,
-        insideMargin = PaddingValues(start = 10.dp, end = 16.dp, top = 8.dp, bottom = 8.dp),
+            .fillMaxWidth()
+            .clickable { copySsaid(context, copiedText, item.value) }
+            .padding(horizontal = 16.dp, vertical = 10.dp),
+        verticalAlignment = Alignment.CenterVertically,
     ) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            Box(modifier = Modifier.padding(end = 10.dp)) {
-                SsaidIcon(item, 48)
-            }
-            Column(modifier = Modifier.weight(1f)) {
+        Box(modifier = Modifier.padding(end = 10.dp)) {
+            SsaidIcon(item, 40)
+        }
+        Column(modifier = Modifier.weight(1f)) {
+            Text(
+                text = item.displayName,
+                modifier = Modifier.basicMarquee(),
+                fontWeight = FontWeight(550),
+                color = MiuixTheme.colorScheme.onSurface,
+                maxLines = 1,
+                softWrap = false,
+            )
+            if (item.label != null) {
                 Text(
-                    text = item.displayName,
-                    modifier = Modifier.basicMarquee(),
-                    fontWeight = FontWeight(550),
-                    color = MiuixTheme.colorScheme.onSurface,
-                    maxLines = 1,
-                    softWrap = false,
-                )
-                if (item.label != null) {
-                    Text(
-                        text = item.packageName,
-                        modifier = Modifier.basicMarquee(),
-                        fontSize = 12.sp,
-                        fontWeight = FontWeight(550),
-                        color = MiuixTheme.colorScheme.onSurfaceVariantSummary,
-                        maxLines = 1,
-                        softWrap = false,
-                    )
-                }
-                Text(
-                    text = item.value,
+                    text = item.packageName,
                     modifier = Modifier.basicMarquee(),
                     fontSize = 12.sp,
-                    fontFamily = FontFamily.Monospace,
+                    fontWeight = FontWeight(550),
                     color = MiuixTheme.colorScheme.onSurfaceVariantSummary,
                     maxLines = 1,
                     softWrap = false,
                 )
             }
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                MiuixSsaidButton(
-                    text = stringResource(R.string.delete),
-                    enabled = enabled,
-                    isDelete = true,
-                    onClick = onDelete,
-                )
-                Spacer(Modifier.width(8.dp))
-                MiuixSsaidButton(
-                    text = stringResource(R.string.action_randomize),
-                    enabled = enabled,
-                    isDelete = false,
-                    onClick = onRandomize,
-                )
-            }
+            Text(
+                text = item.value,
+                modifier = Modifier.basicMarquee(),
+                fontSize = 12.sp,
+                fontFamily = FontFamily.Monospace,
+                color = MiuixTheme.colorScheme.onSurfaceVariantSummary,
+                maxLines = 1,
+                softWrap = false,
+            )
+        }
+        Column(horizontalAlignment = Alignment.End) {
+            MiuixSsaidButton(
+                text = stringResource(R.string.action_randomize),
+                enabled = enabled,
+                isDelete = false,
+                onClick = onRandomize,
+            )
+            Spacer(Modifier.height(6.dp))
+            MiuixSsaidButton(
+                text = stringResource(R.string.delete),
+                enabled = enabled,
+                isDelete = true,
+                onClick = onDelete,
+            )
         }
     }
 }

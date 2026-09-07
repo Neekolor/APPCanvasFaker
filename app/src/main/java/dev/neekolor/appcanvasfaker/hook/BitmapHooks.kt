@@ -666,7 +666,7 @@ object BitmapHooks {
             }.onFailure { Log.e(TAG, "A1 applyPixels failed for $packageName", it) }
             // compress 内部读取像素时也触发本 hook（天然一致），但统计只在最外层记一次
             if (insideFake.get() != true) {
-                recordStats(packageName, seed, pixels)
+                recordStats(packageName, seed, pixels, "A1")
             }
         } catch (t: Throwable) {
             // 仅可能来自参数读取或原生调用本身：确保原方法已执行后原样上抛，绝不静默吞掉
@@ -736,7 +736,7 @@ object BitmapHooks {
                     }
                 }
                 if (insideFake.get() != true) {
-                    recordStats(packageName, seed, fake)
+                    recordStats(packageName, seed, fake, "A3")
                 }
             }
         } catch (t: Throwable) {
@@ -804,7 +804,7 @@ object BitmapHooks {
         if (faked != null) {
             // 写入失败（对端流问题）时直接上抛交由调用方感知——此时绝不能再回退重写
             stream.write(faked.second)
-            recordStats(packageName, seed, faked.first)
+            recordStats(packageName, seed, faked.first, "A4")
             return true
         }
         // 伪装失败（如 HARDWARE 位图读不出像素）：按原样执行原始编码，
@@ -829,7 +829,8 @@ object BitmapHooks {
     private fun recordStats(
         packageName: String,
         seed: Long,
-        pixels: IntArray
+        pixels: IntArray,
+        path: String,
     ) {
         val now = SystemClock.elapsedRealtime()
         val last = lastStatsTime.put(packageName, now)
@@ -840,7 +841,7 @@ object BitmapHooks {
                     val fp = fingerprintOf(pixels)
                     val key = "$seed:$fp"
                     if (lastSentHash.put(packageName, key) == key) return@execute
-                    sendHookHit(packageName, seed, fp)
+                    sendHookHit(packageName, seed, fp, path)
                 }.onFailure { Log.e(TAG, "recordStats failed", it) }
             }
         }
@@ -851,7 +852,7 @@ object BitmapHooks {
      * 远端 prefs 在被 Hook 进程只读，旧的直写路径全灭（计数恒 0 的根因），已删除。
      * Context 取自宿主进程 Application（公开静态方法，反射直取，无需隐藏 API 豁免）。
      */
-    private fun sendHookHit(packageName: String, seed: Long, fingerprint: String) {
+    private fun sendHookHit(packageName: String, seed: Long, fingerprint: String, path: String) {
         val app = runCatching {
             Class.forName("android.app.ActivityThread")
                 .getDeclaredMethod("currentApplication")
@@ -866,6 +867,7 @@ object BitmapHooks {
             putExtra(StatsReceiver.EXTRA_PKG, packageName)
             putExtra(StatsReceiver.EXTRA_HASH, fingerprint)
             putExtra(StatsReceiver.EXTRA_SEED, seed)
+            putExtra(StatsReceiver.EXTRA_PATH, path)
             putExtra(StatsReceiver.EXTRA_TIME, System.currentTimeMillis())
         }
         runCatching { app.sendBroadcast(intent) }

@@ -252,7 +252,19 @@ private fun InfoCard(state: HomeUiState) {
                 stringResource(R.string.app_version),
                 state.versionName
             )
-            // 标准指纹值已移至"工具"页指纹基准二级页；基线说明文本已移除，此处只保留版本
+            InfoCardItem(
+                stringResource(R.string.home_hook_mode),
+                state.modeTitle
+            )
+            InfoCardItem(
+                stringResource(R.string.home_hooked_baselines),
+                state.baselineText
+            )
+            InfoCardItem(
+                stringResource(R.string.home_impl),
+                "libxposed"
+            )
+            // 标准指纹值已移至"工具"页指纹基准二级页；首页只保留版本，避免两处重复展示
             if (state.moduleActive && !state.remoteChannelOk) {
                 Spacer(Modifier.height(8.dp))
                 Text(
@@ -293,6 +305,8 @@ private val previewState = HomeUiState(
     versionName = "0.3.0",
     hookedAppCount = 3,
     totalHookCount = 128L,
+    modeTitle = "噪声模式",
+    baselineText = "A1、A3、A4、A2、E1、C2",
 )
 
 @Preview(name = "Home Activated", showBackground = true)

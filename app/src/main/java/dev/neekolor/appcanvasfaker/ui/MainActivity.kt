@@ -29,6 +29,7 @@ import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.Alignment
@@ -48,6 +49,8 @@ import androidx.navigationevent.compose.NavigationBackHandler
 import androidx.navigationevent.compose.rememberNavigationEventState
 import dev.neekolor.appcanvasfaker.acfApp
 import dev.neekolor.appcanvasfaker.core.ConfigRepository
+import dev.neekolor.appcanvasfaker.core.UpdateCenter
+import dev.neekolor.appcanvasfaker.data.repository.SettingsRepositoryImpl
 import dev.neekolor.appcanvasfaker.ui.component.bottombar.BottomBar
 import dev.neekolor.appcanvasfaker.ui.component.bottombar.MainPagerState
 import dev.neekolor.appcanvasfaker.ui.component.bottombar.NavigationBadgeState
@@ -59,9 +62,13 @@ import dev.neekolor.appcanvasfaker.ui.navigation3.Navigator
 import dev.neekolor.appcanvasfaker.ui.navigation3.Route
 import dev.neekolor.appcanvasfaker.ui.navigation3.rememberNavigator
 import dev.neekolor.appcanvasfaker.ui.screen.about.AboutScreen
+import dev.neekolor.appcanvasfaker.ui.screen.about.UpdateDialogMaterial
+import dev.neekolor.appcanvasfaker.ui.screen.about.UpdateDialogMiuix
+import dev.neekolor.appcanvasfaker.ui.screen.about.rememberUpdateDialogActions
 import dev.neekolor.appcanvasfaker.ui.screen.appprofile.AppProfileScreen
 import dev.neekolor.appcanvasfaker.ui.screen.colorpalette.ColorPaletteScreen
 import dev.neekolor.appcanvasfaker.ui.screen.home.HomePager
+import dev.neekolor.appcanvasfaker.ui.screen.lab.LabScreen
 import dev.neekolor.appcanvasfaker.ui.screen.log.LogScreen
 import dev.neekolor.appcanvasfaker.ui.screen.pending.ToolsetScreen
 import dev.neekolor.appcanvasfaker.ui.screen.settings.SettingPager
@@ -79,6 +86,7 @@ import dev.neekolor.appcanvasfaker.ui.util.rememberBlurBackdrop
 import dev.neekolor.appcanvasfaker.ui.util.rememberContentReady
 import dev.neekolor.appcanvasfaker.ui.viewmodel.MainActivityViewModel
 import dev.neekolor.appcanvasfaker.ui.viewmodel.MainPagerConfig
+import kotlinx.coroutines.launch
 import top.yukonga.miuix.kmp.basic.Scaffold
 import top.yukonga.miuix.kmp.blur.layerBackdrop
 import top.yukonga.miuix.kmp.blur.rememberLayerBackdrop
@@ -114,6 +122,19 @@ class MainActivity : ComponentActivity() {
             }
 
             val navigator = rememberNavigator(Route.Main)
+            val scope = rememberCoroutineScope()
+            // 启动后自动检查更新（设置开关控制）：有新版才弹，无新版/失败都静默
+            val updateUi by UpdateCenter.ui.collectAsStateWithLifecycle()
+            val updateActions = rememberUpdateDialogActions(check = {
+                scope.launch {
+                    UpdateCenter.check(acfApp, manual = true)
+                }
+            })
+            LaunchedEffect(Unit) {
+                if (SettingsRepositoryImpl().checkUpdate) {
+                    UpdateCenter.check(acfApp, manual = false)
+                }
+            }
             val systemDensity = LocalDensity.current
             val density = remember(systemDensity, uiState.pageScale) {
                 Density(systemDensity.density * uiState.pageScale, systemDensity.fontScale)
@@ -154,6 +175,7 @@ class MainActivity : ComponentActivity() {
                                 entry<Route.ColorPalette> { ColorPaletteScreen() }
                                 entry<Route.Ssaid> { SsaidScreen() }
                                 entry<Route.Fingerprints> { FingerprintsScreen() }
+                                entry<Route.Lab> { LabScreen() }
                                 entry<Route.Stats> { StatsScreen() }
                                 entry<Route.AppProfile> { key -> AppProfileScreen(key.packageName) }
                                 entry<Route.Home> { mainScreenEntry() }
@@ -169,6 +191,33 @@ class MainActivity : ComponentActivity() {
                         ) { navDisplay() }
 
                         UiMode.Miuix -> Scaffold { navDisplay() }
+                    }
+                    // 启动自动检查只在有新版时弹；手动检查的弹窗在关于页。
+                    // 此处兜底：自动检查弹出的新版/安装确认在任何页面都可见。
+                    // Miuix OverlayDialog 必须挂在 Scaffold 内容里（popup 宿主），故写进各自 Scaffold。
+                    when (uiMode) {
+                        UiMode.Material -> androidx.compose.material3.Scaffold(
+                            containerColor = MaterialTheme.colorScheme.surfaceContainer
+                        ) {
+                            navDisplay()
+                            UpdateDialogMaterial(
+                                state = updateUi,
+                                onDownload = updateActions.onDownload,
+                                onInstall = updateActions.onInstall,
+                                onRetry = updateActions.onRetry,
+                                onDismiss = updateActions.onDismiss,
+                            )
+                        }
+                        UiMode.Miuix -> Scaffold {
+                            navDisplay()
+                            UpdateDialogMiuix(
+                                state = updateUi,
+                                onDownload = updateActions.onDownload,
+                                onInstall = updateActions.onInstall,
+                                onRetry = updateActions.onRetry,
+                                onDismiss = updateActions.onDismiss,
+                            )
+                        }
                     }
                 }
             }

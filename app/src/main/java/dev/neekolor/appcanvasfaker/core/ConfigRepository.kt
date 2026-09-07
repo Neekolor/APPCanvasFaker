@@ -96,6 +96,7 @@ class ConfigRepository(private val context: Context) {
                         .put("tag", "随机化")
                         .put("msg", pkg)
                         .put("pkg", pkg)
+                        .put("seed", seed)
                 )
             }
             return seed
@@ -139,11 +140,17 @@ class ConfigRepository(private val context: Context) {
     /**
      * Hook 命中落盘（供 StatsReceiver，调用方为 UI 进程广播线程）：
      * 包计数/hash/时间 + 全局/今日 + 可选日志，全部写本地统计面。
+     *
+     * 日志富化字段全部取现成值、零新增计算：seed/path 由 Hook 侧广播带来；
+     * moved 为新 hash 与上次落盘 hash 的字符串比较；count 为本次累加后的值；
+     * mode 为当前保护模式。hash 只存前后各 8 位（位移判断够用，不膨胀 prefs）。
      */
-    fun recordHookHit(pkg: String, fingerprint: String, timestamp: Long) {
+    fun recordHookHit(pkg: String, fingerprint: String, seed: Long, path: String?, timestamp: Long) {
         synchronized(writeLock) {
+            val prevHash = stats.getString(KEY_PKG_HASH(pkg), null)
+            val count = stats.getLong(KEY_PKG_COUNT(pkg), 0L) + 1L
             val e = stats.edit()
-            e.putLong(KEY_PKG_COUNT(pkg), stats.getLong(KEY_PKG_COUNT(pkg), 0L) + 1L)
+            e.putLong(KEY_PKG_COUNT(pkg), count)
             e.putString(KEY_PKG_HASH(pkg), fingerprint)
             e.putLong(KEY_PKG_LAST_TIME(pkg), timestamp)
             e.putLong(KEY_GLOBAL_COUNT, stats.getLong(KEY_GLOBAL_COUNT, 0L) + 1L)
@@ -155,14 +162,22 @@ class ConfigRepository(private val context: Context) {
                 e.putLong(KEY_TODAY_COUNT, stats.getLong(KEY_TODAY_COUNT, 0L) + 1L)
             }
             if (config().optBoolean("enable_logging", true)) {
-                appendLogLocked(
-                    JSONObject()
-                        .put("ts", timestamp)
-                        .put("level", "I")
-                        .put("tag", "Hook")
-                        .put("msg", pkg)
-                        .put("pkg", pkg)
-                )
+                val log = JSONObject()
+                    .put("ts", timestamp)
+                    .put("level", "I")
+                    .put("tag", "Hook")
+                    .put("msg", pkg)
+                    .put("pkg", pkg)
+                    .put("seed", seed)
+                    .put("count", count)
+                    .put("mode", mode().name)
+                    .put("new", fingerprint.take(8))
+                if (path != null) log.put("path", path)
+                if (prevHash != null) {
+                    log.put("moved", prevHash != fingerprint)
+                    log.put("old", prevHash.take(8))
+                }
+                appendLogLocked(log)
             }
             e.apply()
         }
@@ -190,7 +205,7 @@ class ConfigRepository(private val context: Context) {
         }
     }
 
-    /** 该 app 的本地模拟 hook 后指纹（A1 方法，scanner 画布 + seed 扰动）。纯本地，不走跨进程。 */
+    /** 该 app 的本地模拟 hook 后指纹（A1 路径：scanner 画布 + seed 扰动）。纯本地，不走跨进程。 */
     fun simulatedFingerprint(pkg: String): String {
         val rule = getRule(pkg)
         if (rule.seed == 0L) return "暂无"
@@ -212,8 +227,8 @@ class ConfigRepository(private val context: Context) {
     }
 
     /**
-     * 按固定方法计算 7 种标准化指纹（全部方法复用 scanner 采集器，
-     * 统一 320×160 标准画布，与配套扫描器应用三方互比；A4b 更正为 JPEG 压缩方法）：
+     * 按固定方法计算 7 种标准化指纹：方法复用 scanner 采集器，
+     * 统一 320×160 标准画布，与配套扫描器算出的值可直接对比；A4b 走 JPEG 压缩方法）：
      * - A1 getPixels / A3 copyPixelsToBuffer / A4 compress(PNG) / A4b compress(JPEG)
      * - A2 getPixel 单点（A2）/ E1 Paint 文本度量（E1）/ D1 glReadPixels（D1）
      * [seed] 非空时先对画布像素施加扰动，模拟 hook 后状态。
@@ -247,7 +262,7 @@ class ConfigRepository(private val context: Context) {
                 FingerprintValue("D1", "GL 直读（glReadPixels）", foldIfHash(d1)),
             )
         } finally {
-            std.recycle()   // ：异常路径也确保回收
+            std.recycle()   // finally 内回收：异常路径也不泄漏位图
         }
     }
 
@@ -262,7 +277,7 @@ class ConfigRepository(private val context: Context) {
         return pixels
     }
 
-    /** scanner 采集器成功时返回 64 位 SHA-256 hex，折叠为 16 位；失败文本原样透出（大小写判定统一）。 */
+    /** scanner 采集器成功时返回 64 位 SHA-256 hex，折叠为 16 位；失败文本原样透出。判定前统一转小写，避免大小写混写误判。 */
     private fun foldIfHash(raw: String): String {
         val lower = raw.lowercase()
         return if (lower.length == 64 && lower.all { it in "0123456789abcdef" }) {
@@ -348,7 +363,14 @@ class ConfigRepository(private val context: Context) {
                         level = o.optString("level", "I"),
                         tag = o.optString("tag", "ACF-Hook"),
                         message = o.optString("msg", ""),
-                        packageName = o.optString("pkg").ifBlank { null }
+                        packageName = o.optString("pkg").ifBlank { null },
+                        path = o.optString("path").ifBlank { null },
+                        seed = if (o.has("seed")) o.optLong("seed") else null,
+                        moved = if (o.has("moved")) o.optBoolean("moved") else null,
+                        oldHash = o.optString("old").ifBlank { null },
+                        newHash = o.optString("new").ifBlank { null },
+                        hitCount = if (o.has("count")) o.optLong("count") else null,
+                        mode = o.optString("mode").ifBlank { null },
                     )
                 )
             }
@@ -530,8 +552,8 @@ class ConfigRepository(private val context: Context) {
     companion object {
         const val PREFS_NAME = "app_canvas_faker"
         const val KEY_CONFIG_JSON = RemoteConfig.KEY_CONFIG_JSON
-        // 统计 key 名与远端同组（RemoteConfig 唯一方法），但只存本地：
-        // Hook 侧远端只读，统计回写走 StatsReceiver 广播落本地（ADR D16）
+        // 统计 key 名与远端同组（以 RemoteConfig 为准），但只存本地：
+        // Hook 侧远端只读，统计回写走 StatsReceiver 广播落本地
         private const val KEY_LOGS = RemoteConfig.KEY_LOGS
         private const val KEY_GLOBAL_COUNT = RemoteConfig.KEY_GLOBAL_COUNT
         private const val KEY_TODAY_COUNT = RemoteConfig.KEY_TODAY_COUNT
@@ -540,7 +562,7 @@ class ConfigRepository(private val context: Context) {
 
         /**
          * 写锁：配置 JSON 与日志数组都是"读出→内存修改→整份写回"模式。
-         * ：本类被各 ViewModel/Provider/AboutScreen 多实例化，
+         * 本类被多处实例化（各 ViewModel/Provider/AboutScreen），
          * 锁必须是全局单例——实例级锁锁不住跨实例的并发读改写。
          */
         private val writeLock = Any()

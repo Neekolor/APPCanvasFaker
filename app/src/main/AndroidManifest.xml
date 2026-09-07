@@ -5,6 +5,10 @@
     <uses-permission
         android:name="android.permission.QUERY_ALL_PACKAGES"
         tools:ignore="QueryAllPackagesPermission" />
+    <!-- 检查更新：查 GitHub Releases + 下载 APK -->
+    <uses-permission android:name="android.permission.INTERNET" />
+    <!-- 检查更新：下载完成后调系统安装器（未知来源授权由系统引导） -->
+    <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES" />
 
     <uses-sdk tools:overrideLibrary="top.yukonga.miuix.kmp.blur" />
 
@@ -36,6 +40,17 @@
                 <action android:name="dev.neekolor.appcanvasfaker.action.HOOK_HIT" />
             </intent-filter>
         </receiver>
+
+        <!-- 检查更新：缓存目录 APK 分享给系统安装器（复用既有 filepaths cache-path）。 -->
+        <provider
+            android:name="androidx.core.content.FileProvider"
+            android:authorities="${applicationId}.fileprovider"
+            android:exported="false"
+            android:grantUriPermissions="true">
+            <meta-data
+                android:name="android.support.FILE_PROVIDER_PATHS"
+                android:resource="@xml/filepaths" />
+        </provider>
 
         <!-- 现代 API 不再使用 xposed 元数据：名称/描述走 label/description，
              作用域由用户在 LSPosed 中勾选（staticScope=false，无预置推荐）。 -->

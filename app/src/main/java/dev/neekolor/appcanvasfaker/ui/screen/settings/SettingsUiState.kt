@@ -41,7 +41,7 @@ data class SettingsScreenActions(
     val onSetHookTextMetrics: (Boolean) -> Unit,
     val onSetHookGlReadPixels: (Boolean) -> Unit,
     val onSetSsaidEnabled: (Boolean) -> Unit,
-    val onOpenToolset: () -> Unit,
+    val onOpenLab: () -> Unit,
     val onOpenSsaid: () -> Unit,
     val onOpenLog: () -> Unit,
     val onOpenAbout: () -> Unit,
