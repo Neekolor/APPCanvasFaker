@@ -2,6 +2,7 @@ package dev.neekolor.appcanvasfaker.ui.screen.about
 
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
@@ -22,6 +23,10 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.rememberTopAppBarState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -140,12 +145,16 @@ fun AboutScreenMaterial(
                     }
                 )
                 // 版权页脚：纯文本（非卡片、非列表行）。
-                // 隐藏交互已下线（代码保留见 EasterEgg.kt）：入口手势移除，logo 正常显示。
+                // 文本切换隐藏交互：单击在两版文案间切换（旧连点换图已下线，代码保留见 EasterEgg.kt）。
+                var showAcfCopyright by remember { mutableStateOf(false) }
                 Text(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(top = 12.dp),
-                    text = buildCopyrightText(baseFontSize = MaterialTheme.typography.bodySmall.fontSize),
+                        .padding(top = 12.dp)
+                        .clickable { showAcfCopyright = !showAcfCopyright },
+                    text = if (showAcfCopyright)
+                        buildAcfCopyrightText(baseFontSize = MaterialTheme.typography.bodySmall.fontSize)
+                    else buildCopyrightText(baseFontSize = MaterialTheme.typography.bodySmall.fontSize),
                     fontSize = MaterialTheme.typography.bodySmall.fontSize,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     textAlign = TextAlign.Center

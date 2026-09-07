@@ -29,7 +29,7 @@ import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.rounded.Fingerprint
+import androidx.compose.material.icons.outlined.Casino
 import androidx.compose.material.icons.rounded.PlayArrow
 import androidx.compose.material.icons.rounded.Security
 import androidx.compose.runtime.Composable
@@ -251,7 +251,7 @@ private fun AppProfileContent(
                 ) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Icon(
-                            imageVector = Icons.Rounded.Fingerprint,
+                            imageVector = Icons.Outlined.Casino,
                             contentDescription = null,
                             modifier = Modifier.size(20.dp).padding(end = 4.dp),
                             tint = colorScheme.onBackground

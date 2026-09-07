@@ -153,6 +153,7 @@ private fun ToolsetScreenMiuix(
                     )
                 }
             }
+            // 伪装三开关同卡：E1 文本度量 / D1 GL 直读 / C2 拷贝包装
             item {
                 Card(
                     modifier = Modifier
@@ -174,14 +175,6 @@ private fun ToolsetScreenMiuix(
                         checked = uiState.hookTextMetrics,
                         onCheckedChange = viewModel::setHookTextMetrics
                     )
-                }
-            }
-            item {
-                Card(
-                    modifier = Modifier
-                        .padding(top = 8.dp)
-                        .fillMaxWidth(),
-                ) {
                     val glReadPixels = stringResource(id = R.string.settings_hook_glreadpixels)
                     SwitchPreference(
                         title = "$glReadPixels（D1）",
@@ -197,14 +190,6 @@ private fun ToolsetScreenMiuix(
                         checked = uiState.hookGlReadPixels,
                         onCheckedChange = viewModel::setHookGlReadPixels
                     )
-                }
-            }
-            item {
-                Card(
-                    modifier = Modifier
-                        .padding(top = 8.dp)
-                        .fillMaxWidth(),
-                ) {
                     val pixelCopy = stringResource(id = R.string.settings_hook_pixelcopy)
                     SwitchPreference(
                         title = "$pixelCopy（C2）",
@@ -298,6 +283,30 @@ private fun ToolsetScreenMaterial(
                 .padding(bottom = bottomInnerPadding)
                 .verticalScroll(rememberScrollState()),
         ) {
+            // 指纹基准入口置顶常显（与 Miuix 顺序一致）
+            val fingerprints = stringResource(id = R.string.fingerprints_title)
+            SegmentedColumn(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp, vertical = 4.dp),
+                content = listOf(
+                    {
+                        SegmentedListItem(
+                            onClick = onOpenFingerprints,
+                            headlineContent = { Text(fingerprints) },
+                            supportingContent = { Text(stringResource(id = R.string.fingerprints_summary)) },
+                            leadingContent = { Icon(Icons.Filled.Fingerprint, fingerprints) },
+                            trailingContent = {
+                                Icon(
+                                    Icons.AutoMirrored.Filled.KeyboardArrowRight,
+                                    null
+                                )
+                            }
+                        )
+                    }
+                )
+            )
+            // 伪装三开关同组：E1 文本度量 / D1 GL 直读 / C2 拷贝包装
             SegmentedColumn(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -311,14 +320,7 @@ private fun ToolsetScreenMaterial(
                             checked = uiState.hookTextMetrics,
                             onCheckedChange = viewModel::setHookTextMetrics
                         )
-                    }
-                )
-            )
-            SegmentedColumn(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 16.dp, vertical = 4.dp),
-                content = listOf(
+                    },
                     {
                         SegmentedSwitchItem(
                             icon = Icons.Filled.ViewInAr,
@@ -327,14 +329,7 @@ private fun ToolsetScreenMaterial(
                             checked = uiState.hookGlReadPixels,
                             onCheckedChange = viewModel::setHookGlReadPixels
                         )
-                    }
-                )
-            )
-            SegmentedColumn(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 16.dp, vertical = 4.dp),
-                content = listOf(
+                    },
                     {
                         SegmentedSwitchItem(
                             icon = Icons.Filled.ContentCopy,
@@ -364,28 +359,6 @@ private fun ToolsetScreenMaterial(
             )
             if (uiState.ssaidEnabled) {
                 val ssaid = stringResource(id = R.string.settings_ssaid)
-            SegmentedColumn(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 16.dp, vertical = 4.dp),
-                content = listOf(
-                    {
-                        val fingerprints = stringResource(id = R.string.fingerprints_title)
-                        SegmentedListItem(
-                            onClick = onOpenFingerprints,
-                            headlineContent = { Text(fingerprints) },
-                            supportingContent = { Text(stringResource(id = R.string.fingerprints_summary)) },
-                            leadingContent = { Icon(Icons.Filled.Fingerprint, fingerprints) },
-                            trailingContent = {
-                                Icon(
-                                    Icons.AutoMirrored.Filled.KeyboardArrowRight,
-                                    null
-                                )
-                            }
-                        )
-                    }
-                )
-            )
             SegmentedColumn(
                     modifier = Modifier
                         .fillMaxWidth()

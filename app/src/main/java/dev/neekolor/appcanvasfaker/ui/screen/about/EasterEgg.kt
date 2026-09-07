@@ -105,6 +105,13 @@ fun buildCopyrightText(baseFontSize: TextUnit): AnnotatedString = buildAnnotated
 }
 
 
+fun buildAcfCopyrightText(baseFontSize: TextUnit): AnnotatedString = buildAnnotatedString {
+    append("ACF. © ")
+    withStyle(SpanStyle(fontSize = (baseFontSize.value - 2f).sp)) { append("2026") }
+    append(" Neekolor.")
+}
+
+
 @Composable
 fun EasterEggLogoImage(
     holder: EasterEggHolder,

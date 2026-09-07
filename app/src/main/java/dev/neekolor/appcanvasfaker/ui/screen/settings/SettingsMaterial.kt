@@ -13,9 +13,9 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Article
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
+import androidx.compose.material.icons.automirrored.filled.ReceiptLong
+import androidx.compose.material.icons.outlined.Science
 import androidx.compose.material.icons.filled.ContactPage
-import androidx.compose.material.icons.filled.Fence
-import androidx.compose.material.icons.filled.History
 import androidx.compose.material.icons.filled.Palette
 import androidx.compose.material.icons.filled.Tune
 import androidx.compose.material.icons.filled.Update
@@ -111,21 +111,6 @@ fun SettingPagerMaterial(
             )
 
             val sulog = stringResource(id = R.string.settings_sulog)
-            SegmentedColumn(
-                modifier = Modifier.padding(start = 16.dp, end = 16.dp, bottom = 13.dp),
-                content = listOf(
-                    {
-                        SegmentedSwitchItem(
-                            icon = Icons.AutoMirrored.Filled.Article,
-                            title = sulog,
-                            summary = stringResource(id = R.string.settings_sulog_summary),
-                            checked = uiState.enableLogging,
-                            onCheckedChange = actions.onSetEnableLogging
-                        )
-                    }
-                )
-            )
-
             val tools = stringResource(id = R.string.settings_profile_template)
             val log = stringResource(id = R.string.settings_log)
             SegmentedColumn(
@@ -141,7 +126,7 @@ fun SettingPagerMaterial(
                                 stringResource(id = R.string.settings_preset_boost),
                                 stringResource(id = R.string.settings_preset_custom)
                             ),
-                            selectedIndex = presetIndex(uiState.hookTextMetrics, uiState.hookGlReadPixels, uiState.hookPixelCopy),
+                            selectedIndex = displayPresetIndex(uiState),
                             onItemSelected = actions.onSetPreset
                         )
                     }
@@ -150,12 +135,23 @@ fun SettingPagerMaterial(
             SegmentedColumn(
                 modifier = Modifier.padding(start = 16.dp, end = 16.dp, bottom = 13.dp),
                 content = buildList {
+                    // 日志三件套同组：启用日志开关 + 实验性功能 + 日志入口
+                    add {
+                        SegmentedSwitchItem(
+                            icon = Icons.AutoMirrored.Filled.Article,
+                            title = sulog,
+                            summary = stringResource(id = R.string.settings_sulog_summary),
+                            checked = uiState.enableLogging,
+                            onCheckedChange = actions.onSetEnableLogging
+                        )
+                    }
                     add {
                         SegmentedListItem(
-                            onClick = actions.onOpenToolset,
+                            // 不再跳转：保留箭头行作纯展示
+                            onClick = { },
                             headlineContent = { Text(tools) },
                             supportingContent = { Text(stringResource(id = R.string.settings_profile_template_summary)) },
-                            leadingContent = { Icon(Icons.Filled.Fence, tools) },
+                            leadingContent = { Icon(Icons.Outlined.Science, tools) },
                             trailingContent = {
                                 Icon(
                                     Icons.AutoMirrored.Filled.KeyboardArrowRight,
@@ -169,7 +165,7 @@ fun SettingPagerMaterial(
                             onClick = actions.onOpenLog,
                             headlineContent = { Text(log) },
                             supportingContent = { Text(stringResource(id = R.string.settings_log_summary)) },
-                            leadingContent = { Icon(Icons.Filled.History, log) },
+                            leadingContent = { Icon(Icons.AutoMirrored.Filled.ReceiptLong, log) },
                             trailingContent = {
                                 Icon(
                                     Icons.AutoMirrored.Filled.KeyboardArrowRight,

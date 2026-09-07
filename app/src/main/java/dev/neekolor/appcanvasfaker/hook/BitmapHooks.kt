@@ -24,7 +24,8 @@ import java.util.concurrent.Executors
  * - A1 getPixels / A3 copyPixelsToBuffer / A4+A4b compress（v0.5.0 起现役）
  * - A2 Bitmap.getPixel 单点读取（scanner A2）
  * - E1 Paint 文本度量族 18 重载（scanner E1，含 getTextWidths 系与 getFontMetricsInt）
- * - D1 GLES20.glReadPixels GPU 帧缓冲直读（scanner D1，默认关）
+ * - D1 GLES20/30.glReadPixels GPU 帧缓冲直读（scanner D1，默认关；
+ *   GLES30 同签重载与 GLES20 同策略，PBO/native/Vulkan 路径维持不动）
  * - C2 PixelCopy.request 监听器包装（scanner C2 延迟持有例外，默认开）
  * 递归保护：ThreadLocal 标志，compress 内层 fake.compress 直接 proceed 放行。
  * 新增三链均为热路径：不做跨进程统计、不加锁、不逐次打日志，
@@ -113,30 +114,47 @@ object BitmapHooks {
             installTextMetricHooks(module, packageName, seed, param)
         }
 
-        // D1 GLES20.glReadPixels：GPU 直读旁路（scanner D1），默认关、副作用自负
+        // D1 glReadPixels：GPU 直读旁路（scanner D1），默认关、副作用自负。
+        // GLES20 与 GLES30 同签重载各装一条（声明类不同，按其一调用只走其一）；
+        // PBO 异步/native/Vulkan 路径 Java 层无数据可拦，维持不动。
         if (hookGlReadPixels) {
-            runCatching {
-                val gles20 = param.defaultClassLoader.loadClass("android.opengl.GLES20")
-                val glReadPixels = gles20.getDeclaredMethod(
-                    "glReadPixels",
-                    Int::class.javaPrimitiveType,
-                    Int::class.javaPrimitiveType,
-                    Int::class.javaPrimitiveType,
-                    Int::class.javaPrimitiveType,
-                    Int::class.javaPrimitiveType,
-                    Int::class.javaPrimitiveType,
-                    Buffer::class.java
-                )
-                module.hook(glReadPixels).intercept { chain ->
-                    handleGlReadPixels(chain, packageName, seed)
-                }
-            }.onFailure { Log.w(TAG, "D1 hook glReadPixels unavailable", it) }
+            hookGlReadPixelsOn(module, packageName, seed, param, "android.opengl.GLES20")
+            hookGlReadPixelsOn(module, packageName, seed, param, "android.opengl.GLES30")
         }
 
         // C2 PixelCopy.request 系列：拷贝完成监听器包装（scanner C2 延迟持有例外）
         if (hookPixelCopy) {
             installPixelCopyHooks(module, packageName, param)
         }
+    }
+
+    /**
+     * D1：在指定 GL 类上装同签 glReadPixels（GLES20/GLES30 共用处理器）。
+     * 单类缺失只记一条 warning，不影响另一类的安装。
+     */
+    private fun hookGlReadPixelsOn(
+        module: XposedInterface,
+        packageName: String,
+        seed: Long,
+        param: XposedModuleInterface.PackageLoadedParam,
+        className: String
+    ) {
+        runCatching {
+            val gles = param.defaultClassLoader.loadClass(className)
+            val glReadPixels = gles.getDeclaredMethod(
+                "glReadPixels",
+                Int::class.javaPrimitiveType,
+                Int::class.javaPrimitiveType,
+                Int::class.javaPrimitiveType,
+                Int::class.javaPrimitiveType,
+                Int::class.javaPrimitiveType,
+                Int::class.javaPrimitiveType,
+                Buffer::class.java
+            )
+            module.hook(glReadPixels).intercept { chain ->
+                handleGlReadPixels(chain, packageName, seed)
+            }
+        }.onFailure { Log.w(TAG, "D1 hook glReadPixels unavailable on $className", it) }
     }
 
     /** E1：注册 Paint 度量族 Java 层重载（measureText×4 / getTextBounds×2 /

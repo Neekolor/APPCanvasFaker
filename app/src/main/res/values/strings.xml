@@ -3,6 +3,7 @@
     <string name="home">Home</string>
     <string name="home_working">Module Active</string>
     <string name="home_working_version">Version: %s</string>
+    <string name="home_impl_method">Implementation: libxposed</string>
     <string name="superuser">App List</string>
     <string name="confirm">Confirm</string>
     <string name="reboot">Reboot</string>
@@ -10,7 +11,7 @@
     <string name="about">About</string>
     <string name="show_system_apps">Show system apps</string>
     <string name="home_learn_app">Learn APPCanvasFaker</string>
-    <string name="home_learn_app_url">https://github.com/Neekolor/APPCanvasFaker</string>
+    <string name="home_learn_app_url">https://github.com/Neekolor/APPCanvasFaker/wiki</string>
     <string name="home_click_to_learn_app">Learn how to use APPCanvasFaker.</string>
     <string name="about_source_code"><![CDATA[View source code at %1$s]]></string>
     <string name="about_description">A Canvas fingerprint spoofing module.</string>
@@ -33,7 +34,7 @@
     <string name="settings_hook_text_metrics">Randomize text metrics</string>
     <string name="settings_hook_text_metrics_summary">Apply ≤0.7% deterministic perturbation to Paint text metrics; turn off if layouts look off</string>
     <string name="settings_hook_glreadpixels">Randomize GPU framebuffer reads</string>
-    <string name="settings_hook_glreadpixels_summary">Hook GLES20.glReadPixels direct read; may affect recording or streaming, off by default</string>
+    <string name="settings_hook_glreadpixels_summary">Hook GLES20/30 glReadPixels direct read; may affect recording or streaming, off by default</string>
     <string name="settings_hook_pixelcopy">Randomize screen copies</string>
     <string name="settings_hook_pixelcopy_summary">Perturb the target bitmap when a copy completes; covers delayed reads. Turn off if screenshots look wrong</string>
     <string name="settings_preset">Behavior preset</string>
@@ -43,7 +44,10 @@
     <string name="settings_preset_custom">Custom</string>
     <string name="stats_title">Hook stats</string>
     <string name="stats_empty">No hook counts yet — use an app first</string>
-    <string name="ssaid_restart_required">SSAID randomized, please restart the app</string>
+    <string name="stats_clear">Clear stats</string>
+    <string name="stats_clear_confirm">Are you sure you want to clear all Hook stats?</string>
+    <string name="ssaid_restart_required">SSAID randomized, please reboot the device</string>
+    <string name="ssaid_deleted">SSAID deleted, please reboot the device</string>
     <string name="ssaid_reboot_title">Reboot device</string>
     <string name="ssaid_reboot_content">SSAID has been written. A reboot is required to take effect. Reboot now?</string>
     <string name="reboot_later">Later</string>
@@ -152,6 +156,8 @@
     <string name="ssaid_copied">SSAID copied to clipboard</string>
     <string name="log_disabled_banner">Logging is disabled. Hook activity is not being recorded.</string>
     <string name="log_disabled_action">Enable</string>
+    <string name="log_date_files">Log files</string>
+    <string name="log_date_all">All dates</string>
     <string name="settings_navigation_badge">Navigation badge</string>
     <string name="settings_navigation_badge_summary">Show the enabled app count on the navigation bar</string>
 </resources>

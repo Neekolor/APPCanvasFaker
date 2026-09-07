@@ -363,6 +363,30 @@ class ConfigRepository(private val context: Context) {
         }
     }
 
+    /**
+     * 清空 Hook 统计：各包计数/hash/末次时间 + 全局/今日计数。
+     * 规则表与日志不动（日志有自己的清空入口）。
+     */
+    fun clearStats() {
+        synchronized(writeLock) {
+            val e = stats.edit()
+            val rules = config().optJSONObject("rules")
+            if (rules != null) {
+                val it = rules.keys()
+                while (it.hasNext()) {
+                    val pkg = it.next()
+                    e.remove(KEY_PKG_COUNT(pkg))
+                    e.remove(KEY_PKG_HASH(pkg))
+                    e.remove(KEY_PKG_LAST_TIME(pkg))
+                }
+            }
+            e.remove(KEY_GLOBAL_COUNT)
+            e.remove(KEY_TODAY_COUNT)
+            e.remove(KEY_TODAY_DATE)
+            e.apply()
+        }
+    }
+
     fun snapshot(): ModuleSnapshot {
         return ModuleSnapshot(
             moduleActive = isFrameworkActive(),

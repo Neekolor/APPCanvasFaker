@@ -15,10 +15,10 @@ import androidx.compose.foundation.layout.systemBars
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.Article
+import androidx.compose.material.icons.automirrored.rounded.ReceiptLong
+import androidx.compose.material.icons.outlined.Science
 import androidx.compose.material.icons.rounded.ContactPage
 import androidx.compose.material.icons.rounded.Dashboard
-import androidx.compose.material.icons.rounded.Fence
-import androidx.compose.material.icons.rounded.History
 import androidx.compose.material.icons.rounded.Palette
 import androidx.compose.material.icons.rounded.Tune
 import androidx.compose.material.icons.rounded.Update
@@ -150,28 +150,6 @@ fun SettingPagerMiuix(
                             .padding(top = 12.dp)
                             .fillMaxWidth(),
                     ) {
-                        val sulog = stringResource(id = R.string.settings_sulog)
-                        SwitchPreference(
-                            title = sulog,
-                            summary = stringResource(id = R.string.settings_sulog_summary),
-                            startAction = {
-                                Icon(
-                                    Icons.AutoMirrored.Rounded.Article,
-                                    modifier = Modifier.padding(end = 6.dp),
-                                    contentDescription = sulog,
-                                    tint = colorScheme.onBackground
-                                )
-                            },
-                            checked = uiState.enableLogging,
-                            onCheckedChange = actions.onSetEnableLogging
-                        )
-                    }
-
-                    Card(
-                        modifier = Modifier
-                            .padding(top = 12.dp)
-                            .fillMaxWidth(),
-                    ) {
                         OverlayDropdownPreference(
                             title = stringResource(id = R.string.settings_preset),
                             summary = stringResource(id = R.string.settings_preset_summary),
@@ -188,7 +166,7 @@ fun SettingPagerMiuix(
                                     tint = colorScheme.onBackground
                                 )
                             },
-                            selectedIndex = presetIndex(uiState.hookTextMetrics, uiState.hookGlReadPixels, uiState.hookPixelCopy),
+                            selectedIndex = displayPresetIndex(uiState),
                             onSelectedIndexChange = actions.onSetPreset
                         )
                     }
@@ -198,19 +176,36 @@ fun SettingPagerMiuix(
                             .padding(top = 12.dp)
                             .fillMaxWidth(),
                     ) {
+                        // 日志三件套同卡：启用日志开关 + 实验性功能 + 日志入口
+                        val sulog = stringResource(id = R.string.settings_sulog)
+                        SwitchPreference(
+                            title = sulog,
+                            summary = stringResource(id = R.string.settings_sulog_summary),
+                            startAction = {
+                                Icon(
+                                    Icons.AutoMirrored.Rounded.Article,
+                                    modifier = Modifier.padding(end = 6.dp),
+                                    contentDescription = sulog,
+                                    tint = colorScheme.onBackground
+                                )
+                            },
+                            checked = uiState.enableLogging,
+                            onCheckedChange = actions.onSetEnableLogging
+                        )
                         val tools = stringResource(id = R.string.settings_profile_template)
                         ArrowPreference(
                             title = tools,
                             summary = stringResource(id = R.string.settings_profile_template_summary),
                             startAction = {
                                 Icon(
-                                    Icons.Rounded.Fence,
+                                    Icons.Outlined.Science,
                                     modifier = Modifier.padding(end = 6.dp),
                                     contentDescription = tools,
                                     tint = colorScheme.onBackground
                                 )
                             },
-                            onClick = actions.onOpenToolset
+                            // 不再跳转：保留箭头行作纯展示
+                            onClick = { }
                         )
                         val log = stringResource(id = R.string.settings_log)
                         ArrowPreference(
@@ -218,7 +213,7 @@ fun SettingPagerMiuix(
                             summary = stringResource(id = R.string.settings_log_summary),
                             startAction = {
                                 Icon(
-                                    Icons.Rounded.History,
+                                    Icons.AutoMirrored.Rounded.ReceiptLong,
                                     modifier = Modifier.padding(end = 6.dp),
                                     contentDescription = log,
                                     tint = colorScheme.onBackground

@@ -205,6 +205,12 @@ private fun StatusCard(
                                 fontSize = 14.sp,
                                 fontWeight = FontWeight.Medium,
                             )
+                            Spacer(Modifier.height(4.dp))
+                            Text(
+                                text = stringResource(R.string.home_impl_method),
+                                fontSize = 14.sp,
+                                fontWeight = FontWeight.Medium,
+                            )
                         }
                     }
                 }
@@ -338,13 +344,7 @@ private fun InfoCard(state: HomeUiState) {
                 content = state.versionName,
                 bottomPadding = 0.dp
             )
-            // 标准指纹值已移至"工具"页指纹基准二级页；此处保留版本与基线说明
-            Text(
-                text = stringResource(R.string.home_baseline_note),
-                fontSize = MiuixTheme.textStyles.body2.fontSize,
-                color = colorScheme.onSurfaceVariantSummary,
-                modifier = Modifier.padding(top = 12.dp)
-            )
+            // 标准指纹值已移至"工具"页指纹基准二级页；基线说明文本已移除，此处只保留版本
             if (state.moduleActive && !state.remoteChannelOk) {
                 Text(
                     text = stringResource(R.string.home_channel_bad),

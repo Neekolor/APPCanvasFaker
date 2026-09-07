@@ -95,22 +95,22 @@ class SettingsViewModel(
 
     fun setHookTextMetrics(enabled: Boolean) {
         configRepo.setHookTextMetrics(enabled)
-        _uiState.update { it.copy(hookTextMetrics = enabled) }
+        _uiState.update { it.copy(hookTextMetrics = enabled, presetSelected = null) }
     }
 
     fun setHookGlReadPixels(enabled: Boolean) {
         configRepo.setHookGlReadPixels(enabled)
-        _uiState.update { it.copy(hookGlReadPixels = enabled) }
+        _uiState.update { it.copy(hookGlReadPixels = enabled, presetSelected = null) }
     }
 
     fun setHookPixelCopy(enabled: Boolean) {
         configRepo.setHookPixelCopy(enabled)
-        _uiState.update { it.copy(hookPixelCopy = enabled) }
+        _uiState.update { it.copy(hookPixelCopy = enabled, presetSelected = null) }
     }
 
     /**
      * 行为预设：0 默认（开关全关）/ 1 增强（开/关/开，按 E1/D1/C2 顺序）/
-     * 2 自定义（保持现状的纯展示态，不写配置——派生下标会自动落回实际组合）。
+     * 2 自定义（开关保持现状、只记住选择——此前空操作不发 state，下拉回显不变、看着像"点不了"）。
      */
     fun applyPreset(index: Int) {
         when (index) {
@@ -118,15 +118,17 @@ class SettingsViewModel(
                 configRepo.setHookTextMetrics(false)
                 configRepo.setHookGlReadPixels(false)
                 configRepo.setHookPixelCopy(false)
-                _uiState.update { it.copy(hookTextMetrics = false, hookGlReadPixels = false, hookPixelCopy = false) }
+                _uiState.update { it.copy(hookTextMetrics = false, hookGlReadPixels = false, hookPixelCopy = false, presetSelected = 0) }
             }
             1 -> {
                 configRepo.setHookTextMetrics(true)
                 configRepo.setHookGlReadPixels(false)
                 configRepo.setHookPixelCopy(true)
-                _uiState.update { it.copy(hookTextMetrics = true, hookGlReadPixels = false, hookPixelCopy = true) }
+                _uiState.update { it.copy(hookTextMetrics = true, hookGlReadPixels = false, hookPixelCopy = true, presetSelected = 1) }
             }
-            else -> Unit
+            else -> {
+                _uiState.update { it.copy(presetSelected = 2) }
+            }
         }
     }
 

@@ -25,6 +25,11 @@ data class SettingsUiState(
     val hookGlReadPixels: Boolean = false,
     val hookPixelCopy: Boolean = true,
     val ssaidEnabled: Boolean = false,
+    /**
+     * 预设下拉的展示选择：null = 按开关派生；点"默认/增强"写开关并记住，
+     * 点"自定义"只记住不写开关；手动拨任一开关清掉记忆、回到派生。
+     */
+    val presetSelected: Int? = null,
 )
 
 @Immutable
@@ -46,8 +51,12 @@ data class SettingsScreenActions(
 /**
  * 行为预设派生下标（开关顺序 E1/D1/C2）：
  * 0 默认 = 全关；1 增强 = 开/关/开；2 自定义 = 其余一切组合。
+ * 下拉展示位 = presetSelected ?: 派生值。
  */
 fun presetIndex(hookTextMetrics: Boolean, hookGlReadPixels: Boolean, hookPixelCopy: Boolean): Int =
     if (!hookTextMetrics && !hookGlReadPixels && !hookPixelCopy) 0
     else if (hookTextMetrics && !hookGlReadPixels && hookPixelCopy) 1
     else 2
+
+fun displayPresetIndex(state: SettingsUiState): Int =
+    state.presetSelected ?: presetIndex(state.hookTextMetrics, state.hookGlReadPixels, state.hookPixelCopy)

@@ -134,6 +134,7 @@ private fun StatusCard(
         } else {
             null
         }
+        val implMethod = stringResource(R.string.home_impl_method)
 
         Surface(
             modifier = Modifier.fillMaxWidth(),
@@ -155,10 +156,16 @@ private fun StatusCard(
                 },
                 supportingContent = statusSummary?.let {
                     {
-                        Text(
-                            text = it,
-                            style = MaterialTheme.typography.bodyMedium
-                        )
+                        Column {
+                            Text(
+                                text = it,
+                                style = MaterialTheme.typography.bodyMedium
+                            )
+                            Text(
+                                text = implMethod,
+                                style = MaterialTheme.typography.bodyMedium
+                            )
+                        }
                     }
                 },
                 colors = ListItemDefaults.colors(
@@ -245,13 +252,7 @@ private fun InfoCard(state: HomeUiState) {
                 stringResource(R.string.app_version),
                 state.versionName
             )
-            // 标准指纹值已移至"工具"页指纹基准二级页；此处保留版本与基线说明
-            Spacer(Modifier.height(16.dp))
-            Text(
-                text = stringResource(R.string.home_baseline_note),
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
+            // 标准指纹值已移至"工具"页指纹基准二级页；基线说明文本已移除，此处只保留版本
             if (state.moduleActive && !state.remoteChannelOk) {
                 Spacer(Modifier.height(8.dp))
                 Text(

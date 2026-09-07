@@ -3,13 +3,14 @@
     <string name="home">主页</string>
     <string name="home_working">模块生效中</string>
     <string name="home_working_version">版本：%s</string>
+    <string name="home_impl_method">实现方式：libxposed</string>
     <string name="superuser">应用列表</string>
     <string name="reboot">重启</string>
     <string name="settings">设置</string>
     <string name="about">关于</string>
     <string name="show_system_apps">显示系统应用</string>
     <string name="home_learn_app">了解 APPCanvasFaker</string>
-    <string name="home_learn_app_url">https://github.com/Neekolor/APPCanvasFaker</string>
+    <string name="home_learn_app_url">https://github.com/Neekolor/APPCanvasFaker/wiki</string>
     <string name="home_click_to_learn_app">了解如何使用 APPCanvasFaker</string>
     <string name="about_source_code"><![CDATA[在 %1$s 查看源码]]></string>
     <string name="about_description">一款画布指纹伪装模块。</string>
@@ -79,7 +80,7 @@
     <string name="settings_hook_text_metrics">随机化文本度量</string>
     <string name="settings_hook_text_metrics_summary">对 Paint 文本度量施加 ≤0.7% 确定性微扰；排版异常时可关</string>
     <string name="settings_hook_glreadpixels">随机化 GPU 帧缓冲读取</string>
-    <string name="settings_hook_glreadpixels_summary">拦截 GLES20.glReadPixels 直读；影响录像推流，默认关闭</string>
+    <string name="settings_hook_glreadpixels_summary">拦截 GLES20/30 glReadPixels 直读；影响录像推流，默认关闭</string>
     <string name="settings_hook_pixelcopy">随机化屏幕拷贝</string>
     <string name="settings_hook_pixelcopy_summary">拷贝完成时存毒目标位图，防延迟读取；截图异常时可关</string>
     <string name="settings_preset">行为预设</string>
@@ -89,7 +90,10 @@
     <string name="settings_preset_custom">自定义</string>
     <string name="stats_title">Hook 统计</string>
     <string name="stats_empty">还没有 Hook 计数，去用一次再回来</string>
-    <string name="ssaid_restart_required">SSAID已随机化，请重启应用</string>
+    <string name="stats_clear">清空统计</string>
+    <string name="stats_clear_confirm">确定要清空全部 Hook 统计吗？</string>
+    <string name="ssaid_restart_required">SSAID已随机化，请重启手机</string>
+    <string name="ssaid_deleted">SSAID已删除，请重启手机</string>
     <string name="ssaid_reboot_title">重启手机</string>
     <string name="ssaid_reboot_content">SSAID 已写入系统，需要重启手机才能生效。现在重启吗？</string>
     <string name="reboot_later">稍后重启</string>
@@ -150,6 +154,8 @@
     <string name="ssaid_copied">SSAID 已复制到剪贴板</string>
     <string name="log_disabled_banner">日志记录功能已关闭，Hook 活动不会被记录。</string>
     <string name="log_disabled_action">去开启</string>
+    <string name="log_date_files">日志文件</string>
+    <string name="log_date_all">全部日期</string>
     <string name="settings_navigation_badge">导航栏角标</string>
     <string name="settings_navigation_badge_summary">在导航栏显示已启用伪装的应用数量</string>
 </resources>

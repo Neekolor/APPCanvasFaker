@@ -56,4 +56,12 @@ class StatsViewModel(
             _ui.value = StatsUiState(rows, false)
         }
     }
+
+    /** 清空全部统计（对标日志清空：调用方负责二次确认），清完刷新为空态。 */
+    fun clearStats() {
+        viewModelScope.launch(Dispatchers.IO) {
+            configRepo.clearStats()
+            refresh()
+        }
+    }
 }

@@ -21,6 +21,9 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.ime
 import androidx.compose.foundation.layout.navigationBars
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.text.selection.SelectionContainer
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -50,6 +53,7 @@ import androidx.compose.ui.layout.positionInWindow
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.LayoutDirection
@@ -68,6 +72,7 @@ import dev.neekolor.appcanvasfaker.ui.component.statustag.StatusTag
 import dev.neekolor.appcanvasfaker.ui.theme.LocalEnableBlur
 import dev.neekolor.appcanvasfaker.ui.util.BlurredBar
 import dev.neekolor.appcanvasfaker.ui.util.rememberBlurBackdrop
+import top.yukonga.miuix.kmp.basic.ButtonDefaults
 import top.yukonga.miuix.kmp.basic.Card
 import top.yukonga.miuix.kmp.basic.CardDefaults
 import top.yukonga.miuix.kmp.basic.DropdownImpl
@@ -88,6 +93,8 @@ import top.yukonga.miuix.kmp.icon.extended.Back
 import top.yukonga.miuix.kmp.icon.extended.Delete
 import top.yukonga.miuix.kmp.icon.extended.Filter
 import top.yukonga.miuix.kmp.overlay.OverlayListPopup
+import top.yukonga.miuix.kmp.overlay.OverlayDialog
+import top.yukonga.miuix.kmp.preference.OverlayDropdownPreference
 import top.yukonga.miuix.kmp.theme.MiuixTheme.colorScheme
 import top.yukonga.miuix.kmp.utils.overScrollVertical
 import top.yukonga.miuix.kmp.utils.scrollEndHaptic
@@ -117,6 +124,14 @@ fun LogScreenMiuix(
     )
     var searchStatus by remember { mutableStateOf(SearchStatus(searchHint)) }
     val clearDialog = rememberConfirmDialog(onConfirm = actions.onClear)
+
+    // su log 同交互：点条目弹详情（单 OK 键 + 等宽可选文本，见 LogDetailDialogMiuix）
+    var selectedEntry by remember { mutableStateOf<LogItem?>(null) }
+    LogDetailDialogMiuix(
+        show = selectedEntry != null,
+        item = selectedEntry,
+        onDismiss = { selectedEntry = null },
+    )
 
     val emptyText = stringResource(R.string.log_empty)
     val clearTitle = stringResource(R.string.log_clear)
@@ -267,9 +282,17 @@ fun LogScreenMiuix(
                             LoggingDisabledBannerMiuix(onOpenSettings = actions.onOpenSettings)
                         }
                     }
+                    item(key = "log_date_selector") {
+                        LogDateSelectorCardMiuix(
+                            dates = state.availableDates,
+                            selectedDate = state.selectedDate,
+                            onSelectDate = actions.onSelectDate,
+                        )
+                    }
                     logEntriesSection(
                         items = state.visibleItems,
                         emptyText = emptyText,
+                        onOpenDetail = { selectedEntry = it },
                     )
                     item {
                         Spacer(Modifier.height(imeBottomPadding))
@@ -297,6 +320,7 @@ fun LogScreenMiuix(
                     listState,
                     state.searchText,
                     state.selectedFilters,
+                    state.selectedDate,
                 ) { latestVisibleItems.value }
                 Box(modifier = if (backdrop != null) Modifier.layerBackdrop(backdrop) else Modifier) {
                     LazyColumn(
@@ -318,9 +342,17 @@ fun LogScreenMiuix(
                                 LoggingDisabledBannerMiuix(onOpenSettings = actions.onOpenSettings)
                             }
                         }
+                        item(key = "log_date_selector") {
+                            LogDateSelectorCardMiuix(
+                                dates = state.availableDates,
+                                selectedDate = state.selectedDate,
+                                onSelectDate = actions.onSelectDate,
+                            )
+                        }
                         logEntriesSection(
                             items = state.visibleItems,
                             emptyText = emptyText,
+                            onOpenDetail = { selectedEntry = it },
                         )
                         item {
                             Spacer(
@@ -340,6 +372,7 @@ fun LogScreenMiuix(
 private fun androidx.compose.foundation.lazy.LazyListScope.logEntriesSection(
     items: List<LogItem>,
     emptyText: String,
+    onOpenDetail: (LogItem) -> Unit,
 ) {
     if (items.isEmpty()) {
         item {
@@ -351,20 +384,97 @@ private fun androidx.compose.foundation.lazy.LazyListScope.logEntriesSection(
         return
     }
     itemsIndexed(items, key = { index, item -> "$index-${item.timestamp}-${item.tag}-${item.packageName}" }) { _, item ->
-        LogEntryCard(item = item)
+        LogEntryCard(item = item, onClick = { onOpenDetail(item) })
     }
+}
+
+/**
+ * 日期栏（对标 KSU su log 的 log files 下拉）：轻量实现——存储仍单存，
+ * 下拉只做按天过滤。无日志时禁用。
+ */
+@Composable
+private fun LogDateSelectorCardMiuix(
+    dates: List<String>,
+    selectedDate: String?,
+    onSelectDate: (String?) -> Unit,
+) {
+    val allText = stringResource(R.string.log_date_all)
+    val items = listOf(allText) + dates
+    val selectedIndex = if (selectedDate == null) 0
+        else dates.indexOf(selectedDate).takeIf { it >= 0 }?.plus(1) ?: 0
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 12.dp)
+            .padding(bottom = 12.dp),
+    ) {
+        OverlayDropdownPreference(
+            title = stringResource(R.string.log_date_files),
+            items = items,
+            enabled = dates.isNotEmpty(),
+            selectedIndex = selectedIndex,
+            onSelectedIndexChange = { index ->
+                onSelectDate(if (index <= 0) null else dates.getOrNull(index - 1))
+            },
+        )
+    }
+}
+
+/**
+ * su log 式详情弹窗：标题=应用名，内容=全量文本（等宽、可选中），单 OK 键。
+ * lastItem 驻留避免关闭动画期间内容闪空（与 KSU SulogDetailDialog 同模式）。
+ */
+@Composable
+private fun LogDetailDialogMiuix(
+    show: Boolean,
+    item: LogItem?,
+    onDismiss: () -> Unit,
+) {
+    var lastItem by remember { mutableStateOf(item) }
+    if (item != null) lastItem = item
+    val display = lastItem ?: return
+    OverlayDialog(
+        show = show,
+        title = display.appLabel,
+        onDismissRequest = onDismiss,
+        content = {
+            Column {
+                SelectionContainer(
+                    modifier = Modifier
+                        .weight(1f, fill = false)
+                        .verticalScroll(rememberScrollState()),
+                ) {
+                    Text(
+                        text = logDetailText(display),
+                        fontSize = 14.sp,
+                        fontFamily = FontFamily.Monospace,
+                    )
+                }
+                Spacer(Modifier.height(12.dp))
+                TextButton(
+                    modifier = Modifier.fillMaxWidth(),
+                    text = stringResource(android.R.string.ok),
+                    onClick = onDismiss,
+                    colors = ButtonDefaults.textButtonColorsPrimary(),
+                )
+            }
+        },
+    )
 }
 
 @Composable
 private fun LogEntryCard(
     item: LogItem,
+    onClick: () -> Unit,
 ) {
     Card(
         modifier = Modifier
             .fillMaxWidth()
             .padding(horizontal = 12.dp)
             .padding(bottom = 12.dp),
-        insideMargin = PaddingValues(16.dp),
+        onClick = onClick,
+        showIndication = true,
+        insideMargin = PaddingValues(12.dp),
     ) {
         Row(
             verticalAlignment = Alignment.CenterVertically,
@@ -372,15 +482,15 @@ private fun LogEntryCard(
             item.applicationInfo?.let { appInfo ->
                 AppIconImage(
                     modifier = Modifier
-                        .padding(end = 12.dp)
-                        .size(40.dp),
+                        .padding(end = 10.dp)
+                        .size(36.dp),
                     applicationInfo = appInfo,
                     label = item.appLabel,
                 )
             }
             Column(
                 modifier = Modifier.weight(1f),
-                verticalArrangement = Arrangement.spacedBy(3.dp),
+                verticalArrangement = Arrangement.spacedBy(2.dp),
             ) {
                 Row(
                     modifier = Modifier.fillMaxWidth(),
@@ -400,7 +510,7 @@ private fun LogEntryCard(
                     } else {
                         colorScheme.primary to colorScheme.onPrimary
                     }
-                    StatusTag(label = item.tag, backgroundColor = bg, contentColor = fg)
+                    StatusTag(label = logTagLabel(item.tag), backgroundColor = bg, contentColor = fg)
                 }
                 Text(
                     text = item.packageName,

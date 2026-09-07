@@ -35,6 +35,7 @@ import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.foundation.clickable
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
@@ -483,12 +484,15 @@ private fun AboutContent(
                         }
                     }
                     // 版权页脚：纯文本（非卡片、非列表行）。
-                    // 隐藏交互已下线（代码保留见 EasterEgg.kt）：入口手势移除，logo 正常显示。
+                    // 文本切换隐藏交互：单击在两版文案间切换（旧连点换图已下线，代码保留见 EasterEgg.kt）。
+                    var showAcfCopyright by remember { mutableStateOf(false) }
                     Text(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(top = 12.dp),
-                        text = buildCopyrightText(baseFontSize = 12.sp),
+                            .padding(top = 12.dp)
+                            .clickable { showAcfCopyright = !showAcfCopyright },
+                        text = if (showAcfCopyright) buildAcfCopyrightText(baseFontSize = 12.sp)
+                            else buildCopyrightText(baseFontSize = 12.sp),
                         color = colorScheme.onSurfaceVariantSummary,
                         fontSize = 12.sp,
                         textAlign = TextAlign.Center,

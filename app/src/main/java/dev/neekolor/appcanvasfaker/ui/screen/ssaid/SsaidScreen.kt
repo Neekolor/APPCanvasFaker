@@ -127,6 +127,7 @@ fun SsaidScreen() {
     val deleteConfirm = stringResource(R.string.ssaid_delete_confirm)
     val operationFailed = stringResource(R.string.ssaid_operation_failed)
     val restartRequired = stringResource(R.string.ssaid_restart_required)
+    val deletedToast = stringResource(R.string.ssaid_deleted)
     val rebootTitle = stringResource(R.string.ssaid_reboot_title)
     val rebootContent = stringResource(R.string.ssaid_reboot_content)
     val rebootLater = stringResource(R.string.reboot_later)
@@ -175,7 +176,8 @@ fun SsaidScreen() {
             val (written, reloaded) = viewModel.delete(pkg)
             viewModel.setBusy(null)
             if (written) {
-                showResult(restartRequired)
+                // 删除成功用专属 Toast（此前复用随机化文案"已随机化"系笔误）
+                showResult(deletedToast)
                 rebootDialog.showConfirm(
                     title = rebootTitle, content = rebootContent,
                     confirm = rebootNow, dismiss = rebootLater, dangerConfirm = true

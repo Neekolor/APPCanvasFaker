@@ -36,6 +36,7 @@ fun LogScreen() {
         onSearchTextChange = viewModel::setSearchText,
         onToggleFilter = { filter -> viewModel.toggleFilter(filter.tag) },
         onOpenSettings = dropUnlessResumed { navigator.push(dev.neekolor.appcanvasfaker.ui.navigation3.Route.Settings) },
+        onSelectDate = viewModel::selectDate,
     )
 
     when (uiMode) {
@@ -49,6 +50,11 @@ fun logFilterLabel(filter: LogFilter): String {
     return when (filter) {
         LogFilter.ALL -> stringResource(R.string.log_filter_all)
         LogFilter.HOOK -> stringResource(R.string.log_filter_hook)
-        LogFilter.RANDOMIZE -> stringResource(R.string.log_filter_randomize)
+        // 筛选项与条目 tag 统一显示 random（存量"随机化"仅作筛选键，见 logTagLabel）
+        LogFilter.RANDOMIZE -> "random"
     }
 }
+
+/** 详情弹窗全量文本：应用名 / 包名 / 类型 / 时间（su log 式等宽展示）。 */
+fun logDetailText(item: LogItem): String =
+    "${item.appLabel}\n${item.packageName}\n${logTagLabel(item.tag)} · ${item.timeText}"

@@ -22,6 +22,9 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListScope
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.text.selection.SelectionContainer
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.WarningAmber
 import androidx.compose.material.icons.filled.Check
@@ -30,6 +33,7 @@ import androidx.compose.material.icons.filled.FilterList
 import androidx.compose.material3.DropdownMenuGroup
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.DropdownMenuPopup
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme.colorScheme
@@ -56,6 +60,7 @@ import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import dev.neekolor.appcanvasfaker.R
@@ -64,6 +69,8 @@ import dev.neekolor.appcanvasfaker.ui.component.ScrollToTopOnChange
 import dev.neekolor.appcanvasfaker.ui.component.dialog.rememberConfirmDialog
 import dev.neekolor.appcanvasfaker.ui.component.material.ExpressiveScaffold
 import dev.neekolor.appcanvasfaker.ui.component.material.SearchAppBar
+import dev.neekolor.appcanvasfaker.ui.component.material.SegmentedColumn
+import dev.neekolor.appcanvasfaker.ui.component.material.SegmentedDropdownItem
 import dev.neekolor.appcanvasfaker.ui.component.material.TonalCard
 import dev.neekolor.appcanvasfaker.ui.component.material.TopBarBackButton
 import dev.neekolor.appcanvasfaker.ui.component.statustag.StatusTag
@@ -92,6 +99,30 @@ fun LogScreenMaterial(
     val clearTitle = stringResource(R.string.log_clear)
     val clearMessage = stringResource(R.string.log_clear_confirm)
     val confirmText = stringResource(R.string.confirm)
+
+    // su log 同交互：点条目弹详情（AlertDialog + 等宽可选文本 + 单 OK 键）
+    var selectedEntry by remember { mutableStateOf<LogItem?>(null) }
+    selectedEntry?.let { entry ->
+        AlertDialog(
+            onDismissRequest = { selectedEntry = null },
+            title = { Text(entry.appLabel) },
+            text = {
+                Column(modifier = Modifier.verticalScroll(rememberScrollState())) {
+                    SelectionContainer {
+                        Text(
+                            text = logDetailText(entry),
+                            fontFamily = FontFamily.Monospace,
+                        )
+                    }
+                }
+            },
+            confirmButton = {
+                TextButton(onClick = { selectedEntry = null }) {
+                    Text(stringResource(android.R.string.ok))
+                }
+            },
+        )
+    }
 
     ExpressiveScaffold(
         topBar = {
@@ -207,9 +238,17 @@ fun LogScreenMaterial(
                                 }
                             }
                         }
+                        item(key = "log_date_selector") {
+                            LogDateSelectorRowMaterial(
+                                dates = state.availableDates,
+                                selectedDate = state.selectedDate,
+                                onSelectDate = actions.onSelectDate,
+                            )
+                        }
                         logEntriesSection(
                             items = state.visibleItems,
                             emptyText = emptyText,
+                            onOpenDetail = { selectedEntry = it },
                         )
                     }
                 },
@@ -239,6 +278,7 @@ fun LogScreenMaterial(
             ScrollToTopOnChange(
                 listState,
                 state.selectedFilters,
+                state.selectedDate,
             ) { latestEntries.value }
             LazyColumn(
                 state = listState,
@@ -278,9 +318,17 @@ fun LogScreenMaterial(
                         }
                     }
                 }
+                item(key = "log_date_selector") {
+                    LogDateSelectorRowMaterial(
+                        dates = state.availableDates,
+                        selectedDate = state.selectedDate,
+                        onSelectDate = actions.onSelectDate,
+                    )
+                }
                 logEntriesSection(
                     items = state.visibleItems,
                     emptyText = emptyText,
+                    onOpenDetail = { selectedEntry = it },
                 )
 
                 item {
@@ -300,6 +348,7 @@ fun LogScreenMaterial(
 private fun LazyListScope.logEntriesSection(
     items: List<LogItem>,
     emptyText: String,
+    onOpenDetail: (LogItem) -> Unit,
 ) {
     if (items.isEmpty()) {
         item {
@@ -317,37 +366,70 @@ private fun LazyListScope.logEntriesSection(
         return
     }
     itemsIndexed(items, key = { index, item -> "$index-${item.timestamp}-${item.tag}-${item.packageName}" }) { _, item ->
-        LogEntryCard(item = item)
+        LogEntryCard(item = item, onClick = { onOpenDetail(item) })
+    }
+}
+
+/**
+ * 日期栏（对标 KSU su log 的 log files 下拉）：轻量实现——存储仍单存，
+ * 下拉只做按天过滤。无日志时禁用。
+ */
+@Composable
+private fun LogDateSelectorRowMaterial(
+    dates: List<String>,
+    selectedDate: String?,
+    onSelectDate: (String?) -> Unit,
+) {
+    val allText = stringResource(R.string.log_date_all)
+    val items = listOf(allText) + dates
+    val selectedIndex = if (selectedDate == null) 0
+        else dates.indexOf(selectedDate).takeIf { it >= 0 }?.plus(1) ?: 0
+    Box(modifier = Modifier.padding(bottom = 16.dp)) {
+        SegmentedColumn(
+            content = listOf {
+                SegmentedDropdownItem(
+                    title = stringResource(R.string.log_date_files),
+                    items = items,
+                    enabled = dates.isNotEmpty(),
+                    selectedIndex = selectedIndex,
+                    onItemSelected = { index ->
+                        onSelectDate(if (index <= 0) null else dates.getOrNull(index - 1))
+                    }
+                )
+            },
+        )
     }
 }
 
 @Composable
 private fun LogEntryCard(
     item: LogItem,
+    onClick: () -> Unit,
 ) {
     TonalCard(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(bottom = 16.dp),
+            .padding(bottom = 12.dp),
+        onClick = onClick,
         content = {
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(vertical = 8.dp, horizontal = 16.dp),
+                    .padding(vertical = 6.dp, horizontal = 16.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 item.applicationInfo?.let { appInfo ->
                     AppIconImage(
                         modifier = Modifier
-                            .padding(end = 12.dp)
-                            .size(40.dp),
+                            .padding(end = 10.dp)
+                            .size(36.dp),
                         applicationInfo = appInfo,
                         label = item.appLabel,
                     )
                 }
                 Column(
                     modifier = Modifier.weight(1f),
-                    verticalArrangement = Arrangement.spacedBy(3.dp),
+                    verticalArrangement = Arrangement.spacedBy(2.dp),
                 ) {
                     Row(
                         modifier = Modifier.fillMaxWidth(),
@@ -366,7 +448,7 @@ private fun LogEntryCard(
                         } else {
                             colorScheme.primary to colorScheme.onPrimary
                         }
-                        StatusTag(label = item.tag, backgroundColor = bg, contentColor = fg)
+                        StatusTag(label = logTagLabel(item.tag), backgroundColor = bg, contentColor = fg)
                     }
                     Text(
                         text = item.packageName,

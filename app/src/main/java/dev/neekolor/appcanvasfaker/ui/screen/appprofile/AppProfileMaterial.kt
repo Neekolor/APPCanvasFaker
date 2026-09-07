@@ -20,10 +20,10 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Fingerprint
 import androidx.compose.material.icons.filled.MoreVert
-import androidx.compose.material.icons.outlined.PlayArrow
 import androidx.compose.material.icons.filled.Security
+import androidx.compose.material.icons.outlined.Casino
+import androidx.compose.material.icons.outlined.PlayArrow
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.DropdownMenuGroup
@@ -182,7 +182,7 @@ private fun AppProfileContent(
                             )
                         },
                         leadingContent = {
-                            Icon(Icons.Filled.Fingerprint, contentDescription = null)
+                            Icon(Icons.Outlined.Casino, contentDescription = null)
                         },
                         trailingContent = {
                             ExecuteButton(onClick = actions.onRandomize)

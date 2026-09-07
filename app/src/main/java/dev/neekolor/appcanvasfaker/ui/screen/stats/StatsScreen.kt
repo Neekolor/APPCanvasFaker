@@ -11,6 +11,7 @@ import androidx.compose.foundation.layout.add
 import androidx.compose.foundation.layout.displayCutout
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawing
@@ -19,8 +20,11 @@ import androidx.compose.foundation.layout.systemBars
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.DeleteSweep
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.LargeFlexibleTopAppBar
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -44,6 +48,7 @@ import dev.neekolor.appcanvasfaker.R
 import dev.neekolor.appcanvasfaker.ui.LocalUiMode
 import dev.neekolor.appcanvasfaker.ui.UiMode
 import dev.neekolor.appcanvasfaker.ui.component.AppIconImage
+import dev.neekolor.appcanvasfaker.ui.component.dialog.rememberConfirmDialog
 import dev.neekolor.appcanvasfaker.ui.component.material.ExpressiveScaffold
 import dev.neekolor.appcanvasfaker.ui.component.material.SegmentedColumn
 import dev.neekolor.appcanvasfaker.ui.component.material.SegmentedListItem
@@ -61,6 +66,7 @@ import top.yukonga.miuix.kmp.basic.TopAppBar
 import top.yukonga.miuix.kmp.basic.Icon as MiuixIcon
 import top.yukonga.miuix.kmp.icon.MiuixIcons
 import top.yukonga.miuix.kmp.icon.extended.Back
+import top.yukonga.miuix.kmp.icon.extended.Delete
 import top.yukonga.miuix.kmp.utils.overScrollVertical
 import top.yukonga.miuix.kmp.utils.scrollEndHaptic
 import top.yukonga.miuix.kmp.theme.MiuixTheme.colorScheme
@@ -90,6 +96,12 @@ private fun formatTime(ts: Long): String =
 private fun StatsScreenMiuix(uiState: StatsUiState, onBack: () -> Unit) {
     val scrollBehavior = MiuixScrollBehavior()
     val layoutDirection = LocalLayoutDirection.current
+    // 清空统计：对标日志清空，二次确认
+    val viewModel = viewModel<StatsViewModel>()
+    val clearDialog = rememberConfirmDialog(onConfirm = viewModel::clearStats)
+    val clearTitle = stringResource(R.string.stats_clear)
+    val clearMessage = stringResource(R.string.stats_clear_confirm)
+    val confirmText = stringResource(R.string.confirm)
 
     Scaffold(
         topBar = {
@@ -104,6 +116,23 @@ private fun StatsScreenMiuix(uiState: StatsUiState, onBack: () -> Unit) {
                             imageVector = MiuixIcons.Back,
                             contentDescription = null,
                             tint = colorScheme.onSurface
+                        )
+                    }
+                },
+                actions = {
+                    IconButton(
+                        onClick = {
+                            clearDialog.showConfirm(
+                                title = clearTitle,
+                                content = clearMessage,
+                                confirm = confirmText,
+                            )
+                        },
+                    ) {
+                        MiuixIcon(
+                            imageVector = MiuixIcons.Delete,
+                            contentDescription = clearTitle,
+                            tint = colorScheme.onSurface,
                         )
                     }
                 },
@@ -138,6 +167,8 @@ private fun StatsScreenMiuix(uiState: StatsUiState, onBack: () -> Unit) {
                 contentPadding = innerPadding,
                 overscrollEffect = null,
             ) {
+                // 列表与标题拉开一点距离（需求文档：此前首项贴顶）
+                item(key = "top_spacing") { Spacer(Modifier.height(8.dp)) }
                 items(uiState.rows, key = { it.packageName }) { row ->
                     Card(
                         modifier = Modifier
@@ -195,11 +226,33 @@ private fun StatsScreenMiuix(uiState: StatsUiState, onBack: () -> Unit) {
 
 @Composable
 private fun StatsScreenMaterial(uiState: StatsUiState, onBack: () -> Unit) {
+    // 清空统计：对标日志清空，二次确认
+    val viewModel = viewModel<StatsViewModel>()
+    val clearDialog = rememberConfirmDialog(onConfirm = viewModel::clearStats)
+    val clearTitle = stringResource(R.string.stats_clear)
+    val clearMessage = stringResource(R.string.stats_clear_confirm)
+    val confirmText = stringResource(R.string.confirm)
     ExpressiveScaffold(
         topBar = {
             LargeFlexibleTopAppBar(
                 title = { Text(stringResource(R.string.stats_title)) },
                 navigationIcon = { TopBarBackButton(onClick = onBack) },
+                actions = {
+                    IconButton(
+                        onClick = {
+                            clearDialog.showConfirm(
+                                title = clearTitle,
+                                content = clearMessage,
+                                confirm = confirmText,
+                            )
+                        },
+                    ) {
+                        Icon(
+                            imageVector = Icons.Filled.DeleteSweep,
+                            contentDescription = clearTitle,
+                        )
+                    }
+                },
                 colors = expressiveTopAppBarColors(),
                 windowInsets = WindowInsets.safeDrawing.only(WindowInsetsSides.Top + WindowInsetsSides.Horizontal),
             )
@@ -225,6 +278,8 @@ private fun StatsScreenMaterial(uiState: StatsUiState, onBack: () -> Unit) {
                 modifier = Modifier.fillMaxSize(),
                 contentPadding = innerPadding,
             ) {
+                // 列表与标题拉开一点距离（与 Miuix 同值）
+                item(key = "top_spacing") { Spacer(Modifier.height(8.dp)) }
                 item {
                     SegmentedColumn(
                         modifier = Modifier

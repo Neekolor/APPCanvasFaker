@@ -15,6 +15,7 @@ import dev.neekolor.appcanvasfaker.core.ConfigRepository
 import dev.neekolor.appcanvasfaker.ui.screen.log.LogItem
 import dev.neekolor.appcanvasfaker.ui.screen.log.LogUiState
 import dev.neekolor.appcanvasfaker.ui.screen.log.buildVisibleLogItems
+import dev.neekolor.appcanvasfaker.ui.screen.log.logDateKey
 import java.time.Instant
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
@@ -31,6 +32,7 @@ class LogViewModel(
     private val itemsFlow = MutableStateFlow<List<LogItem>>(emptyList())
     private val searchTextFlow = MutableStateFlow("")
     private val selectedFiltersFlow = MutableStateFlow<Set<String>>(emptySet())
+    private val selectedDateFlow = MutableStateFlow<String?>(null)
 
     // DateTimeFormatter 不可变、线程安全；refresh() 可能并发执行
     private val timeFormat = DateTimeFormatter.ofPattern("MM-dd HH:mm:ss", Locale.ROOT)
@@ -38,8 +40,8 @@ class LogViewModel(
 
     init {
         viewModelScope.launch(Dispatchers.Default) {
-            combine(itemsFlow, searchTextFlow, selectedFiltersFlow) { items, searchText, selectedFilters ->
-                buildVisibleLogItems(items, searchText, selectedFilters)
+            combine(itemsFlow, searchTextFlow, selectedFiltersFlow, selectedDateFlow) { items, searchText, selectedFilters, selectedDate ->
+                buildVisibleLogItems(items, searchText, selectedFilters, selectedDate)
             }.collect { visibleItems ->
                 _uiState.update { it.copy(visibleItems = visibleItems) }
             }
@@ -63,8 +65,12 @@ class LogViewModel(
                 )
             }
             itemsFlow.value = items
+            val dates = items.map { logDateKey(it.timestamp) }
+                .filter { it.isNotEmpty() }.distinct().sortedDescending()
+            val keptDate = selectedDateFlow.value?.takeIf { it in dates }
+            selectedDateFlow.value = keptDate
             _uiState.update {
-                it.copy(items = items, loggingEnabled = repo.enableLogging())
+                it.copy(items = items, loggingEnabled = repo.enableLogging(), availableDates = dates, selectedDate = keptDate)
             }
         }
     }
@@ -77,6 +83,12 @@ class LogViewModel(
     fun setSearchText(searchText: String) {
         searchTextFlow.value = searchText
         _uiState.update { it.copy(searchText = searchText) }
+    }
+
+    /** 日期栏选择：null = 全部日期。 */
+    fun selectDate(date: String?) {
+        selectedDateFlow.value = date
+        _uiState.update { it.copy(selectedDate = date) }
     }
 
     fun toggleFilter(filterTag: String?) {
