@@ -14,8 +14,7 @@ interface SettingsRepository {
     var enableFloatingBottomBarBlur: Boolean
     var enableNavigationBadge: Boolean
     var pageScale: Float
-    var superuserShowSystemApps: Boolean
-    var superuserShowOnlyPrimaryUserApps: Boolean
-    var superuserSortOption: Int
     var ssaidEnabled: Boolean
+    /** 行为预设下拉记忆位：-1 = 跟随开关派生，0/1/2 = 上次显式选择。 */
+    var presetSelected: Int
 }

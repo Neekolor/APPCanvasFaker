@@ -41,10 +41,6 @@ import dev.neekolor.appcanvasfaker.ui.component.material.SegmentedListItem
 import dev.neekolor.appcanvasfaker.ui.component.material.SegmentedSwitchItem
 import dev.neekolor.appcanvasfaker.ui.component.material.expressiveTopAppBarColors
 
-/**
- * @author weishu
- * @date 2023/1/1.
- */
 @Composable
 fun SettingPagerMaterial(
     uiState: SettingsUiState,
@@ -147,7 +143,7 @@ fun SettingPagerMaterial(
                     }
                     add {
                         SegmentedListItem(
-                            // 实验性功能 → 实验室二级页（模式切换）
+                            // 跳转实验性功能二级页（模式切换）
                             onClick = actions.onOpenLab,
                             headlineContent = { Text(tools) },
                             supportingContent = { Text(stringResource(id = R.string.settings_profile_template_summary)) },

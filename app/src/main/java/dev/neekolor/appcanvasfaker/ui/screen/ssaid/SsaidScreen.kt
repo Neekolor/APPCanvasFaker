@@ -132,6 +132,7 @@ fun SsaidScreen() {
     val rebootLater = stringResource(R.string.reboot_later)
     val rebootNow = stringResource(R.string.reboot_now)
     val rebootFailed = stringResource(R.string.reboot_failed)
+    val reloadFailed = stringResource(R.string.ssaid_reload_failed)
 
     fun showResult(message: String) {
         if (uiMode == UiMode.Material) {
@@ -154,35 +155,41 @@ fun SsaidScreen() {
     val randomizeDialog = rememberConfirmDialog(onConfirm = {
         val pkg = pendingRandomize ?: return@rememberConfirmDialog
         scope.launch {
-            viewModel.setBusy(pkg)
-            val (written, reloaded) = viewModel.randomize(pkg)
-            viewModel.setBusy(null)
-            if (written) {
-                showResult(restartRequired)
-                rebootDialog.showConfirm(
-                    title = rebootTitle, content = rebootContent,
-                    confirm = rebootNow, dismiss = rebootLater, dangerConfirm = true
-                )
-            } else {
-                showResult(operationFailed)
+            if (!viewModel.tryAcquireBusy(pkg)) return@launch
+            try {
+                val (written, reloaded) = viewModel.randomize(pkg)
+                if (written) {
+                    showResult(if (reloaded) restartRequired else reloadFailed)
+                    rebootDialog.showConfirm(
+                        title = rebootTitle, content = rebootContent,
+                        confirm = rebootNow, dismiss = rebootLater, dangerConfirm = true
+                    )
+                } else {
+                    showResult(operationFailed)
+                }
+            } finally {
+                viewModel.releaseBusy()
             }
         }
     })
     val deleteDialog = rememberConfirmDialog(onConfirm = {
         val pkg = pendingDelete ?: return@rememberConfirmDialog
         scope.launch {
-            viewModel.setBusy(pkg)
-            val (written, reloaded) = viewModel.delete(pkg)
-            viewModel.setBusy(null)
-            if (written) {
-                // 删除成功用专属 Toast（此前复用随机化文案"已随机化"系笔误）
-                showResult(deletedToast)
-                rebootDialog.showConfirm(
-                    title = rebootTitle, content = rebootContent,
-                    confirm = rebootNow, dismiss = rebootLater, dangerConfirm = true
-                )
-            } else {
-                showResult(operationFailed)
+            if (!viewModel.tryAcquireBusy(pkg)) return@launch
+            try {
+                val (written, reloaded) = viewModel.delete(pkg)
+                if (written) {
+                    // 删除成功用专属 Toast（此前复用随机化文案"已随机化"系笔误）
+                    showResult(if (reloaded) deletedToast else reloadFailed)
+                    rebootDialog.showConfirm(
+                        title = rebootTitle, content = rebootContent,
+                        confirm = rebootNow, dismiss = rebootLater, dangerConfirm = true
+                    )
+                } else {
+                    showResult(operationFailed)
+                }
+            } finally {
+                viewModel.releaseBusy()
             }
         }
     })
@@ -196,7 +203,7 @@ fun SsaidScreen() {
             pendingDelete = pkg
             deleteDialog.showConfirm(title = confirmTitle, content = deleteConfirm, confirm = deleteText)
         },
-        onRetry = viewModel::refresh,
+        onRetry = { viewModel.refresh(forceCheck = true) },
         onToggleShowSystemApps = viewModel::toggleShowSystemApps,
     )
 
@@ -334,6 +341,14 @@ private fun SsaidScreenMiuix(
                                     }
                                 }
                             }
+                        }
+                        item {
+                            Text(
+                                text = stringResource(R.string.ssaid_user0_note),
+                                modifier = Modifier.padding(horizontal = 32.dp, vertical = 12.dp),
+                                color = MiuixTheme.colorScheme.onSurfaceVariantSummary,
+                                fontSize = 12.sp,
+                            )
                         }
                     }
                 }
@@ -488,6 +503,14 @@ private fun SsaidScreenMaterial(
                             },
                         )
                         Spacer(Modifier.height(24.dp))
+                        Text(
+                            text = stringResource(R.string.ssaid_user0_note),
+                            fontSize = 12.sp,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(start = 32.dp, bottom = 12.dp),
+                        )
                     }
                 }
             }

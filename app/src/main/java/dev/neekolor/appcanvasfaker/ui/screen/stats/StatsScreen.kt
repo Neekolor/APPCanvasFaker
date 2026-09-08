@@ -219,6 +219,14 @@ private fun StatsScreenMiuix(uiState: StatsUiState, onBack: () -> Unit) {
                         }
                     }
                 }
+                item(key = "footnote") {
+                    Text(
+                        text = stringResource(R.string.stats_footnote),
+                        modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 12.dp),
+                        color = colorScheme.onSurfaceVariantSummary,
+                        fontSize = 12.sp,
+                    )
+                }
             }
         }
     }
@@ -312,6 +320,14 @@ private fun StatsScreenMaterial(uiState: StatsUiState, onBack: () -> Unit) {
                                 )
                             }
                         }
+                    )
+                }
+                item(key = "footnote") {
+                    Text(
+                        text = stringResource(R.string.stats_footnote),
+                        modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 12.dp),
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        fontSize = 14.sp
                     )
                 }
             }

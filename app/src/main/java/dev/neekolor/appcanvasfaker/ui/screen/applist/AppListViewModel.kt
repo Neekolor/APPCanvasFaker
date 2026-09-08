@@ -157,9 +157,11 @@ class AppListViewModel(application: Application) : AndroidViewModel(application)
             if (base.isEmpty()) {
                 fetchLocked()
                 base = _uiState.value.apps
+                // 首载仍在跑（fetchLocked 被进行中的加载跳过）：保持旧结果，不刷空列表
+                if (base.isEmpty()) return@withLock null
             }
             withContext(Dispatchers.Default) { filterQuery(base, query) }
-        }
+        } ?: return
         _uiState.update {
             it.copy(
                 searchResults = results,
@@ -169,7 +171,6 @@ class AppListViewModel(application: Application) : AndroidViewModel(application)
     }
 
     private fun toItems(apps: List<InstalledApp>): List<AppListItem> {
-        val infoMap = loadApplicationInfos()
         return apps.map { app ->
             AppListItem(
                 label = app.label,
@@ -177,14 +178,11 @@ class AppListViewModel(application: Application) : AndroidViewModel(application)
                 isSystem = app.isSystem,
                 firstInstallTime = app.firstInstallTime,
                 lastUpdateTime = app.lastUpdateTime,
-                applicationInfo = infoMap[app.packageName],
+                applicationInfo = app.applicationInfo,
                 rule = app.rule,
             )
         }
     }
-
-    private fun loadApplicationInfos(): Map<String, ApplicationInfo> =
-        runCatching { pm.getInstalledApplications(0).associateBy { it.packageName } }.getOrDefault(emptyMap())
 
     private fun filterQuery(items: List<AppListItem>, query: String): List<AppListItem> {
         if (query.isBlank()) return items

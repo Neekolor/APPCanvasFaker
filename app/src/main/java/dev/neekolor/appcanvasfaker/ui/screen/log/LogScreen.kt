@@ -1,7 +1,9 @@
 package dev.neekolor.appcanvasfaker.ui.screen.log
 
+import androidx.activity.ComponentActivity
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.lifecycle.compose.LifecycleResumeEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -12,12 +14,15 @@ import dev.neekolor.appcanvasfaker.ui.LocalUiMode
 import dev.neekolor.appcanvasfaker.ui.UiMode
 import dev.neekolor.appcanvasfaker.ui.navigation3.LocalNavigator
 import dev.neekolor.appcanvasfaker.ui.viewmodel.LogViewModel
+import dev.neekolor.appcanvasfaker.ui.viewmodel.MainActivityViewModel
 
 @Composable
 fun LogScreen() {
     val navigator = LocalNavigator.current
     val uiMode = LocalUiMode.current
     val viewModel = viewModel<LogViewModel>()
+    // 设置页是主页 tab（序号 3）而非独立路由：先切 tab 再退栈，避免污染返回栈
+    val mainViewModel = viewModel<MainActivityViewModel>(LocalContext.current as ComponentActivity)
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
 
     // 返回本页即刷新：开关状态（横幅显隐）与条目都可能在设置页被改变，
@@ -35,7 +40,10 @@ fun LogScreen() {
         onClear = viewModel::clearLogs,
         onSearchTextChange = viewModel::setSearchText,
         onToggleFilter = { filter -> viewModel.toggleFilter(filter.tag) },
-        onOpenSettings = dropUnlessResumed { navigator.push(dev.neekolor.appcanvasfaker.ui.navigation3.Route.Settings) },
+        onOpenSettings = dropUnlessResumed {
+            mainViewModel.setSelectedMainPage(3)
+            navigator.pop()
+        },
         onSelectDate = viewModel::selectDate,
     )
 

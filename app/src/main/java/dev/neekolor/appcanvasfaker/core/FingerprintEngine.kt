@@ -98,10 +98,11 @@ object FingerprintEngine {
         height: Int,
         seed: Long
     ): Int {
-        val need = width * height * 4
-        if (need <= 0 || !buffer.isDirect) return 0
+        val count = width.toLong() * height.toLong()
+        val need = count * 4
+        if (count <= 0 || !buffer.isDirect || need > buffer.limit() || need > Int.MAX_VALUE) return 0
         // 绝对 put 受 limit 约束：边界按 limit 判定，按 capacity 判会在 capacity > limit 时抛 IOOBE
-        if (startPosition < 0 || startPosition + need > buffer.limit()) return 0
+        if (startPosition < 0 || startPosition.toLong() + need > buffer.limit()) return 0
         val glSeed = seed xor GL_DOMAIN_SALT
         var i = 0
         while (i < width * height) {
@@ -115,7 +116,7 @@ object FingerprintEngine {
             buffer.put(o + 2, ((buffer.get(o + 2).toInt() and 0xFF) + dB).coerceIn(0, 255).toByte())
             i++
         }
-        return need
+        return need.toInt()
     }
 
     /**

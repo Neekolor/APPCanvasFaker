@@ -38,7 +38,7 @@ object SsaidManager {
 
     data class SsaidEntry(val packageName: String, val value: String)
 
-    /** 写入结果：written=文件已原子替换；reloaded=SettingsProvider 缓存已确认刷新。 */
+    /** 写入结果：written=文件已原子替换；reloaded=重载命令已下发成功（provider 实际重载由系统完成，不在此确认）。 */
     data class WriteResult(val written: Boolean, val reloaded: Boolean) {
         val isSuccess: Boolean get() = written && reloaded
     }
@@ -64,55 +64,89 @@ object SsaidManager {
     suspend fun delete(packageName: String): WriteResult = mutate(packageName, isDelete = true)
 
     /**
-     * 统一读改写入口。替换/删除命中现有条目；新建时插入到 `</settings>` 之前。
+     * 统一读改写入口。按条目（非按行）替换/删除命中项，同行多条目与重复条目逐个处理；
+     * 无条目时仅允许"随机化"新建（插入到 `</settings>` 之前）。
      * 全部通过内存层自查后才原子写回。
      */
     private suspend fun mutate(packageName: String, isDelete: Boolean): WriteResult =
         mutex.withLock {
             val original = readFile()
                 ?: return@withLock WriteResult(written = false, reloaded = false)
-            val lines = original.lines().toMutableList()
-            val index = lines.indexOfFirst { lineMatches(it, packageName) }
-            when {
-                // 已有条目：原位替换或整行删除
-                index >= 0 && isDelete -> lines.removeAt(index)
-                index >= 0 -> lines[index] =
-                    lines[index].replaceFirst(VALUE_LINE, """value="${newSsaid()}"""")
-
-                // 无条目：仅允许"随机化"新建，插入点必须在 </settings> 之前
-                isDelete -> return@withLock WriteResult(written = false, reloaded = false)
-                else -> {
-                    val closeIdx = lines.indexOfFirst { it.trim() == CLOSE_TAG }
-                    if (closeIdx < 0) {
-                        Log.w(TAG, "malformed ssaid file: no closing tag")
-                        return@withLock WriteResult(false, false)
-                    }
-                    val maxId = SETTING_LINE.findAll(original)
-                        .mapNotNull {
-                            Regex("""id="(\d+)"""").find(it.value)?.groupValues?.get(1)?.toLongOrNull()
-                        }.maxOrNull() ?: 0L
-                    lines.add(closeIdx, buildSettingLine(maxId + 1, packageName))
-                }
+            // 非自闭合写法（跨行条目）本解析器看不见：拒绝而不是写坏
+            val openCount = Regex("""<setting[\s>]""").findAll(original).count()
+            if (SETTING_LINE.findAll(original).count() != openCount) {
+                Log.w(TAG, "unsupported ssaid entry shape for $packageName")
+                return@withLock WriteResult(written = false, reloaded = false)
             }
-            // 内存层自查：目标行必须存在（删除时必须不存在）且位于 </settings> 之前
-            val closeIdx = lines.indexOfFirst { it.trim() == CLOSE_TAG }
-            val targetIdx = lines.indexOfFirst { lineMatches(it, packageName) }
-            val targetValid = if (isDelete) targetIdx < 0 else targetIdx in 0..(closeIdx - 1)
-            if (!targetValid || closeIdx < 0) {
+            val hits = SETTING_LINE.findAll(original).filter { entryMatches(it, packageName) }.toList()
+            val updated = when {
+                hits.isNotEmpty() && isDelete -> spliceOut(original, hits)
+                hits.isNotEmpty() -> {
+                    val v = newSsaid()
+                    spliceReplace(original, hits, v)
+                }
+                // 无条目：仅允许"随机化"新建
+                isDelete -> return@withLock WriteResult(written = false, reloaded = false)
+                else -> insertBeforeClose(original, packageName)
+                    ?: return@withLock WriteResult(written = false, reloaded = false)
+            }
+            // 内存层自查：目标条目必须存在（删除时必须不存在）且位于 </settings> 之前
+            val closeAt = updated.indexOf(CLOSE_TAG)
+            val remain = SETTING_LINE.findAll(updated).filter { entryMatches(it, packageName) }.toList()
+            val targetValid = closeAt > 0 &&
+                if (isDelete) remain.isEmpty() && hits.isNotEmpty()
+                else remain.any { it.range.first < closeAt }
+            if (!targetValid) {
                 Log.w(TAG, "mutate self-check failed for $packageName")
                 return@withLock WriteResult(false, false)
             }
-            if (!writeBack(lines.joinToString("\n", postfix = "\n"))) {
+            if (!writeBack(updated)) {
                 return@withLock WriteResult(written = false, reloaded = false)
             }
             WriteResult(written = true, reloaded = reloadProvider())
         }
 
+    private fun spliceOut(content: String, hits: List<MatchResult>): String {
+        val sb = StringBuilder()
+        var pos = 0
+        for (m in hits.sortedBy { it.range.first }) {
+            sb.append(content, pos, m.range.first)
+            pos = m.range.last + 1
+        }
+        return sb.append(content, pos, content.length).toString()
+    }
+
+    private fun spliceReplace(content: String, hits: List<MatchResult>, value: String): String {
+        val sb = StringBuilder()
+        var pos = 0
+        for (m in hits.sortedBy { it.range.first }) {
+            sb.append(content, pos, m.range.first)
+            sb.append(m.value.replaceFirst(VALUE_LINE, """value="$value""""))
+            pos = m.range.last + 1
+        }
+        return sb.append(content, pos, content.length).toString()
+    }
+
+    private fun insertBeforeClose(content: String, packageName: String): String? {
+        val closeAt = content.indexOf(CLOSE_TAG)
+        if (closeAt < 0) {
+            Log.w(TAG, "malformed ssaid file: no closing tag")
+            return null
+        }
+        val maxId = SETTING_LINE.findAll(content)
+            .mapNotNull {
+                Regex("""id="(\d+)"""").find(it.value)?.groupValues?.get(1)?.toLongOrNull()
+            }.maxOrNull() ?: 0L
+        return content.substring(0, closeAt) +
+            buildSettingLine(maxId + 1, packageName) + "\n" +
+            content.substring(closeAt)
+    }
+
     /** 条目匹配：name 属性或 package 属性任一命中即可（MIUI 数字 name / 标准 name 两形态）。 */
-    private fun lineMatches(line: String, packageName: String): Boolean {
-        val name = SETTING_LINE.find(line)?.groupValues?.get(1) ?: return false
+    private fun entryMatches(m: MatchResult, packageName: String): Boolean {
+        val name = m.groupValues[1]
         if (name == packageName) return true
-        val pkg = Regex("""package="([^"]*)"""").find(line)?.groupValues?.get(1)
+        val pkg = Regex("""package="([^"]*)"""").find(m.value)?.groupValues?.get(1)
         return pkg == packageName && pkg.isNotEmpty()
     }
 
@@ -144,7 +178,7 @@ object SsaidManager {
                 "if abx2xml $SSAID_PATH $tmp 2>/dev/null; then cat $tmp; else cat $SSAID_PATH; fi; " +
                 "rm -f $tmp"
         )
-        if (!r.isSuccess || !r.stdout.contains("<settings")) {
+        if (!r.isSuccess || !r.stdout.contains("<settings") || !r.stdout.contains("</settings")) {
             Log.w(TAG, "read ssaid failed: code=${r.exitCode} out=${r.stdout.take(80)}")
             return null
         }
@@ -152,26 +186,33 @@ object SsaidManager {
     }
 
     /**
-     * 原子写回：XML 文本落同目录临时文件 → xml2abx 校验 →
+     * 原子写回：XML 文本经 base64 管道落同目录临时文件 → xml2abx 校验 →
      * 属性修正（mv 前完成，失败即放弃且原文件未动）→ sync → mv 原子替换。
+     * base64 单行只含 [A-Za-z0-9+/=]，heredoc 定界符碰撞不复存在。
      */
     private fun writeBack(content: String): Boolean {
         val rand = randomSuffix()
         val tmpXml = "$TMP_DIR/.acf_ssaid_$rand.xml"
         val tmpAbx = "$TMP_DIR/.acf_ssaid_$rand.abx"
+        val b64 = android.util.Base64.encodeToString(
+            content.toByteArray(Charsets.UTF_8), android.util.Base64.NO_WRAP
+        )
         val write = RootShell.exec(
-            "rm -f $tmpXml $tmpAbx; " +
-                "cat > $tmpXml << 'ACF_EOF'\n$content" +
-                "ACF_EOF\n" +
+            "rm -f $TMP_DIR/.acf_ssaid_*.xml $TMP_DIR/.acf_ssaid_*.abx; " +
+                "echo '$b64' | base64 -d > $tmpXml || { echo ACF_DECODE_FAILED; rm -f $tmpXml $tmpAbx; exit 1; }; " +
                 "if ! xml2abx $tmpXml $tmpAbx 2>/dev/null; then echo ACF_VERIFY_FAILED; rm -f $tmpXml $tmpAbx; exit 1; fi; " +
                 "chown system:system $tmpAbx && chmod 600 $tmpAbx || { echo ACF_PERM_FAILED; rm -f $tmpXml $tmpAbx; exit 1; }; " +
                 "sync; " +
                 "mv -f $tmpAbx $SSAID_PATH || { echo ACF_MOVE_FAILED; rm -f $tmpXml $tmpAbx; exit 1; }; " +
+                "restorecon $SSAID_PATH 2>/dev/null || echo ACF_RESTORECON_FAILED; " +
                 "rm -f $tmpXml"
         )
         if (!write.isSuccess) {
             Log.w(TAG, "write ssaid failed: code=${write.exitCode} ${write.stdout.take(200)}")
             return false
+        }
+        if ("ACF_RESTORECON_FAILED" in write.stdout) {
+            Log.w(TAG, "write ssaid ok but restorecon failed, provider may deny the file")
         }
         return true
     }

@@ -14,14 +14,25 @@ object RootShell {
     /** su 授权弹窗无人应答或 ROM 异常时的强杀上限。 */
     private const val DEFAULT_TIMEOUT_MS = 20_000L
 
+    private val readerPool = java.util.concurrent.Executors.newSingleThreadExecutor { r ->
+        Thread(r, "acf-su-read").apply { isDaemon = true }
+    }
+
     data class Result(val exitCode: Int, val stdout: String) {
         val isSuccess: Boolean get() = exitCode == 0
     }
 
-    private val available by lazy { checkAvailable() }
+    @Volatile
+    private var available: Boolean? = null
 
-    /** su 是否可用（首次调用后缓存；首次失败需重启应用重试，UI 应给出指引）。 */
-    fun isAvailable(): Boolean = available
+    /** su 是否可用；forceRefresh 跳过缓存（补授权后重试用）。 */
+    @Synchronized
+    fun isAvailable(forceRefresh: Boolean = false): Boolean {
+        if (forceRefresh || available == null) {
+            available = checkAvailable()
+        }
+        return available == true
+    }
 
     /**
      * 执行一条 shell 命令。命令经 su 进程的 stdin 传入（不拼 `su -c` 引号，
@@ -36,14 +47,16 @@ object RootShell {
             os.write((command + "\nexit\n").toByteArray(Charsets.UTF_8))
             os.flush()
         }
-        // 本项目命令输出均为 KB 级（远小于管道缓冲），先限时等待再读流是安全的
+        // 输出流必须并发消费：大输出会塞满管道阻塞 su 进程，先 waitFor 必超时
+        val outFuture = readerPool.submit<String> { process.inputStream.bufferedReader().readText() }
         val finished = process.waitFor(timeoutMs, TimeUnit.MILLISECONDS)
         if (!finished) {
             process.destroyForcibly()
+            outFuture.cancel(true)
             Log.w(TAG, "exec timed out after ${timeoutMs}ms")
             return Result(-1, "su timeout after ${timeoutMs}ms")
         }
-        val out = process.inputStream.bufferedReader().readText()
+        val out = runCatching { outFuture.get(10, TimeUnit.SECONDS) }.getOrDefault("")
         Result(process.exitValue(), out)
     }.getOrElse {
         Log.w(TAG, "exec failed: ${it.javaClass.simpleName}: ${it.message}")

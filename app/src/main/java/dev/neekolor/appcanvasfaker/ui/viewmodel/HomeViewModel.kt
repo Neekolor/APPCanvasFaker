@@ -109,9 +109,9 @@ class HomeViewModel(
         )
     }
 
-    /** 远端通道探针（IO 线程 binder 调用）：可读出配置即视为畅通。 */
+    /** 远端通道探针（IO 线程 binder 调用）：服务已绑定即畅通；从未写过配置时远端本就为 null，不算异常。 */
     private fun probeRemoteChannel(): Boolean = runCatching {
-        RemoteBridge.remote()?.getString(RemoteConfig.KEY_CONFIG_JSON, null) != null
+        RemoteBridge.remote() != null
     }.getOrDefault(false)
 
     private companion object {

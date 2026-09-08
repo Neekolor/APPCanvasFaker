@@ -48,6 +48,7 @@ class SettingsViewModel(
                     hookGlReadPixels = configRepo.hookGlReadPixels(),
                     hookPixelCopy = configRepo.hookPixelCopy(),
                     ssaidEnabled = repo.ssaidEnabled,
+                    presetSelected = repo.presetSelected.takeIf { it >= 0 },
                 )
             }
         }
@@ -95,16 +96,19 @@ class SettingsViewModel(
 
     fun setHookTextMetrics(enabled: Boolean) {
         configRepo.setHookTextMetrics(enabled)
+        repo.presetSelected = -1
         _uiState.update { it.copy(hookTextMetrics = enabled, presetSelected = null) }
     }
 
     fun setHookGlReadPixels(enabled: Boolean) {
         configRepo.setHookGlReadPixels(enabled)
+        repo.presetSelected = -1
         _uiState.update { it.copy(hookGlReadPixels = enabled, presetSelected = null) }
     }
 
     fun setHookPixelCopy(enabled: Boolean) {
         configRepo.setHookPixelCopy(enabled)
+        repo.presetSelected = -1
         _uiState.update { it.copy(hookPixelCopy = enabled, presetSelected = null) }
     }
 
@@ -113,6 +117,7 @@ class SettingsViewModel(
      * 2 自定义（开关保持现状、只记住选择——此前空操作不发 state，下拉回显不变、看着像"点不了"）。
      */
     fun applyPreset(index: Int) {
+        repo.presetSelected = index
         when (index) {
             0 -> {
                 configRepo.setHookTextMetrics(false)

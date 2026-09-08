@@ -23,6 +23,7 @@
         <activity
             android:name=".ui.MainActivity"
             android:exported="true"
+            android:label="ACF"
             android:theme="@style/Theme.AppCanvasFaker"
             android:windowSoftInputMode="adjustResize">
             <intent-filter>
@@ -32,14 +33,10 @@
         </activity>
 
         <!-- Hook 命中统计通道：Hook 进程发显式广播，本进程收后写本地 prefs。
-             exported 必须 true（发送方是目标应用 UID）；伪造面仅限计数展示，见 StatsReceiver。 -->
+              exported 必须 true（发送方是目标应用 UID）；伪造面仅限计数展示，见 StatsReceiver。 -->
         <receiver
             android:name=".core.StatsReceiver"
-            android:exported="true">
-            <intent-filter>
-                <action android:name="dev.neekolor.appcanvasfaker.action.HOOK_HIT" />
-            </intent-filter>
-        </receiver>
+            android:exported="true" />
 
         <!-- 检查更新：缓存目录 APK 分享给系统安装器（复用既有 filepaths cache-path）。 -->
         <provider

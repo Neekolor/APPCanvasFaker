@@ -100,9 +100,13 @@ fun LogScreenMaterial(
     val clearMessage = stringResource(R.string.log_clear_confirm)
     val confirmText = stringResource(R.string.confirm)
 
-    // su log 同交互：点条目弹详情（AlertDialog + 等宽可选文本 + 单 OK 键）
+    // su log 同交互：点条目弹详情（AlertDialog + 等宽可选文本 + 单 OK 键）；
+    // lastEntry 驻留保证关闭瞬间内容非空（与 Miuix 同模式）
     var selectedEntry by remember { mutableStateOf<LogItem?>(null) }
-    selectedEntry?.let { entry ->
+    var lastEntry by remember { mutableStateOf<LogItem?>(null) }
+    if (selectedEntry != null) lastEntry = selectedEntry
+    selectedEntry?.let {
+        val entry = lastEntry ?: return@let
         AlertDialog(
             onDismissRequest = { selectedEntry = null },
             title = { Text(entry.appLabel) },

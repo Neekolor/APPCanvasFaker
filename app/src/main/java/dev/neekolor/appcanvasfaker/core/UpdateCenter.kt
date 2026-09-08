@@ -84,11 +84,17 @@ object UpdateCenter {
             if (code != HttpURLConnection.HTTP_OK) {
                 throw IllegalStateException("HTTP $code")
             }
+            if (conn.url.protocol.lowercase() != "https") {
+                throw IllegalStateException("redirect to non-https")
+            }
             val body = conn.inputStream.bufferedReader().use { it.readText() }
             val json = JSONObject(body)
             val tag = json.optString("tag_name", "").trim()
             if (tag.isEmpty()) throw IllegalStateException("empty tag_name")
-            if (normalizeVersion(tag) == normalizeVersion(currentVersion)) return null
+            // 只判相等会诱导降级：远端必须严格大于本地才算新版
+            val remote = normalizeVersion(tag)
+            val local = normalizeVersion(currentVersion)
+            if (remote == local || !isNewerThan(remote, local)) return null
             val assets = json.optJSONArray("assets")
             var apkUrl: String? = null
             var apkSize = 0L
@@ -133,6 +139,18 @@ object UpdateCenter {
         return s
     }
 
+    /** 数值逐段比较（1.10 > 1.9 必须按数字而非字符串）；段数不同缺位按 0。 */
+    private fun isNewerThan(remote: String, local: String): Boolean {
+        val r = remote.split('.')
+        val l = local.split('.')
+        for (i in 0 until maxOf(r.size, l.size)) {
+            val rv = r.getOrNull(i)?.takeWhile { it.isDigit() }?.toIntOrNull() ?: 0
+            val lv = l.getOrNull(i)?.takeWhile { it.isDigit() }?.toIntOrNull() ?: 0
+            if (rv != lv) return rv > lv
+        }
+        return false
+    }
+
     private fun formatSize(bytes: Long): String {
         if (bytes <= 0) return "?"
         val mb = bytes / 1048576.0
@@ -148,7 +166,9 @@ object UpdateCenter {
         _ui.value = UiState.Downloading(0f)
         val file = withContext(Dispatchers.IO) {
             val dir = File(app.cacheDir, "update").apply { mkdirs() }
-            val out = File(dir, "ACF-$tag.apk")
+            val out = File(dir, "ACF-${tag.replace(Regex("[^A-Za-z0-9._-]"), "_")}.apk")
+            // 缓存目录只留当前版本：旧包不自动清会越堆越多（系统回收 cache 不可靠）
+            dir.listFiles()?.forEach { if (it.isFile && it.name != out.name) runCatching { it.delete() } }
             val conn = (URL(url).openConnection() as HttpURLConnection).apply {
                 connectTimeout = CONNECT_TIMEOUT_MS
                 readTimeout = READ_TIMEOUT_MS
@@ -169,6 +189,10 @@ object UpdateCenter {
                             if (total != null) {
                                 _ui.value = UiState.Downloading((done.toFloat() / total).coerceIn(0f, 1f))
                             }
+                        }
+                        // 服务端声明长度与实际不符即截断/注水，不进安装器
+                        if (total != null && done != total) {
+                            throw IllegalStateException("size mismatch ($done != $total)")
                         }
                     }
                 }

@@ -8,7 +8,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 
-/** 实验室页状态：当前伪装执行模式（读本地配置，无 IO）。 */
+/** 实验性功能页状态：当前伪装执行模式（读本地配置，无 IO）。 */
 class LabViewModel(
     private val repo: ConfigRepository = ConfigRepository(acfApp),
 ) : ViewModel() {

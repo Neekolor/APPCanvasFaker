@@ -37,11 +37,11 @@ class SsaidViewModel(application: Application) : AndroidViewModel(application) {
         refresh()
     }
 
-    fun refresh() {
+    fun refresh(forceCheck: Boolean = false) {
         val gen = ++generation
         viewModelScope.launch {
             _uiState.update { it.copy(loadState = SsaidLoadState.LOADING) }
-            val state = withContext(Dispatchers.IO) { buildState(gen) }
+            val state = withContext(Dispatchers.IO) { buildState(gen, forceCheck) }
             if (gen == generation) {
                 _uiState.value = state
             }
@@ -68,6 +68,10 @@ class SsaidViewModel(application: Application) : AndroidViewModel(application) {
         if (!packageName.matches(PACKAGE_NAME_REGEX)) {
             return@withContext false to false
         }
+        // 强停失败即中止：目标若在运行，其缓存稍后写盘会覆盖本次修改
+        if (!RootShell.exec("am force-stop '$packageName'").isSuccess) {
+            return@withContext false to false
+        }
         val result = runCatching { action() }
             .recoverCatching { e ->
                 // 取消必须继续向上传播，不能被 runCatching 吞成"失败"
@@ -85,9 +89,20 @@ class SsaidViewModel(application: Application) : AndroidViewModel(application) {
         result.written to result.reloaded
     }
 
-    /** Screen 在确认弹窗回调里先占 busy，再调 randomize/delete，结束后释放。 */
-    fun setBusy(packageName: String?) {
-        _uiState.update { it.copy(busyPkg = packageName) }
+    /** 原子占位：快点/双弹窗并发 second operate 时只有一个能拿到，拿不到的直接忽略。 */
+    fun tryAcquireBusy(packageName: String): Boolean {
+        var acquired = false
+        _uiState.update {
+            if (it.busyPkg == null) {
+                acquired = true
+                it.copy(busyPkg = packageName)
+            } else it
+        }
+        return acquired
+    }
+
+    fun releaseBusy() {
+        _uiState.update { it.copy(busyPkg = null) }
     }
 
     /**
@@ -106,8 +121,8 @@ class SsaidViewModel(application: Application) : AndroidViewModel(application) {
         refresh()
     }
 
-    private suspend fun buildState(gen: Int): SsaidUiState {
-        if (!RootShell.isAvailable()) {
+    private suspend fun buildState(gen: Int, forceCheck: Boolean = false): SsaidUiState {
+        if (!RootShell.isAvailable(forceCheck)) {
             return SsaidUiState(loadState = SsaidLoadState.UNAVAILABLE)
         }
         val showSystemApps = _uiState.value.showSystemApps
@@ -141,7 +156,7 @@ class SsaidViewModel(application: Application) : AndroidViewModel(application) {
 
     companion object {
         /** 包名合法性：拼入 root shell 与系统文件前的纵深防御校验。 */
-        private val PACKAGE_NAME_REGEX = Regex("^[A-Za-z0-9_.$]+$")
+        private val PACKAGE_NAME_REGEX = Regex("^[A-Za-z0-9_.]+$")
 
         /** 与 AppListViewModel 共用 prefs 文件，键名加 ssaid 前缀避免冲突。 */
         private const val PREFS_NAME = "app_list"

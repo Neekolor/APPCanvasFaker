@@ -27,8 +27,9 @@ fun AppListPager(
     if (isCurrentPage) hasActivated = true
 
     if (hasActivated) {
-        LaunchedEffect(Unit) {
-            viewModel.loadAppList()
+        // Profile 改开关返回本页即刷新（loadAppList 内部按需跳过），与主页同模式
+        LaunchedEffect(isCurrentPage) {
+            if (isCurrentPage) viewModel.loadAppList()
         }
     }
 

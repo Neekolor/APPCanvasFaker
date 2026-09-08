@@ -15,7 +15,10 @@ import java.io.ByteArrayOutputStream
 import java.io.OutputStream
 import java.nio.Buffer
 import java.nio.ByteBuffer
+import java.nio.ByteOrder
 import java.nio.IntBuffer
+import java.util.Collections
+import java.util.WeakHashMap
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.Executors
 
@@ -23,7 +26,7 @@ import java.util.concurrent.Executors
  * Hook 链实现：
  * - A1 getPixels / A3 copyPixelsToBuffer / A4+A4b compress（v0.5.0 起现役）
  * - A2 Bitmap.getPixel 单点读取（scanner A2）
- * - E1 Paint 文本度量族 18 重载（scanner E1，含 getTextWidths 系与 getFontMetricsInt）
+ * - E1 Paint 文本度量族 21 重载（scanner E1，含 getTextWidths 系、getFontMetricsInt 与 getRunAdvance）
  * - D1 GLES20/30.glReadPixels GPU 帧缓冲直读（scanner D1，默认关；
  *   GLES30 同签重载与 GLES20 同策略，PBO/native/Vulkan 路径维持不动）
  * - C2 PixelCopy.request 监听器包装（scanner C2 延迟持有例外，默认开）
@@ -50,6 +53,12 @@ object BitmapHooks {
     /** 去重：同包同状态（seed:hash）只上报一次（见 recordStats）。 */
     private val lastSentHash = ConcurrentHashMap<String, String>()
 
+    /** 伪装像素上限（约 4K 一帧）：超限整图操作直接放行，避免目标进程 OOM/长时间卡顿。 */
+    private const val MAX_FAKE_PIXELS = 4_000_000
+    private var a3FormatWarned = false
+    private val poisonedBitmaps =
+        Collections.synchronizedMap(WeakHashMap<android.graphics.Bitmap, Boolean>())
+
     fun install(
         module: XposedInterface,
         packageName: String,
@@ -61,7 +70,9 @@ object BitmapHooks {
         hookGlReadPixels: Boolean,
         hookPixelCopy: Boolean
     ) {
-        val bitmapClass = param.defaultClassLoader.loadClass("android.graphics.Bitmap")
+        val bitmapClass = runCatching {
+            param.defaultClassLoader.loadClass("android.graphics.Bitmap")
+        }.onFailure { Log.w(TAG, "bitmap hooks unavailable", it) }.getOrNull() ?: return
 
         // A1 Bitmap.getPixels(int[], int offset, int stride, int x, int y, int width, int height)
         val getPixels = bitmapClass.getDeclaredMethod(
@@ -115,11 +126,13 @@ object BitmapHooks {
         }
 
         // D1 glReadPixels：GPU 直读旁路（scanner D1），默认关、副作用自负。
-        // GLES20 与 GLES30 同签重载各装一条（声明类不同，按其一调用只走其一）；
+        // GLES20/30/31/32 同签重载各装一条（声明类不同，按其一调用只走其一）；
         // PBO 异步/native/Vulkan 路径 Java 层无数据可拦，维持不动。
         if (hookGlReadPixels) {
             hookGlReadPixelsOn(module, packageName, seed, param, "android.opengl.GLES20")
             hookGlReadPixelsOn(module, packageName, seed, param, "android.opengl.GLES30")
+            hookGlReadPixelsOn(module, packageName, seed, param, "android.opengl.GLES31")
+            hookGlReadPixelsOn(module, packageName, seed, param, "android.opengl.GLES32")
         }
 
         // C2 PixelCopy.request 系列：拷贝完成监听器包装（scanner C2 延迟持有例外）
@@ -166,7 +179,9 @@ object BitmapHooks {
         seed: Long,
         param: XposedModuleInterface.PackageLoadedParam
     ) {
-        val paintClass = param.defaultClassLoader.loadClass("android.graphics.Paint")
+        val paintClass = runCatching {
+            param.defaultClassLoader.loadClass("android.graphics.Paint")
+        }.onFailure { Log.w(TAG, "E1 hooks unavailable", it) }.getOrNull() ?: return
         val tInt: Class<*> = Int::class.javaPrimitiveType!!
         val tFloat: Class<*> = Float::class.javaPrimitiveType!!
         val tBool: Class<*> = Boolean::class.javaPrimitiveType!!
@@ -268,6 +283,24 @@ object BitmapHooks {
         hook("getFontMetricsInt", { c -> handleFontMetricsIntNew(c, packageName, seed) })
         hook("getFontMetricsInt", { c -> handleFontMetricsIntInto(c, packageName, seed) },
             android.graphics.Paint.FontMetricsInt::class.java)
+
+        // getRunAdvance ×3（双向文本行宽，measureText 同族；context 区间不入哈希键）
+        hook("getRunAdvance", { c ->
+            handleFloatMetric(c, packageName, seed) { ch ->
+                val t = ch.getArg(0) as? String
+                textHashOf(t, ch.getArg(1) as Int, ch.getArg(2) as Int)
+            }
+        }, String::class.java, tInt, tInt, tInt, tInt, tBool, tInt)
+        hook("getRunAdvance", { c ->
+            handleFloatMetric(c, packageName, seed) { ch ->
+                textHashOf(ch.getArg(0) as? CharSequence, ch.getArg(1) as Int, ch.getArg(2) as Int)
+            }
+        }, CharSequence::class.java, tInt, tInt, tInt, tInt, tBool, tInt)
+        hook("getRunAdvance", { c ->
+            handleFloatMetric(c, packageName, seed) { ch ->
+                textHashOf(ch.getArg(0) as? CharArray, ch.getArg(1) as Int, ch.getArg(2) as Int)
+            }
+        }, CharArray::class.java, tInt, tInt, tInt, tInt, tBool, tInt)
     }
 
     // ---------- A2 / D1 / E1 处理器 ----------
@@ -339,8 +372,11 @@ object BitmapHooks {
         try {
             proceeded = true
             val original = chain.proceed() as Float
-            val factor = metricFactor(chain.getThisObject() as? android.graphics.Paint, seed, hashOf(chain))
-            return FingerprintEngine.scaleMetric(original, factor)
+            // 哈希提取失败只放弃本次伪装：返回已拿到的原值，不把成功变异常
+            return runCatching {
+                val factor = metricFactor(chain.getThisObject() as? android.graphics.Paint, seed, hashOf(chain))
+                FingerprintEngine.scaleMetric(original, factor)
+            }.getOrDefault(original)
         } catch (t: Throwable) {
             if (!proceeded) runCatching { chain.proceed() }
             throw t
@@ -359,9 +395,10 @@ object BitmapHooks {
             proceeded = true
             chain.proceed()
             val rect = chain.getArg(3) as? android.graphics.Rect ?: return null
-            val factor = metricFactor(chain.getThisObject() as? android.graphics.Paint, seed, hashOf(chain))
-            runCatching { FingerprintEngine.scaleBounds(rect, factor) }
-                .onFailure { Log.e(TAG, "E1 getTextBounds scale failed for $packageName", it) }
+            runCatching {
+                val factor = metricFactor(chain.getThisObject() as? android.graphics.Paint, seed, hashOf(chain))
+                FingerprintEngine.scaleBounds(rect, factor)
+            }.onFailure { Log.e(TAG, "E1 getTextBounds scale failed for $packageName", it) }
             return null
         } catch (t: Throwable) {
             if (!proceeded) runCatching { chain.proceed() }
@@ -425,8 +462,10 @@ object BitmapHooks {
             val count = chain.proceed() as Int
             val widths = chain.getArg(widthsIndex) as? FloatArray
             if (widths != null && widths.isNotEmpty()) {
-                val factor = metricFactor(chain.getThisObject() as? android.graphics.Paint, seed, hashOf(chain))
-                FingerprintEngine.scaleWidths(widths, factor)
+                runCatching {
+                    val factor = metricFactor(chain.getThisObject() as? android.graphics.Paint, seed, hashOf(chain))
+                    FingerprintEngine.scaleWidths(widths, factor)
+                }.onFailure { Log.e(TAG, "E1 getTextWidths scale failed for $packageName", it) }
             }
             return count
         } catch (t: Throwable) {
@@ -491,9 +530,10 @@ object BitmapHooks {
             val count = chain.proceed() as Int
             val mw = chain.getArg(measuredWidthIndex) as? FloatArray
             if (mw != null && mw.isNotEmpty()) {
-                val factor = metricFactor(chain.getThisObject() as? android.graphics.Paint, seed, hashOf(chain))
-                runCatching { mw[0] = FingerprintEngine.scaleMetric(mw[0], factor) }
-                    .onFailure { Log.e(TAG, "E1 breakText scale failed for $packageName", it) }
+                runCatching {
+                    val factor = metricFactor(chain.getThisObject() as? android.graphics.Paint, seed, hashOf(chain))
+                    mw[0] = FingerprintEngine.scaleMetric(mw[0], factor)
+                }.onFailure { Log.e(TAG, "E1 breakText scale failed for $packageName", it) }
             }
             return count
         } catch (t: Throwable) {
@@ -521,8 +561,8 @@ object BitmapHooks {
     // "消费方长期持有引用延迟读取/跨进程传递"的例外：拷贝成功回调时把
     // 目标位图存毒一层（经 A1 同源噪声），再转发原回调。
     // 存毒后后续标准读取会再叠一层确定性扰动——C2 内容本无跨路径对齐
-    // 承诺，不破坏一致性；同一目标位图重复拷贝会累积层数（确定性，只与
-    // 操作序列有关）。任何失败 fail-open：只转发原回调，不破坏应用行为。
+    // 承诺，不破坏一致性；同一目标位图只存毒一次。任何失败 fail-open：
+    // 只转发原回调，不破坏应用行为。
 
     private fun installPixelCopyHooks(
         module: XposedInterface,
@@ -573,18 +613,21 @@ object BitmapHooks {
         if (bitmapIndex < 0 || listenerIndex < 0 || bitmap == null || original == null) {
             return chain.proceed()
         }
-        val proxy = java.lang.reflect.Proxy.newProxyInstance(
-            listenerClass.classLoader, arrayOf(listenerClass)
-        ) { _, method, proxyArgs ->
-            if (method.name == "onPixelCopied") {
-                val result = (proxyArgs?.getOrNull(0) as? Int) ?: -1
-                if (result == android.view.PixelCopy.SUCCESS) {
-                    runCatching { poisonPixelCopyTarget(bitmap) }
-                        .onFailure { Log.e(TAG, "C2 poison failed for $packageName", it) }
+        // 代理构造失败（极罕见）直接用原参继续，不让一次 request 凭空消失
+        val proxy = runCatching {
+            java.lang.reflect.Proxy.newProxyInstance(
+                listenerClass.classLoader, arrayOf(listenerClass)
+            ) { _, method, proxyArgs ->
+                if (method.name == "onPixelCopied") {
+                    val result = (proxyArgs?.getOrNull(0) as? Int) ?: -1
+                    if (result == android.view.PixelCopy.SUCCESS) {
+                        runCatching { poisonPixelCopyTarget(bitmap) }
+                            .onFailure { Log.e(TAG, "C2 poison failed for $packageName", it) }
+                    }
                 }
+                method.invoke(original, *(proxyArgs ?: emptyArray()))
             }
-            method.invoke(original, *(proxyArgs ?: emptyArray()))
-        }
+        }.getOrNull() ?: return chain.proceed()
         args[listenerIndex] = proxy
         return chain.proceed(args.toTypedArray())
     }
@@ -592,12 +635,13 @@ object BitmapHooks {
     /**
      * C2 存毒：经标准 getPixels 读出（触发 A1 链，附带一层同源噪声）再
      * setPixels 写回，使延迟读取/跨进程传递等非标准消费同样拿到假像素。
-     * 调用方负责 fail-open（回收/硬件位图、超大位图 OOM 均直接放过）。
+     * 超限位图与已存毒位图直接放过；任何失败 fail-open，只转发原回调。
      */
     private fun poisonPixelCopyTarget(bitmap: android.graphics.Bitmap) {
         val w = bitmap.width
         val h = bitmap.height
-        if (w <= 0 || h <= 0) return
+        if (w <= 0 || h <= 0 || w.toLong() * h > MAX_FAKE_PIXELS) return
+        if (poisonedBitmaps.putIfAbsent(bitmap, true) != null) return
         val pixels = IntArray(w * h)
         bitmap.getPixels(pixels, 0, w, 0, 0, w, h)
         bitmap.setPixels(pixels, 0, w, 0, 0, w, h)
@@ -610,14 +654,14 @@ object BitmapHooks {
 
     private val TEXT_HASH_SEED = 0x9E3779B97F4A7C15uL.toLong()
 
-    private fun textHashFinalize(sampled: Long, length: Int): Long {
+    internal fun textHashFinalize(sampled: Long, length: Int): Long {
         var z = sampled xor (length.toLong() * 0xC2B2AE3D27D4EB4FuL.toLong())
         z = (z xor (z ushr 30)) * 0xBF58476D1CE4E5B9uL.toLong()
         z = (z xor (z ushr 27)) * 0x94D049BB133111EBuL.toLong()
         return z xor (z ushr 31)
     }
 
-    private fun textHashOf(text: String?, start: Int, end: Int): Long {
+    internal fun textHashOf(text: String?, start: Int, end: Int): Long {
         if (text == null || start < 0 || end > text.length || start >= end) return 0L
         var h = TEXT_HASH_SEED
         val limit = minOf(end, start + TEXT_SAMPLE_CHARS)
@@ -625,7 +669,7 @@ object BitmapHooks {
         return textHashFinalize(h, end - start)
     }
 
-    private fun textHashOf(text: CharSequence?, start: Int, end: Int): Long {
+    internal fun textHashOf(text: CharSequence?, start: Int, end: Int): Long {
         if (text == null || start < 0 || end > text.length || start >= end) return 0L
         var h = TEXT_HASH_SEED
         val limit = minOf(end, start + TEXT_SAMPLE_CHARS)
@@ -633,7 +677,7 @@ object BitmapHooks {
         return textHashFinalize(h, end - start)
     }
 
-    private fun textHashOf(chars: CharArray?, index: Int, count: Int): Long {
+    internal fun textHashOf(chars: CharArray?, index: Int, count: Int): Long {
         if (chars == null || index < 0 || count <= 0 || index + count > chars.size) return 0L
         var h = TEXT_HASH_SEED
         val limit = minOf(count, TEXT_SAMPLE_CHARS)
@@ -695,17 +739,23 @@ object BitmapHooks {
             chain.proceed()
             if (w <= 0 || h <= 0) return null
             // 非 ARGB_8888 的字节布局不同（RGB_565 2B/px、RGBA_F16 8B/px），int 视图覆写会破坏数据：
-            // 宁可放过不伪装，也不写坏调用方持有的 buffer
+            // 宁可放过不伪装，也不写坏调用方持有的 buffer（热路径只提示一次）
             if (bmp.config != Bitmap.Config.ARGB_8888) {
-                Log.w(TAG, "A3 skip non-ARGB_8888 config=${bmp.config}")
+                if (!a3FormatWarned) {
+                    a3FormatWarned = true
+                    Log.w(TAG, "A3 skip non-ARGB_8888 config=${bmp.config}")
+                }
                 return null
             }
             val fake = IntArray(w * h)
             // 读回原始像素（与 A1 同基数，才能得出完全一致的伪装结果）
             val len = when (dst) {
                 is ByteBuffer -> {
-                    dst.position(startPos)
-                    val view = dst.asIntBuffer() // 视图与底 buffer 共享内容、position 独立
+                    // 位图内存是本机序，默认大端 int 视图会错位通道：
+                    // duplicate 隔离调用方 buffer 的 order，只动副本
+                    val dup = dst.duplicate().order(ByteOrder.nativeOrder()) as ByteBuffer
+                    dup.position(startPos)
+                    val view = dup.asIntBuffer()
                     val l = minOf(fake.size, view.remaining())
                     view.get(fake, 0, l)
                     l
@@ -723,18 +773,21 @@ object BitmapHooks {
                     // 绝对坐标 originX=0, originY=0（A3 读的是整图）
                     FingerprintEngine.applyPixels(fake, w, h, 0, w, 0, 0, mode, seed)
                 }.onFailure { Log.e(TAG, "A3 applyPixels failed for $packageName", it) }
-                when (dst) {
-                    is ByteBuffer -> {
-                        val view = dst.asIntBuffer() // 新视图 base=startPos、position=0
-                        view.put(fake, 0, len)
-                        // 恢复 dst position 为 proceed 后应有的位置（数据末尾）
-                        dst.position((startPos + len * 4).coerceAtMost(dst.limit()))
+                runCatching {
+                    when (dst) {
+                        is ByteBuffer -> {
+                            val dup = dst.duplicate().order(ByteOrder.nativeOrder()) as ByteBuffer
+                            dup.position(startPos)
+                            dup.asIntBuffer().put(fake, 0, len)
+                            // 恢复 dst position 为 proceed 后应有的位置（数据末尾）
+                            dst.position((startPos + len * 4).coerceAtMost(dst.limit()))
+                        }
+                        is IntBuffer -> {
+                            dst.position(startPos)
+                            dst.put(fake, 0, len)
+                        }
                     }
-                    is IntBuffer -> {
-                        dst.position(startPos)
-                        dst.put(fake, 0, len)
-                    }
-                }
+                }.onFailure { Log.e(TAG, "A3 writeback failed for $packageName", it) }
                 if (insideFake.get() != true) {
                     recordStats(packageName, seed, fake, "A3")
                 }
@@ -759,7 +812,9 @@ object BitmapHooks {
         }
         insideFake.set(true)
         try {
-            return compressFake(chain, packageName, mode, seed)
+            // 参数提取/内存编码任一环节抛错都回退原始编码，保证 proceed 恰一次
+            return runCatching { compressFake(chain, packageName, mode, seed) }
+                .getOrElse { proceedRaw(chain) }
         } finally {
             insideFake.remove()
         }
@@ -782,7 +837,7 @@ object BitmapHooks {
         val bmp = chain.getThisObject() as Bitmap
         val w = bmp.width
         val h = bmp.height
-        if (w <= 0 || h <= 0) {
+        if (w <= 0 || h <= 0 || w.toLong() * h > MAX_FAKE_PIXELS) {
             return proceedRaw(chain)
         }
         val faked = runCatching {
@@ -833,7 +888,8 @@ object BitmapHooks {
         path: String,
     ) {
         val now = SystemClock.elapsedRealtime()
-        val last = lastStatsTime.put(packageName, now)
+        // 先读后写：被跳过的调用不许推移窗口，否则高频流下统计永久停摆
+        val last = lastStatsTime[packageName]
         if (last != null && now - last < STATS_MIN_INTERVAL_MS) return
         runCatching {
             statsExecutor.execute {
@@ -841,6 +897,7 @@ object BitmapHooks {
                     val fp = fingerprintOf(pixels)
                     val key = "$seed:$fp"
                     if (lastSentHash.put(packageName, key) == key) return@execute
+                    lastStatsTime[packageName] = now
                     sendHookHit(packageName, seed, fp, path)
                 }.onFailure { Log.e(TAG, "recordStats failed", it) }
             }

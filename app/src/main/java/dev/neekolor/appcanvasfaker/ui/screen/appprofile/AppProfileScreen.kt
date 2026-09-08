@@ -5,8 +5,10 @@ import androidx.compose.material3.SnackbarHostState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -36,6 +38,8 @@ fun AppProfileScreen(packageName: String) {
 
     val confirmTitle = stringResource(R.string.confirm)
     val confirmMessage = stringResource(R.string.randomize_confirm_message)
+    val stopConfirmMessage = stringResource(R.string.force_stop_confirm)
+    val restartConfirmMessage = stringResource(R.string.restart_app_confirm)
     val actionText = stringResource(R.string.action)
     val successText = stringResource(R.string.randomize_success)
     val failedText = stringResource(R.string.operation_failed)
@@ -58,6 +62,17 @@ fun AppProfileScreen(packageName: String) {
         }
     )
 
+    // 溢出菜单的停/重启同样二次确认：误触代价是目标应用被杀
+    var pendingMenuAction by remember { mutableStateOf<(suspend () -> Unit)?>(null) }
+    val menuDialog = rememberConfirmDialog(
+        onConfirm = {
+            pendingMenuAction?.let { action ->
+                pendingMenuAction = null
+                scope.launch { action() }
+            }
+        }
+    )
+
     val actions = AppProfileActions(
         onBack = dropUnlessResumed { navigator.pop() },
         onSetEnabled = { enabled -> viewModel.setEnabled(packageName, enabled) },
@@ -75,14 +90,24 @@ fun AppProfileScreen(packageName: String) {
             }
         },
         onForceStopApp = {
-            scope.launch {
+            pendingMenuAction = {
                 if (!viewModel.forceStopApp(packageName)) showResult(failedText)
             }
+            menuDialog.showConfirm(
+                title = confirmTitle,
+                content = stopConfirmMessage,
+                confirm = actionText,
+            )
         },
         onRestartApp = {
-            scope.launch {
+            pendingMenuAction = {
                 if (!viewModel.restartApp(packageName)) showResult(failedText)
             }
+            menuDialog.showConfirm(
+                title = confirmTitle,
+                content = restartConfirmMessage,
+                confirm = actionText,
+            )
         },
     )
 

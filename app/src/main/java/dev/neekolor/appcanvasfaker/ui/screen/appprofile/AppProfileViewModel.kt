@@ -35,14 +35,16 @@ class AppProfileViewModel(application: Application) : AndroidViewModel(applicati
     fun load(packageName: String) {
         if (loadedPackageName == packageName) return
         loadedPackageName = packageName
+        // 切包先清旧指纹，避免新包头部配旧指纹一闪
+        _uiState.update { it.copy(fingerprints = emptyList()) }
         loadJob?.cancel()
+        val gen = ++generation
         loadJob = viewModelScope.launch {
             // 第一步：应用基本信息立即上屏（对齐 KSU：头部卡不等任何重活）
             val quick = withContext(Dispatchers.IO) {
                 buildQuickState(packageName)
             }
-            if (loadedPackageName == packageName) {
-                generation++
+            if (gen == generation && loadedPackageName == packageName) {
                 _uiState.value = quick.copy(fingerprints = _uiState.value.fingerprints)
             }
             // 第二步：指纹计算（渲染 + PNG + SHA-256）异步补充
@@ -54,13 +56,14 @@ class AppProfileViewModel(application: Application) : AndroidViewModel(applicati
                         emptyList()
                     }.getOrDefault(emptyList())
             }
-            if (loadedPackageName == packageName) {
+            if (gen == generation && loadedPackageName == packageName) {
                 _uiState.update { it.copy(fingerprints = fingerprints) }
             }
         }
     }
 
     fun setEnabled(packageName: String, enabled: Boolean) {
+        val gen = ++generation
         viewModelScope.launch {
             repo.setHookEnabled(packageName, enabled)
             // 画布渲染 + PNG 压缩 + 哈希为 CPU 密集操作，必须离开主线程
@@ -72,7 +75,7 @@ class AppProfileViewModel(application: Application) : AndroidViewModel(applicati
                         emptyList()
                     }.getOrDefault(emptyList())
             }
-            if (loadedPackageName == packageName) {
+            if (gen == generation && loadedPackageName == packageName) {
                 _uiState.update { it.copy(enabled = enabled, fingerprints = fingerprints) }
             }
         }
@@ -142,7 +145,7 @@ class AppProfileViewModel(application: Application) : AndroidViewModel(applicati
 
     companion object {
         /** 包名合法性：拼入 root shell 命令前的纵深防御校验。 */
-        private val PACKAGE_NAME_REGEX = Regex("^[A-Za-z0-9_.$]+$")
+        private val PACKAGE_NAME_REGEX = Regex("^[A-Za-z0-9_.]+$")
 
         private fun isValidPackageName(packageName: String): Boolean =
             packageName.matches(PACKAGE_NAME_REGEX)

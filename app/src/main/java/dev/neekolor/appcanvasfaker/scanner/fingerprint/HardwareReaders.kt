@@ -7,6 +7,7 @@ import android.opengl.EGLDisplay
 import android.opengl.EGLSurface
 import android.opengl.GLES20
 import android.util.Log
+import dev.neekolor.appcanvasfaker.core.FingerprintEngine
 import dev.neekolor.appcanvasfaker.util.HashUtils
 import java.nio.ByteBuffer
 import java.nio.ByteOrder
@@ -21,32 +22,40 @@ object HardwareReaders {
 
     /** D1: 创建离屏 EGL 上下文 → 绘制标准内容 → glReadPixels 读帧缓冲后哈希 */
     fun glReadPixels(width: Int = 128, height: Int = 128): String {
-        return try {
-            val (display, config) = createEglDisplay() ?: return "EGL初始化失败"
-            val context = createEglContext(display, config) ?: run {
-                EGL14.eglTerminate(display)
-                return "EGL上下文创建失败"
-            }
-            val surface = createPbufferSurface(display, config, width, height) ?: run {
-                EGL14.eglDestroyContext(display, context)
-                EGL14.eglTerminate(display)
-                return "PbufferSurface创建失败"
-            }
-            try {
-                if (!EGL14.eglMakeCurrent(display, surface, surface, context)) {
-                    return "eglMakeCurrent失败"
-                }
-                renderAndRead(width, height)
-            } finally {
-                EGL14.eglMakeCurrent(display, EGL14.EGL_NO_SURFACE, EGL14.EGL_NO_SURFACE, EGL14.EGL_NO_CONTEXT)
-                EGL14.eglDestroySurface(display, surface)
-                EGL14.eglDestroyContext(display, context)
-                EGL14.eglTerminate(display)
-                EGL14.eglReleaseThread()
-            }
-        } catch (e: Throwable) {
-            "异常: ${e.javaClass.simpleName}: ${e.message}"
+        return renderFrame(width, height).fold(
+            onSuccess = { HashUtils.ofBytes(flipRows(it, width, height)) },
+            onFailure = { it.message ?: "未知错误" }
+        )
+    }
+
+    /**
+     * D1 模拟值：Hook 对目标进程帧缓冲做的同款序号噪声搬到本进程算一遍
+     * （先扰动 bottom-up 原始字节再翻转行序，与消费侧看到的一致）。
+     * EGL 故障时回退未扰动读数（与基线同错，不编新错）。
+     */
+    fun glReadPixelsSimulated(seed: Long, width: Int = 128, height: Int = 128): String {
+        val frame = renderFrame(width, height)
+        val raw = frame.getOrNull() ?: return glReadPixels(width, height)
+        val buf = ByteBuffer.allocateDirect(raw.size).order(ByteOrder.nativeOrder())
+        buf.put(raw)
+        FingerprintEngine.applyGlPixels(buf, 0, width, height, seed)
+        buf.rewind()
+        val perturbed = ByteArray(raw.size)
+        buf.get(perturbed)
+        return HashUtils.ofBytes(flipRows(perturbed, width, height))
+    }
+
+    private fun flipRows(pixels: ByteArray, width: Int, height: Int): ByteArray {
+        // GL 是 bottom-up，翻转行序使与画布坐标系一致
+        val row = ByteArray(width * 4)
+        for (y in 0 until height / 2) {
+            val top = y * width * 4
+            val bottom = (height - 1 - y) * width * 4
+            System.arraycopy(pixels, top, row, 0, row.size)
+            System.arraycopy(pixels, bottom, pixels, top, row.size)
+            System.arraycopy(row, 0, pixels, bottom, row.size)
         }
+        return pixels
     }
 
     private fun createEglDisplay(): Pair<EGLDisplay, EGLConfig>? {
@@ -89,8 +98,42 @@ object HardwareReaders {
         return EGL14.eglCreatePbufferSurface(display, config, attribs, 0)
     }
 
-    /** 在已绑定的 EGL 上下文中：绘制标准内容并 glReadPixels */
-    private fun renderAndRead(width: Int, height: Int): String {
+    /** 在已绑定的 EGL 上下文中：绘制标准内容并 glReadPixels，返回 bottom-up 原始字节 */
+    private fun renderFrame(width: Int, height: Int): Result<ByteArray> {
+        fun fail(msg: String): Result<ByteArray> = Result.failure(IllegalStateException(msg))
+        return try {
+            val (display, config) = createEglDisplay() ?: return fail("EGL初始化失败")
+            val context = createEglContext(display, config) ?: run {
+                EGL14.eglTerminate(display)
+                return fail("EGL上下文创建失败")
+            }
+            val surface = createPbufferSurface(display, config, width, height) ?: run {
+                EGL14.eglDestroyContext(display, context)
+                EGL14.eglTerminate(display)
+                return fail("PbufferSurface创建失败")
+            }
+            try {
+                if (!EGL14.eglMakeCurrent(display, surface, surface, context)) {
+                    return fail("eglMakeCurrent失败")
+                }
+                Result.success(renderAndRead(width, height))
+            } finally {
+                EGL14.eglMakeCurrent(display, EGL14.EGL_NO_SURFACE, EGL14.EGL_NO_SURFACE, EGL14.EGL_NO_CONTEXT)
+                EGL14.eglDestroySurface(display, surface)
+                EGL14.eglDestroyContext(display, context)
+                EGL14.eglTerminate(display)
+                EGL14.eglReleaseThread()
+            }
+        } catch (e: GlStatusError) {
+            fail(e.message ?: "GL错误")
+        } catch (e: Throwable) {
+            fail("异常: ${e.javaClass.simpleName}: ${e.message}")
+        }
+    }
+
+    private class GlStatusError(code: Int) : IllegalStateException("GL错误($code)")
+
+    private fun renderAndRead(width: Int, height: Int): ByteArray {
         GLES20.glViewport(0, 0, width, height)
         GLES20.glClearColor(18f / 255f, 20f / 255f, 32f / 255f, 1f)
         GLES20.glClear(GLES20.GL_COLOR_BUFFER_BIT)
@@ -111,23 +154,13 @@ object HardwareReaders {
         val buf = ByteBuffer.allocateDirect(width * height * 4).order(ByteOrder.nativeOrder())
         GLES20.glReadPixels(0, 0, width, height, GLES20.GL_RGBA, GLES20.GL_UNSIGNED_BYTE, buf)
         val error = GLES20.glGetError()
-        if (error != GLES20.GL_NO_ERROR) return "GL错误($error)"
+        if (error != GLES20.GL_NO_ERROR) throw GlStatusError(error)
 
         // 不依赖 direct buffer 的 array() 访问能力（规范上不保证可用），显式拷出字节
         buf.rewind()
         val pixels = ByteArray(buf.remaining())
         buf.get(pixels)
-
-        // GL 是 bottom-up，翻转行序使与画布坐标系一致
-        val row = ByteArray(width * 4)
-        for (y in 0 until height / 2) {
-            val top = y * width * 4
-            val bottom = (height - 1 - y) * width * 4
-            System.arraycopy(pixels, top, row, 0, row.size)
-            System.arraycopy(pixels, bottom, pixels, top, row.size)
-            System.arraycopy(row, 0, pixels, bottom, row.size)
-        }
-        return HashUtils.ofBytes(pixels)
+        return pixels
     }
 
     private fun drawRect(left: Float, top: Float, right: Float, bottom: Float, color: FloatArray) {

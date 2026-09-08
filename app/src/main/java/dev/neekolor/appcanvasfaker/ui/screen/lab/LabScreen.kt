@@ -63,7 +63,7 @@ import top.yukonga.miuix.kmp.utils.scrollEndHaptic
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 
 /**
- * 实验室二级页（设置 → 实验性功能）：伪装执行模式切换。
+ * 实验性功能二级页（设置 → 实验性功能）：伪装执行模式切换。
  * 全替换模式尚未实现，选了也不会有效果，故置灰禁用；噪声模式为当前线上行为。
  */
 @Composable

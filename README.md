@@ -5,7 +5,7 @@ Canvas 指纹随机化伪装模块。在目标应用进程内 Hook Canvas/Bitmap
 | 项目 | 值 |
 |---|---|
 | 包名 | `dev.neekolor.appcanvasfaker` |
-| 版本 | 0.8.6-dev (versionCode 43) |
+| 版本 | 0.8.8-dev (versionCode 45) |
 | 运行环境 | Android · root · LSPosed |
 | 实现 | Kotlin · Jetpack Compose · Navigation3 · Miuix + Material3 双皮肤 |
 | 许可证 | GPL-3.0（[LICENSE](LICENSE) / [NOTICE](NOTICE)） |

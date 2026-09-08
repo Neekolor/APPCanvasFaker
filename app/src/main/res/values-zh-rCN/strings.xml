@@ -15,12 +15,16 @@
     <string name="about_source_code"><![CDATA[在 %1$s 查看源码]]></string>
     <string name="about_description">一款画布指纹伪装模块。</string>
     <string name="about_license">本项目遵循 GPL-3.0 开源许可。</string>
+    <string name="profile" translatable="false">App Profile</string>
+    <string name="xposed_description">随机化 Android 画布与网页画布指纹读取，防止设备追踪。</string>
     <string name="recently_installed">最近安装</string>
     <string name="launch_app">启动</string>
     <string name="force_stop_app">强制停止</string>
     <string name="restart_app">重新启动</string>
+    <string name="force_stop_confirm">现在强制停止该应用？</string>
+    <string name="restart_app_confirm">重启该应用（先停止再启动）？</string>
     <string name="settings_profile_template">实验性功能</string>
-    <string name="settings_profile_template_summary">伪装执行模式切换，前往实验室查看。</string>
+    <string name="settings_profile_template_summary">伪装执行模式切换。</string>
     <string name="settings_check_update">检查更新</string>
     <string name="settings_check_update_summary">在应用启动后自动检查是否有最新版</string>
     <string name="update_checking">正在检查新版…</string>
@@ -31,7 +35,7 @@
     <string name="update_install_now">下载完成，是否立即安装？</string>
     <string name="update_install">安装</string>
     <string name="update_failed">检查失败：%1$s</string>
-    <string name="lab_title">实验室</string>
+    <string name="lab_title">实验性功能</string>
     <string name="lab_noise_summary">对读取到的像素施加确定性微扰，当前线上模式。</string>
     <string name="lab_full_unavailable">暂未实现，敬请期待。</string>
     <string name="lab_note">切换伪装执行模式，改动后需重启目标应用生效。</string>
@@ -104,10 +108,12 @@
     <string name="stats_empty">还没有 Hook 计数，去用一次再回来</string>
     <string name="stats_clear">清空统计</string>
     <string name="stats_clear_confirm">确定要清空全部 Hook 统计吗？</string>
+    <string name="stats_footnote">计数仅供参考，模块被强停期间的命中会丢失。</string>
     <string name="ssaid_restart_required">SSAID已随机化，请重启手机</string>
     <string name="ssaid_deleted">SSAID已删除，请重启手机</string>
     <string name="ssaid_reboot_title">重启手机</string>
     <string name="ssaid_reboot_content">SSAID 已写入系统，需要重启手机才能生效。现在重启吗？</string>
+    <string name="ssaid_user0_note">仅支持机主（user 0），工作资料/双开无效。</string>
     <string name="reboot_later">稍后重启</string>
     <string name="reboot_now">重启</string>
     <string name="reboot_failed">重启指令发送失败，请手动重启手机</string>
@@ -127,7 +133,7 @@
     <string name="tag_hook" translatable="false">HOOK</string>
     <string name="tag_inactive" translatable="false">INACTIVE</string>
     <string name="randomize_fingerprint">随机化指纹值</string>
-    <string name="randomize_seed_label">随机化该应用的哈希seed</string>
+    <string name="randomize_seed_label">随机化该应用的哈希seed，重启目标应用后生效</string>
     <string name="randomize_confirm_message">确定要随机化该应用的哈希seed吗？随机化后将改变其画布指纹哈希值。</string>
     <string name="randomize_success">已随机化哈希seed</string>
     <string name="randomized_values">随机化后的各项指纹值</string>
@@ -149,7 +155,7 @@
     <string name="ssaid_delete_success">SSAID 已删除</string>
     <string name="ssaid_operation_failed">操作失败，需要 root 授权。</string>
     <string name="enable_feature">随机化功能启用</string>
-    <string name="enable_feature_summary">对该应用启用画布指纹伪装</string>
+    <string name="enable_feature_summary">对该应用启用画布指纹伪装，重启目标应用后生效。</string>
     <string name="settings_log">日志</string>
     <string name="settings_log_summary">查看 Hook 与随机化日志记录</string>
     <string name="log_title">日志</string>

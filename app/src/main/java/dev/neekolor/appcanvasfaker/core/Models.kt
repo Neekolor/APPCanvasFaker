@@ -2,7 +2,7 @@ package dev.neekolor.appcanvasfaker.core
 
 enum class ProtectionMode(val title: String) {
     NOISE("噪声模式"),
-    /** 全替换模式：功能未实现（实验室置灰不可选），引擎恒按噪声执行，见 FingerprintEngine。 */
+    /** 全替换模式：功能未实现（实验性功能页置灰不可选），引擎恒按噪声执行，见 FingerprintEngine。 */
     FULL_REPLACE("全替换模式"),
 }
 
@@ -36,7 +36,8 @@ data class InstalledApp(
     val isSystem: Boolean,
     val firstInstallTime: Long,
     val lastUpdateTime: Long,
-    val rule: AppRule
+    val rule: AppRule,
+    val applicationInfo: android.content.pm.ApplicationInfo?
 )
 
 data class ModuleSnapshot(

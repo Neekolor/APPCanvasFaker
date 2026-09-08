@@ -185,13 +185,6 @@ class MainActivity : ComponentActivity() {
                         )
                     }
 
-                    when (uiMode) {
-                        UiMode.Material -> androidx.compose.material3.Scaffold(
-                            containerColor = MaterialTheme.colorScheme.surfaceContainer
-                        ) { navDisplay() }
-
-                        UiMode.Miuix -> Scaffold { navDisplay() }
-                    }
                     // 启动自动检查只在有新版时弹；手动检查的弹窗在关于页。
                     // 此处兜底：自动检查弹出的新版/安装确认在任何页面都可见。
                     // Miuix OverlayDialog 必须挂在 Scaffold 内容里（popup 宿主），故写进各自 Scaffold。

@@ -7,6 +7,8 @@ import android.graphics.Canvas
 import android.graphics.Paint
 import android.graphics.Rect
 import android.os.Parcel
+import dev.neekolor.appcanvasfaker.core.FingerprintEngine
+import dev.neekolor.appcanvasfaker.hook.BitmapHooks
 import dev.neekolor.appcanvasfaker.util.HashUtils
 import dev.neekolor.appcanvasfaker.scanner.core.StandardCanvas
 import java.io.ByteArrayInputStream
@@ -32,6 +34,37 @@ object NonPixelSignals {
             metrics.top,
             metrics.bottom,
             paint.getFontMetricsInt().toString()
+        ).joinToString("|")
+        return HashUtils.ofString(raw)
+    }
+
+    /**
+     * E1 模拟值：把 Hook 对目标进程做的同款缩放搬到本进程算一遍，
+     * 与真实被 Hook 结果一致（measureText 按文本哈希因子，度量族按 seed 因子，
+     * breakText 因出参 null 在 Hook 侧本就是 no-op，此处同样不动）。
+     */
+    fun fontMetricsSimulated(seed: Long): String {
+        val paint = Paint(Paint.ANTI_ALIAS_FLAG).apply { textSize = 24f * StandardCanvas.DENSITY }
+        val metrics = paint.fontMetrics
+        val text = StandardCanvas.TEXT
+        val textHash = BitmapHooks.textHashOf(text, 0, text.length)
+        val advance = FingerprintEngine.scaleMetric(
+            paint.measureText(text),
+            FingerprintEngine.textFactor(seed, textHash, paint.textSize)
+        )
+        val breakCount = paint.breakText(text, true, 150f, null)
+        val plain = FingerprintEngine.textFactor(seed, 0L, paint.textSize)
+        val fmInt = paint.getFontMetricsInt().apply {
+            FingerprintEngine.scaleFontMetricsInt(this, plain)
+        }
+        val raw = listOf(
+            advance,
+            breakCount.toFloat(),
+            FingerprintEngine.scaleMetric(metrics.ascent, plain),
+            FingerprintEngine.scaleMetric(metrics.descent, plain),
+            FingerprintEngine.scaleMetric(metrics.top, plain),
+            FingerprintEngine.scaleMetric(metrics.bottom, plain),
+            fmInt.toString()
         ).joinToString("|")
         return HashUtils.ofString(raw)
     }

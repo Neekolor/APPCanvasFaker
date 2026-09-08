@@ -21,8 +21,10 @@
     <string name="launch_app">Launch</string>
     <string name="force_stop_app">Force stop</string>
     <string name="restart_app">Restart</string>
+    <string name="force_stop_confirm">Force-stop this app now?</string>
+    <string name="restart_app_confirm">Restart this app (force-stop, then launch)?</string>
     <string name="settings_profile_template">Experimental</string>
-    <string name="settings_profile_template_summary">Switch protection mode in Lab.</string>
+    <string name="settings_profile_template_summary">Switch protection mode.</string>
     <string name="settings_check_update">Check for updates</string>
     <string name="settings_check_update_summary">Automatically check for updates when opening the app.</string>
     <string name="update_checking">Checking for updates…</string>
@@ -33,7 +35,7 @@
     <string name="update_install_now">Download finished. Install now?</string>
     <string name="update_install">Install</string>
     <string name="update_failed">Check failed: %1$s</string>
-    <string name="lab_title">Lab</string>
+    <string name="lab_title">Experimental</string>
     <string name="lab_noise_summary">Applies deterministic noise to read pixels. Current production mode.</string>
     <string name="lab_full_unavailable">Not implemented yet.</string>
     <string name="lab_note">Switch the protection mode. Restart target apps to take effect.</string>
@@ -58,10 +60,12 @@
     <string name="stats_empty">No hook counts yet — use an app first</string>
     <string name="stats_clear">Clear stats</string>
     <string name="stats_clear_confirm">Are you sure you want to clear all Hook stats?</string>
+    <string name="stats_footnote">Counts are indicative only — hits while the module is force-stopped are lost.</string>
     <string name="ssaid_restart_required">SSAID randomized, please reboot the device</string>
     <string name="ssaid_deleted">SSAID deleted, please reboot the device</string>
     <string name="ssaid_reboot_title">Reboot device</string>
     <string name="ssaid_reboot_content">SSAID has been written. A reboot is required to take effect. Reboot now?</string>
+    <string name="ssaid_user0_note">Only the primary user (user 0) is supported.</string>
     <string name="reboot_later">Later</string>
     <string name="reboot_now">Reboot</string>
     <string name="reboot_failed">Failed to send reboot command, please reboot manually</string>
@@ -129,7 +133,7 @@
     <string name="tag_hook" translatable="false">HOOK</string>
     <string name="tag_inactive" translatable="false">INACTIVE</string>
     <string name="randomize_fingerprint">Randomize Fingerprint</string>
-    <string name="randomize_seed_label">Randomize this app\'s hash seed</string>
+    <string name="randomize_seed_label">Randomize this app\'s hash seed, effective after app restart</string>
     <string name="randomize_confirm_message">Are you sure you want to randomize this app\'s hash seed? The fingerprint will be changed after the next read.</string>
     <string name="randomize_success">Hash seed randomized</string>
     <string name="randomized_values">Randomized Fingerprint Values</string>
@@ -151,7 +155,7 @@
     <string name="ssaid_delete_success">SSAID deleted</string>
     <string name="ssaid_operation_failed">Operation failed. Root permission is required.</string>
     <string name="enable_feature">Enable Randomization</string>
-    <string name="enable_feature_summary">Enable canvas fingerprint spoofing for this app.</string>
+    <string name="enable_feature_summary">Enable canvas fingerprint spoofing for this app. Takes effect after the app restarts.</string>
     <string name="settings_log">Log</string>
     <string name="settings_log_summary">View Hook and randomization logs.</string>
     <string name="log_title">Log</string>

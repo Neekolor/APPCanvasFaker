@@ -146,13 +146,18 @@ class ConfigRepository(private val context: Context) {
      * mode 为当前保护模式。hash 只存前后各 8 位（位移判断够用，不膨胀 prefs）。
      */
     fun recordHookHit(pkg: String, fingerprint: String, seed: Long, path: String?, timestamp: Long) {
+        // 广播发送方可伪造：包名/哈希格式不对直接丢，时间戳钳位，键空间才有界
+        if (pkg.length > 224 || !PKG_PATTERN.matches(pkg)) return
+        if (fingerprint.length != 64 || !fingerprint.all { it in '0'..'9' || it in 'a'..'f' }) return
+        val now = System.currentTimeMillis()
+        val ts = if (kotlin.math.abs(timestamp - now) > 86_400_000L) now else timestamp
         synchronized(writeLock) {
             val prevHash = stats.getString(KEY_PKG_HASH(pkg), null)
             val count = stats.getLong(KEY_PKG_COUNT(pkg), 0L) + 1L
             val e = stats.edit()
             e.putLong(KEY_PKG_COUNT(pkg), count)
             e.putString(KEY_PKG_HASH(pkg), fingerprint)
-            e.putLong(KEY_PKG_LAST_TIME(pkg), timestamp)
+            e.putLong(KEY_PKG_LAST_TIME(pkg), ts)
             e.putLong(KEY_GLOBAL_COUNT, stats.getLong(KEY_GLOBAL_COUNT, 0L) + 1L)
             val today = todayStr()
             if (stats.getString(KEY_TODAY_DATE, "") != today) {
@@ -163,7 +168,7 @@ class ConfigRepository(private val context: Context) {
             }
             if (config().optBoolean("enable_logging", true)) {
                 val log = JSONObject()
-                    .put("ts", timestamp)
+                    .put("ts", ts)
                     .put("level", "I")
                     .put("tag", "Hook")
                     .put("msg", pkg)
@@ -250,8 +255,15 @@ class ConfigRepository(private val context: Context) {
             val a4 = runCatching { PixelReaders.compressPng(std) }.getOrElse(error)
             val a4b = runCatching { PixelReaders.compressJpeg(std) }.getOrElse(error)
             val a2 = runCatching { PixelReaders.getPixel(std) }.getOrElse(error)
-            val e1 = runCatching { NonPixelSignals.fontMetrics() }.getOrElse(error)
-            val d1 = runCatching { HardwareReaders.glReadPixels() }.getOrElse(error)
+            // seed 非空时 E1/D1 同样走 Hook 同款扰动，否则模拟值恒等于基准、误导用户
+            val e1 = runCatching {
+                if (seed != null) NonPixelSignals.fontMetricsSimulated(seed)
+                else NonPixelSignals.fontMetrics()
+            }.getOrElse(error)
+            val d1 = runCatching {
+                if (seed != null) HardwareReaders.glReadPixelsSimulated(seed)
+                else HardwareReaders.glReadPixels()
+            }.getOrElse(error)
             return listOf(
                 FingerprintValue("A1", "像素直读（getPixels）", foldIfHash(a1)),
                 FingerprintValue("A3", "缓冲拷贝（copyPixelsToBuffer）", foldIfHash(a3)),
@@ -444,7 +456,8 @@ class ConfigRepository(private val context: Context) {
                         isSystem = (appInfo.flags and ApplicationInfo.FLAG_SYSTEM) != 0,
                         firstInstallTime = pkgInfo.firstInstallTime,
                         lastUpdateTime = pkgInfo.lastUpdateTime,
-                        rule = getRule(pkgInfo.packageName)
+                        rule = getRule(pkgInfo.packageName),
+                        applicationInfo = appInfo
                     )
                 }
                 .filter {
@@ -481,19 +494,28 @@ class ConfigRepository(private val context: Context) {
 
     private fun saveConfig(c: JSONObject) {
         // 配置双写：本地不断档，远端（若绑定）即时同步供 hook 侧读取
-        localPrefs.edit().putString(KEY_CONFIG_JSON, c.toString()).apply()
-        RemoteBridge.remote()?.edit()?.putString(KEY_CONFIG_JSON, c.toString())?.apply()
+        synchronized(writeLock) {
+            localPrefs.edit().putString(KEY_CONFIG_JSON, c.toString()).apply()
+            RemoteBridge.remote()?.edit()?.putString(KEY_CONFIG_JSON, c.toString())?.apply()
+        }
     }
 
     /**
      * 绑定瞬间把本地配置推远端（本地胜出）：覆盖"未激活时配好规则、
      * 激活后远端还是空"的断档。只推 config_json；统计面本就只在本地。
+     * 与 saveConfig 同锁防旧覆盖新；远端瞬时失败补试两次。
      */
     fun pushLocalConfigToRemote() {
-        val remote = RemoteBridge.remote() ?: return
-        val local = localPrefs.getString(KEY_CONFIG_JSON, null) ?: return
-        runCatching {
-            remote.edit()?.putString(KEY_CONFIG_JSON, local)?.apply()
+        synchronized(writeLock) {
+            val remote = RemoteBridge.remote() ?: return
+            val local = localPrefs.getString(KEY_CONFIG_JSON, null) ?: return
+            repeat(3) {
+                val ok = runCatching {
+                    remote.edit()?.putString(KEY_CONFIG_JSON, local)?.apply()
+                }.isSuccess
+                if (ok) return
+            }
+            android.util.Log.w("ConfigRepository", "pushLocalConfigToRemote failed after retries")
         }
     }
 
@@ -559,6 +581,9 @@ class ConfigRepository(private val context: Context) {
         private const val KEY_TODAY_COUNT = RemoteConfig.KEY_TODAY_COUNT
         private const val KEY_TODAY_DATE = RemoteConfig.KEY_TODAY_DATE
         private const val MAX_LOGS = 1000
+
+        /** 统计上报包名合法性：与 root shell 白名单同口径，伪造广播先拦格式。 */
+        private val PKG_PATTERN = Regex("^[A-Za-z0-9_.]+$")
 
         /**
          * 写锁：配置 JSON 与日志数组都是"读出→内存修改→整份写回"模式。

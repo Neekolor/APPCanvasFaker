@@ -47,10 +47,6 @@ import top.yukonga.miuix.kmp.theme.MiuixTheme.colorScheme
 import top.yukonga.miuix.kmp.utils.overScrollVertical
 import top.yukonga.miuix.kmp.utils.scrollEndHaptic
 
-/**
- * @author weishu
- * @date 2023/1/1.
- */
 @Composable
 fun SettingPagerMiuix(
     uiState: SettingsUiState,
@@ -204,7 +200,7 @@ fun SettingPagerMiuix(
                                     tint = colorScheme.onBackground
                                 )
                             },
-                            // 实验性功能 → 实验室二级页（模式切换）
+                            // 跳转实验性功能二级页（模式切换）
                             onClick = actions.onOpenLab
                         )
                         val log = stringResource(id = R.string.settings_log)

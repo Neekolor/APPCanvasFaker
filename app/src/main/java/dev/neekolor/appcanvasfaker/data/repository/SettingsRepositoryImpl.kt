@@ -67,19 +67,11 @@ class SettingsRepositoryImpl : SettingsRepository {
         get() = prefs.getFloat("page_scale", 1.0f)
         set(value) = prefs.edit { putFloat("page_scale", value) }
 
-    override var superuserShowSystemApps: Boolean
-        get() = prefs.getBoolean("show_system_apps", false)
-        set(value) = prefs.edit { putBoolean("show_system_apps", value) }
-
-    override var superuserShowOnlyPrimaryUserApps: Boolean
-        get() = prefs.getBoolean("show_only_primary_user_apps", false)
-        set(value) = prefs.edit { putBoolean("show_only_primary_user_apps", value) }
-
-    override var superuserSortOption: Int
-        get() = prefs.getInt("superuser_sort_option", 0)
-        set(value) = prefs.edit { putInt("superuser_sort_option", value) }
-
     override var ssaidEnabled: Boolean
         get() = prefs.getBoolean("ssaid_enabled", false)
         set(value) = prefs.edit { putBoolean("ssaid_enabled", value) }
+
+    override var presetSelected: Int
+        get() = prefs.getInt("behavior_preset", -1)
+        set(value) = prefs.edit { putInt("behavior_preset", value) }
 }
