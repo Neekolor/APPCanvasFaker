@@ -53,11 +53,12 @@ object BitmapHooks {
     /** 去重：同包同状态（seed:hash）只上报一次（见 recordStats）。 */
     private val lastSentHash = ConcurrentHashMap<String, String>()
 
-    /** 伪装像素上限（约 4K 一帧）：超限整图操作直接放行，避免目标进程 OOM/长时间卡顿。 */
+    /** 伪装像素上限（约 1440p 一帧）：超限整图操作直接放行，避免目标进程 OOM/长时间卡顿。 */
     private const val MAX_FAKE_PIXELS = 4_000_000
     private var a3FormatWarned = false
+    /** C2 存毒备忘：位图 → 存毒时的内容代次；复用位图内容变化即重毒，不再永久跳过。 */
     private val poisonedBitmaps =
-        Collections.synchronizedMap(WeakHashMap<android.graphics.Bitmap, Boolean>())
+        Collections.synchronizedMap(WeakHashMap<android.graphics.Bitmap, Int>())
 
     fun install(
         module: XposedInterface,
@@ -635,16 +636,20 @@ object BitmapHooks {
     /**
      * C2 存毒：经标准 getPixels 读出（触发 A1 链，附带一层同源噪声）再
      * setPixels 写回，使延迟读取/跨进程传递等非标准消费同样拿到假像素。
-     * 超限位图与已存毒位图直接放过；任何失败 fail-open，只转发原回调。
+     * 超限位图直接放过；同位图内容未变跳过（generationId 比对），变了重毒；
+     * 任何失败 fail-open，只转发原回调。
      */
     private fun poisonPixelCopyTarget(bitmap: android.graphics.Bitmap) {
         val w = bitmap.width
         val h = bitmap.height
         if (w <= 0 || h <= 0 || w.toLong() * h > MAX_FAKE_PIXELS) return
-        if (poisonedBitmaps.putIfAbsent(bitmap, true) != null) return
-        val pixels = IntArray(w * h)
-        bitmap.getPixels(pixels, 0, w, 0, 0, w, h)
-        bitmap.setPixels(pixels, 0, w, 0, 0, w, h)
+        synchronized(poisonedBitmaps) {
+            if (poisonedBitmaps[bitmap] == bitmap.generationId) return
+            val pixels = IntArray(w * h)
+            bitmap.getPixels(pixels, 0, w, 0, 0, w, h)
+            bitmap.setPixels(pixels, 0, w, 0, 0, w, h)
+            poisonedBitmaps[bitmap] = bitmap.generationId
+        }
     }
 
     // ---------- E1 文本哈希 ----------
@@ -738,6 +743,8 @@ object BitmapHooks {
             // 原生异常（如 buffer 容量不足）不吞——保持与未装 Hook 一致的宿主语义
             chain.proceed()
             if (w <= 0 || h <= 0) return null
+            // 整图 IntArray + 全量扰动在目标线程：超限直接放过（与 C2/A4 同阈值）
+            if (w.toLong() * h > MAX_FAKE_PIXELS) return null
             // 非 ARGB_8888 的字节布局不同（RGB_565 2B/px、RGBA_F16 8B/px），int 视图覆写会破坏数据：
             // 宁可放过不伪装，也不写坏调用方持有的 buffer（热路径只提示一次）
             if (bmp.config != Bitmap.Config.ARGB_8888) {
@@ -812,9 +819,7 @@ object BitmapHooks {
         }
         insideFake.set(true)
         try {
-            // 参数提取/内存编码任一环节抛错都回退原始编码，保证 proceed 恰一次
-            return runCatching { compressFake(chain, packageName, mode, seed) }
-                .getOrElse { proceedRaw(chain) }
+            return compressFake(chain, packageName, mode, seed)
         } finally {
             insideFake.remove()
         }
@@ -822,8 +827,8 @@ object BitmapHooks {
 
     /**
      * 先在内存完成伪装编码，成功后才一次性写入目标流；
-     * 任一环节失败则回退原始编码（整条链上 proceed 至多一次），
-     * 杜绝"半截伪製数据已写入流 + 回退再写原始数据"造成的输出损坏。
+     * 编码失败回退原始编码，写入失败直接上抛不再回退
+     * （流已坏，回退追加原始数据只会掺脏；整条链上 proceed 至多一次）。
      */
     private fun compressFake(
         chain: XposedInterface.Chain,
@@ -831,10 +836,15 @@ object BitmapHooks {
         mode: ProtectionMode,
         seed: Long,
     ): Boolean {
-        val format = chain.getArg(0) as Bitmap.CompressFormat
-        val quality = chain.getArg(1) as Int
-        val stream = chain.getArg(2) as OutputStream
-        val bmp = chain.getThisObject() as Bitmap
+        // 参数提取失败说明调用形态异常：原方法未执行，直接回退（此后整条链只 proceed 这一次）
+        val format = runCatching { chain.getArg(0) as Bitmap.CompressFormat }.getOrNull()
+            ?: return proceedRaw(chain)
+        val quality = runCatching { chain.getArg(1) as Int }.getOrNull()
+            ?: return proceedRaw(chain)
+        val stream = runCatching { chain.getArg(2) as OutputStream }.getOrNull()
+            ?: return proceedRaw(chain)
+        val bmp = runCatching { chain.getThisObject() as Bitmap }.getOrNull()
+            ?: return proceedRaw(chain)
         val w = bmp.width
         val h = bmp.height
         if (w <= 0 || h <= 0 || w.toLong() * h > MAX_FAKE_PIXELS) {
@@ -888,16 +898,24 @@ object BitmapHooks {
         path: String,
     ) {
         val now = SystemClock.elapsedRealtime()
-        // 先读后写：被跳过的调用不许推移窗口，否则高频流下统计永久停摆
-        val last = lastStatsTime[packageName]
-        if (last != null && now - last < STATS_MIN_INTERVAL_MS) return
+        // 先读后写：被跳过的调用不许推移窗口，否则高频流下统计永久停摆；
+        // 窗口同步预占：突发调用在 hook 线程先落败，不进 executor 排队
+        while (true) {
+            val last = lastStatsTime[packageName]
+            if (last != null && now - last < STATS_MIN_INTERVAL_MS) return
+            val claimed = if (last == null) lastStatsTime.putIfAbsent(packageName, now) == null
+            else lastStatsTime.replace(packageName, last, now)
+            if (claimed) break
+        }
         runCatching {
             statsExecutor.execute {
                 runCatching {
                     val fp = fingerprintOf(pixels)
                     val key = "$seed:$fp"
-                    if (lastSentHash.put(packageName, key) == key) return@execute
-                    lastStatsTime[packageName] = now
+                    if (lastSentHash.put(packageName, key) == key) {
+                        lastStatsTime.remove(packageName, now)
+                        return@execute
+                    }
                     sendHookHit(packageName, seed, fp, path)
                 }.onFailure { Log.e(TAG, "recordStats failed", it) }
             }

@@ -22,6 +22,9 @@ object RootShell {
         val isSuccess: Boolean get() = exitCode == 0
     }
 
+    /** 包名拼入 shell 前的单引号包裹（与调用方正则校验双层防御）。 */
+    fun shellQuote(s: String) = "'${s.replace("'", "'\\''")}'"
+
     @Volatile
     private var available: Boolean? = null
 

@@ -20,6 +20,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Security
 import androidx.compose.material.icons.outlined.Casino
@@ -47,6 +48,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import dev.neekolor.appcanvasfaker.R
@@ -192,44 +194,74 @@ private fun AppProfileContent(
             )
         )
 
-        if (state.fingerprints.isEmpty()) {
-            Text(
-                text = stringResource(R.string.log_empty),
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 16.dp, vertical = 24.dp),
-            )
-        } else {
+        val preview = state.reseed
+        if (preview != null) {
             SegmentedColumn(
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(horizontal = 16.dp, vertical = 8.dp),
-                title = stringResource(R.string.randomized_values),
-                content = state.fingerprints.map { fp ->
-                    @Composable {
+                title = stringResource(R.string.reseed_title),
+                content = listOf(
+                    {
+                        ReseedCompareRowMaterial(
+                            label = "seed",
+                            old = preview.oldSeed.toString(),
+                            new = preview.newSeed.toString(),
+                            changed = preview.oldSeed != preview.newSeed,
+                        )
+                    },
+                    {
+                        ReseedCompareRowMaterial(
+                            label = "getPixels",
+                            old = preview.oldA1,
+                            new = preview.newA1,
+                            changed = preview.oldA1 != preview.newA1,
+                        )
+                    },
+                    {
                         SegmentedListItem(
                             headlineContent = {
-                                Text(
-                                    text = "${fp.method} · ${fp.title}",
-                                    maxLines = 1,
-                                    overflow = TextOverflow.Ellipsis,
-                                )
+                                Text(stringResource(R.string.reseed_trial_note))
                             },
                             supportingContent = {
-                                Text(
-                                    text = fp.hash,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                    maxLines = 2,
-                                    overflow = TextOverflow.Ellipsis,
+                                Text(stringResource(R.string.reseed_open_log))
+                            },
+                            trailingContent = {
+                                Icon(
+                                    Icons.AutoMirrored.Filled.KeyboardArrowRight,
+                                    contentDescription = null
                                 )
                             },
+                            onClick = actions.onOpenLogs,
                         )
                     }
-                }
+                )
             )
         }
     }
+}
+
+/** 对照行：标签 + 新旧值 + 变化徽（徽塞进标题尾）。 */
+@Composable
+private fun ReseedCompareRowMaterial(label: String, old: String, new: String, changed: Boolean) {
+    SegmentedListItem(
+        headlineContent = {
+            Text("$label · ${if (changed) stringResource(R.string.reseed_changed) else ""}".trimEnd(' ', '·'))
+        },
+        supportingContent = {
+            Column {
+                Text(
+                    text = old,
+                    fontFamily = FontFamily.Monospace,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+                Text(
+                    text = new,
+                    fontFamily = FontFamily.Monospace,
+                )
+            }
+        },
+    )
 }
 
 @Composable

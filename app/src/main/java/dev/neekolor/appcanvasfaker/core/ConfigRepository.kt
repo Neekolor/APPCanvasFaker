@@ -149,6 +149,10 @@ class ConfigRepository(private val context: Context) {
         // 广播发送方可伪造：包名/哈希格式不对直接丢，时间戳钳位，键空间才有界
         if (pkg.length > 224 || !PKG_PATTERN.matches(pkg)) return
         if (fingerprint.length != 64 || !fingerprint.all { it in '0'..'9' || it in 'a'..'f' }) return
+        // 路径只收自家三条链；无规则（未启用）包不记：真流量恒有启用规则，误伤不了
+        if (path != "A1" && path != "A3" && path != "A4") return
+        val cfg = config()
+        if (cfg.optJSONObject("rules")?.optJSONObject(pkg)?.optBoolean("enabled", false) != true) return
         val now = System.currentTimeMillis()
         val ts = if (kotlin.math.abs(timestamp - now) > 86_400_000L) now else timestamp
         synchronized(writeLock) {
@@ -166,7 +170,7 @@ class ConfigRepository(private val context: Context) {
             } else {
                 e.putLong(KEY_TODAY_COUNT, stats.getLong(KEY_TODAY_COUNT, 0L) + 1L)
             }
-            if (config().optBoolean("enable_logging", true)) {
+            if (cfg.optBoolean("enable_logging", true)) {
                 val log = JSONObject()
                     .put("ts", ts)
                     .put("level", "I")
@@ -177,7 +181,7 @@ class ConfigRepository(private val context: Context) {
                     .put("count", count)
                     .put("mode", mode().name)
                     .put("new", fingerprint.take(8))
-                if (path != null) log.put("path", path)
+                    .put("path", path)
                 if (prevHash != null) {
                     log.put("moved", prevHash != fingerprint)
                     log.put("old", prevHash.take(8))
@@ -221,57 +225,77 @@ class ConfigRepository(private val context: Context) {
         return HashUtils.foldHash16(HashUtils.ofIntArray(pixels))
     }
 
-    /** 7 条读取路径的未污染基准指纹，用于与 hook 后指纹对比。 */
-    fun standardFingerprints(): List<FingerprintValue> = collectFingerprints(seed = null)
+    /**
+     * 6 条读取路径的未污染基准指纹，用于与 hook 后指纹对比。
+     * 基线是设备常量（无 seed、同画布）：算一次落盘，版本号变或手动清才重算，进页秒开。
+     */
+    fun standardFingerprints(): List<FingerprintValue> {
+        val vc = BuildConfig.VERSION_CODE
+        if (stats.getInt(KEY_BASELINE_VC, -1) == vc) {
+            decodeBaseline()?.let { return it }
+        }
+        val items = collectFingerprints()
+        saveBaseline(items, vc)
+        return items
+    }
 
-    /** 该 app 套当前模式扰动后的 7 条读取路径指纹。 */
-    fun simulatedFingerprints(pkg: String): List<FingerprintValue> {
-        val rule = getRule(pkg)
-        if (rule.seed == 0L) return emptyList()
-        return collectFingerprints(seed = rule.seed)
+    /** 清基线缓存（手动刷新入口）；下次进页重算。 */
+    fun clearBaselineCache() {
+        stats.edit().remove(KEY_BASELINE_JSON).remove(KEY_BASELINE_VC).apply()
+    }
+
+    private fun decodeBaseline(): List<FingerprintValue>? = runCatching {
+        val arr = JSONArray(stats.getString(KEY_BASELINE_JSON, null) ?: return null)
+        List(arr.length()) { i ->
+            val o = arr.getJSONObject(i)
+            FingerprintValue(o.getString("m"), o.getString("h"))
+        }
+    }.getOrNull()
+
+    private fun saveBaseline(items: List<FingerprintValue>, vc: Int) {
+        val arr = JSONArray()
+        for (fp in items) {
+            arr.put(JSONObject().put("m", fp.method).put("h", fp.hash))
+        }
+        stats.edit().putString(KEY_BASELINE_JSON, arr.toString()).putInt(KEY_BASELINE_VC, vc).apply()
     }
 
     /**
-     * 按固定方法计算 7 种标准化指纹：方法复用 scanner 采集器，
-     * 统一 320×160 标准画布，与配套扫描器算出的值可直接对比；A4b 走 JPEG 压缩方法）：
-     * - A1 getPixels / A3 copyPixelsToBuffer / A4 compress(PNG) / A4b compress(JPEG)
-     * - A2 getPixel 单点（A2）/ E1 Paint 文本度量（E1）/ D1 glReadPixels（D1）
-     * [seed] 非空时先对画布像素施加扰动，模拟 hook 后状态。
+     * A1 单值试算：标准画布经真引擎扰动后哈希，供对照卡展示新旧 seed 效果。
+     * 调的是生产代码本尊（非仿写），不存在与 Hook 漂移。
      */
-    private fun collectFingerprints(seed: Long?): List<FingerprintValue> {
+    fun trialA1(seed: Long): String {
+        val pixels = standardPixels()
+        FingerprintEngine.applyPixels(
+            pixels, StandardCanvas.WIDTH, StandardCanvas.HEIGHT, 0, StandardCanvas.WIDTH, 0, 0, mode(), seed
+        )
+        return foldIfHash(HashUtils.ofIntArray(pixels))
+    }
+
+    /**
+     * 按固定方法计算 6 种标准化指纹：方法复用 scanner 采集器，
+     * 统一 320×160 标准画布，与配套扫描器算出的值可直接对比（A4b 为 A4 同链 JPEG 形态，并入 A4 行）：
+     * - A1 getPixels / A3 copyPixelsToBuffer / A4 compress(PNG) / A4b 同链
+     * - A2 getPixel 单点（A2）/ E1 Paint 文本度量（E1）/ D1 glReadPixels（D1）
+     * 全为本机实测基线（模块自身不可被 Hook），不做任何 seed 扰动。
+     */
+    private fun collectFingerprints(): List<FingerprintValue> {
         val std = runCatching { StandardCanvas.createBitmap() }.getOrNull() ?: return emptyList()
         try {
-            if (seed != null) {
-                val pixels = IntArray(StandardCanvas.WIDTH * StandardCanvas.HEIGHT)
-                std.getPixels(pixels, 0, StandardCanvas.WIDTH, 0, 0, StandardCanvas.WIDTH, StandardCanvas.HEIGHT)
-                FingerprintEngine.applyPixels(
-                    pixels, StandardCanvas.WIDTH, StandardCanvas.HEIGHT, 0, StandardCanvas.WIDTH, 0, 0, mode(), seed
-                )
-                std.setPixels(pixels, 0, StandardCanvas.WIDTH, 0, 0, StandardCanvas.WIDTH, StandardCanvas.HEIGHT)
-            }
             val error = { e: Throwable -> "异常: ${e.javaClass.simpleName}" }
             val a1 = runCatching { PixelReaders.getPixels(std) }.getOrElse(error)
             val a3 = runCatching { PixelReaders.copyPixelsToBuffer(std) }.getOrElse(error)
             val a4 = runCatching { PixelReaders.compressPng(std) }.getOrElse(error)
-            val a4b = runCatching { PixelReaders.compressJpeg(std) }.getOrElse(error)
             val a2 = runCatching { PixelReaders.getPixel(std) }.getOrElse(error)
-            // seed 非空时 E1/D1 同样走 Hook 同款扰动，否则模拟值恒等于基准、误导用户
-            val e1 = runCatching {
-                if (seed != null) NonPixelSignals.fontMetricsSimulated(seed)
-                else NonPixelSignals.fontMetrics()
-            }.getOrElse(error)
-            val d1 = runCatching {
-                if (seed != null) HardwareReaders.glReadPixelsSimulated(seed)
-                else HardwareReaders.glReadPixels()
-            }.getOrElse(error)
+            val e1 = runCatching { NonPixelSignals.fontMetrics() }.getOrElse(error)
+            val d1 = runCatching { HardwareReaders.glReadPixels() }.getOrElse(error)
             return listOf(
-                FingerprintValue("A1", "像素直读（getPixels）", foldIfHash(a1)),
-                FingerprintValue("A3", "缓冲拷贝（copyPixelsToBuffer）", foldIfHash(a3)),
-                FingerprintValue("A4", "PNG 压缩（compress）", foldIfHash(a4)),
-                FingerprintValue("A4b", "JPEG 压缩（compress）", foldIfHash(a4b)),
-                FingerprintValue("A2", "单点读取（getPixel）", foldIfHash(a2)),
-                FingerprintValue("E1", "文本度量（Paint）", foldIfHash(e1)),
-                FingerprintValue("D1", "GL 直读（glReadPixels）", foldIfHash(d1)),
+                FingerprintValue("A1", foldIfHash(a1)),
+                FingerprintValue("A3", foldIfHash(a3)),
+                FingerprintValue("A4", foldIfHash(a4)),
+                FingerprintValue("A2", foldIfHash(a2)),
+                FingerprintValue("E1", foldIfHash(e1)),
+                FingerprintValue("D1", foldIfHash(d1)),
             )
         } finally {
             std.recycle()   // finally 内回收：异常路径也不泄漏位图
@@ -493,10 +517,15 @@ class ConfigRepository(private val context: Context) {
     }
 
     private fun saveConfig(c: JSONObject) {
-        // 配置双写：本地不断档，远端（若绑定）即时同步供 hook 侧读取
+        // 配置双写：本地同步不断档；远端 binder IPC 不许占主线程，丢单线程池异步保序
+        val snapshot = c.toString()
         synchronized(writeLock) {
-            localPrefs.edit().putString(KEY_CONFIG_JSON, c.toString()).apply()
-            RemoteBridge.remote()?.edit()?.putString(KEY_CONFIG_JSON, c.toString())?.apply()
+            localPrefs.edit().putString(KEY_CONFIG_JSON, snapshot).apply()
+        }
+        configIO.execute {
+            runCatching {
+                RemoteBridge.remote()?.edit()?.putString(KEY_CONFIG_JSON, snapshot)?.apply()
+            }
         }
     }
 
@@ -581,6 +610,8 @@ class ConfigRepository(private val context: Context) {
         private const val KEY_TODAY_COUNT = RemoteConfig.KEY_TODAY_COUNT
         private const val KEY_TODAY_DATE = RemoteConfig.KEY_TODAY_DATE
         private const val MAX_LOGS = 1000
+        private const val KEY_BASELINE_JSON = "baseline_json"
+        private const val KEY_BASELINE_VC = "baseline_vc"
 
         /** 统计上报包名合法性：与 root shell 白名单同口径，伪造广播先拦格式。 */
         private val PKG_PATTERN = Regex("^[A-Za-z0-9_.]+$")
@@ -591,6 +622,11 @@ class ConfigRepository(private val context: Context) {
          * 锁必须是全局单例——实例级锁锁不住跨实例的并发读改写。
          */
         private val writeLock = Any()
+
+        /** 远端写单线程池：binder IPC 不占调用方线程，先后顺序与调用一致。 */
+        private val configIO = java.util.concurrent.Executors.newSingleThreadExecutor { r ->
+            Thread(r, "acf-config").apply { isDaemon = true }
+        }
 
         private fun KEY_PKG_COUNT(pkg: String) = RemoteConfig.pkgCount(pkg)
         private fun KEY_PKG_HASH(pkg: String) = RemoteConfig.pkgHash(pkg)

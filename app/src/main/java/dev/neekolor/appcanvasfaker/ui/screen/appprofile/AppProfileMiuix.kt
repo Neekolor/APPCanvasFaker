@@ -46,6 +46,7 @@ import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -56,7 +57,6 @@ import dev.neekolor.appcanvasfaker.ui.theme.LocalEnableBlur
 import dev.neekolor.appcanvasfaker.ui.theme.isInDarkTheme
 import dev.neekolor.appcanvasfaker.ui.util.BlurredBar
 import dev.neekolor.appcanvasfaker.ui.util.rememberBlurBackdrop
-import top.yukonga.miuix.kmp.basic.BasicComponent
 import top.yukonga.miuix.kmp.basic.Card
 import top.yukonga.miuix.kmp.basic.DropdownImpl
 import top.yukonga.miuix.kmp.basic.Icon
@@ -246,24 +246,22 @@ private fun AppProfileContent(
                 modifier = Modifier.padding(start = 16.dp, end = 16.dp, top = 12.dp, bottom = 12.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
+                Icon(
+                    imageVector = Icons.Outlined.Casino,
+                    contentDescription = null,
+                    modifier = Modifier.padding(end = 6.dp),
+                    tint = colorScheme.onBackground
+                )
                 Column(
                     modifier = Modifier.weight(1f),
                 ) {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Icon(
-                            imageVector = Icons.Outlined.Casino,
-                            contentDescription = null,
-                            modifier = Modifier.size(20.dp).padding(end = 4.dp),
-                            tint = colorScheme.onBackground
-                        )
-                        Text(
-                            text = stringResource(R.string.randomize_fingerprint),
-                            color = colorScheme.onSurface,
-                            fontWeight = FontWeight.Medium,
-                            maxLines = 1,
-                            softWrap = false
-                        )
-                    }
+                    Text(
+                        text = stringResource(R.string.randomize_fingerprint),
+                        color = colorScheme.onSurface,
+                        fontWeight = FontWeight.Medium,
+                        maxLines = 1,
+                        softWrap = false
+                    )
                     Spacer(Modifier.height(4.dp))
                     Text(
                         text = stringResource(R.string.randomize_seed_label),
@@ -278,65 +276,106 @@ private fun AppProfileContent(
             }
         }
 
-        SmallTitle(
-            text = stringResource(R.string.randomized_values),
-            modifier = Modifier.padding(top = 4.dp)
-        )
-        if (state.fingerprints.isEmpty()) {
+        val preview = state.reseed
+        if (preview != null) {
+            SmallTitle(
+                text = stringResource(R.string.reseed_title),
+                modifier = Modifier.padding(top = 4.dp)
+            )
             Card(
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(horizontal = 12.dp)
                     .padding(bottom = 12.dp),
             ) {
-                Box(
+                Column(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(horizontal = 20.dp, vertical = 24.dp),
-                    contentAlignment = Alignment.Center,
+                        .padding(horizontal = 16.dp, vertical = 10.dp),
                 ) {
+                    ReseedCompareRow(
+                        label = "seed",
+                        old = preview.oldSeed.toString(),
+                        new = preview.newSeed.toString(),
+                        changed = preview.oldSeed != preview.newSeed,
+                    )
+                    Spacer(Modifier.height(8.dp))
+                    ReseedCompareRow(
+                        label = "getPixels",
+                        old = preview.oldA1,
+                        new = preview.newA1,
+                        changed = preview.oldA1 != preview.newA1,
+                    )
+                    Spacer(Modifier.height(8.dp))
                     Text(
-                        text = stringResource(R.string.log_empty),
-                        fontSize = 14.sp,
+                        text = stringResource(R.string.reseed_trial_note),
+                        fontSize = 12.sp,
                         color = colorScheme.onSurfaceVariantSummary,
+                        fontWeight = FontWeight.Medium,
+                        maxLines = 2
+                    )
+                    Text(
+                        text = stringResource(R.string.reseed_open_log),
+                        modifier = Modifier
+                            .padding(top = 8.dp)
+                            .clickable { actions.onOpenLogs() },
+                        color = colorScheme.primary,
+                        fontSize = 14.sp,
+                        fontWeight = FontWeight.Medium,
                     )
                 }
             }
-        } else {
-            Card(
+        }
+    }
+}
+
+/** 对照行：标签 + 新旧值 + 变化徽。 */
+@Composable
+private fun ReseedCompareRow(label: String, old: String, new: String, changed: Boolean) {
+    Row(verticalAlignment = Alignment.CenterVertically) {
+        Text(
+            text = label,
+            fontWeight = FontWeight.Medium,
+            color = colorScheme.onSurface,
+            modifier = Modifier.width(76.dp),
+            maxLines = 1,
+            softWrap = false
+        )
+        Column(modifier = Modifier.weight(1f)) {
+            Text(
+                text = old,
+                fontSize = 12.sp,
+                fontFamily = FontFamily.Monospace,
+                color = colorScheme.onSurfaceVariantSummary,
+                maxLines = 1,
+                softWrap = false
+            )
+            Text(
+                text = new,
+                fontSize = 12.sp,
+                fontFamily = FontFamily.Monospace,
+                color = colorScheme.onSurface,
+                maxLines = 1,
+                softWrap = false
+            )
+        }
+        if (changed) {
+            Box(
                 modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 12.dp)
-                    .padding(bottom = 12.dp),
+                    .padding(start = 10.dp)
+                    .clip(CircleShape)
+                    .background(colorScheme.secondaryContainer.copy(alpha = 0.8f))
+                    .padding(horizontal = 8.dp, vertical = 3.dp),
+                contentAlignment = Alignment.Center,
             ) {
-                Spacer(Modifier.height(3.dp))
-                state.fingerprints.forEach { fp ->
-                    BasicComponent(
-                        startAction = {
-                            Box(
-                                modifier = Modifier
-                                    .padding(end = 6.dp)
-                                    .clip(CircleShape)
-                                    .background(colorScheme.secondaryContainer.copy(alpha = 0.8f))
-                                    .padding(horizontal = 6.dp, vertical = 3.dp),
-                                contentAlignment = Alignment.Center,
-                            ) {
-                                Text(
-                                    text = fp.method,
-                                    fontSize = 10.sp,
-                                    fontWeight = FontWeight(750),
-                                    color = colorScheme.onSecondaryContainer,
-                                    maxLines = 1,
-                                    softWrap = false
-                                )
-                            }
-                        },
-                        title = fp.title,
-                        summary = fp.hash,
-                        insideMargin = PaddingValues(start = 11.dp, end = 16.dp, top = 8.dp, bottom = 8.dp)
-                    )
-                }
-                Spacer(Modifier.height(3.dp))
+                Text(
+                    text = stringResource(R.string.reseed_changed),
+                    fontSize = 11.sp,
+                    fontWeight = FontWeight.Medium,
+                    color = colorScheme.onSurface,
+                    maxLines = 1,
+                    softWrap = false
+                )
             }
         }
     }

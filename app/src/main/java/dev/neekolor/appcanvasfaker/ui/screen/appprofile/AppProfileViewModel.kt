@@ -35,29 +35,16 @@ class AppProfileViewModel(application: Application) : AndroidViewModel(applicati
     fun load(packageName: String) {
         if (loadedPackageName == packageName) return
         loadedPackageName = packageName
-        // 切包先清旧指纹，避免新包头部配旧指纹一闪
-        _uiState.update { it.copy(fingerprints = emptyList()) }
         loadJob?.cancel()
         val gen = ++generation
         loadJob = viewModelScope.launch {
-            // 第一步：应用基本信息立即上屏（对齐 KSU：头部卡不等任何重活）
+            // 应用基本信息立即上屏（对齐 KSU：头部卡不等任何重活）
             val quick = withContext(Dispatchers.IO) {
                 buildQuickState(packageName)
             }
             if (gen == generation && loadedPackageName == packageName) {
-                _uiState.value = quick.copy(fingerprints = _uiState.value.fingerprints)
-            }
-            // 第二步：指纹计算（渲染 + PNG + SHA-256）异步补充
-            val fingerprints = withContext(Dispatchers.Default) {
-                runCatching { repo.simulatedFingerprints(packageName) }
-                    .recoverCatching { e ->
-                        // 取消异常继续向上传播：页面切走时的 load 取消不算失败，不弹错误
-                        if (e is CancellationException) throw e
-                        emptyList()
-                    }.getOrDefault(emptyList())
-            }
-            if (gen == generation && loadedPackageName == packageName) {
-                _uiState.update { it.copy(fingerprints = fingerprints) }
+                // 切包：旧包的对照卡不带过来
+                _uiState.value = quick.copy(reseed = null)
             }
         }
     }
@@ -66,31 +53,23 @@ class AppProfileViewModel(application: Application) : AndroidViewModel(applicati
         val gen = ++generation
         viewModelScope.launch {
             repo.setHookEnabled(packageName, enabled)
-            // 画布渲染 + PNG 压缩 + 哈希为 CPU 密集操作，必须离开主线程
-            val fingerprints = withContext(Dispatchers.Default) {
-                runCatching { repo.simulatedFingerprints(packageName) }
-                    .recoverCatching { e ->
-                        // 同上：取消不算失败，直接传播
-                        if (e is CancellationException) throw e
-                        emptyList()
-                    }.getOrDefault(emptyList())
-            }
             if (gen == generation && loadedPackageName == packageName) {
-                _uiState.update { it.copy(enabled = enabled, fingerprints = fingerprints) }
+                _uiState.update { it.copy(enabled = enabled) }
             }
         }
     }
 
-    /** 随机化 seed 并刷新指纹展示；返回是否成功。 */
+    /** 随机化 seed 并给出新旧对照；返回是否成功。 */
     suspend fun randomize(packageName: String): Boolean {
         val gen = ++generation
         return try {
-            repo.randomizeSeed(packageName)
-            val fingerprints = withContext(Dispatchers.Default) {
-                repo.simulatedFingerprints(packageName)
+            val oldSeed = repo.getRule(packageName).seed
+            val newSeed = repo.randomizeSeed(packageName)
+            val (oldA1, newA1) = withContext(Dispatchers.Default) {
+                repo.trialA1(oldSeed) to repo.trialA1(newSeed)
             }
             if (gen == generation && loadedPackageName == packageName) {
-                _uiState.update { it.copy(fingerprints = fingerprints) }
+                _uiState.update { it.copy(reseed = ReseedPreview(oldSeed, newSeed, oldA1, newA1)) }
             }
             true
         } catch (e: CancellationException) {
@@ -104,8 +83,9 @@ class AppProfileViewModel(application: Application) : AndroidViewModel(applicati
     /** 菜单操作：启动应用（root，与 KSU 同路径）。返回是否成功。 */
     suspend fun launchApp(packageName: String): Boolean = withContext(Dispatchers.IO) {
         if (!isValidPackageName(packageName)) return@withContext false
+        val pkg = RootShell.shellQuote(packageName)
         RootShell.exec(
-            "cmd package resolve-activity --brief $packageName | tail -n 1 | xargs cmd activity start-activity -n"
+            "cmd package resolve-activity --brief $pkg | tail -n 1 | xargs cmd activity start-activity -n"
         ).isSuccess
     }
 
@@ -119,12 +99,14 @@ class AppProfileViewModel(application: Application) : AndroidViewModel(applicati
     suspend fun restartApp(packageName: String): Boolean = withContext(Dispatchers.IO) {
         if (!isValidPackageName(packageName)) return@withContext false
         forceStopRaw(packageName)
+        val pkg = RootShell.shellQuote(packageName)
         RootShell.exec(
-            "cmd package resolve-activity --brief $packageName | tail -n 1 | xargs cmd activity start-activity -n"
+            "cmd package resolve-activity --brief $pkg | tail -n 1 | xargs cmd activity start-activity -n"
         ).isSuccess
     }
 
-    private fun forceStopRaw(packageName: String) = RootShell.exec("am force-stop $packageName")
+    private fun forceStopRaw(packageName: String) =
+        RootShell.exec("am force-stop ${RootShell.shellQuote(packageName)}")
 
     private fun buildQuickState(packageName: String): AppProfileUiState {
         val appInfo = runCatching { pm.getApplicationInfo(packageName, 0) }.getOrNull()

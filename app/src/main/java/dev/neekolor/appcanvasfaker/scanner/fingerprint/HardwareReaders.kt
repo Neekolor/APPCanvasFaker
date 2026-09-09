@@ -7,7 +7,6 @@ import android.opengl.EGLDisplay
 import android.opengl.EGLSurface
 import android.opengl.GLES20
 import android.util.Log
-import dev.neekolor.appcanvasfaker.core.FingerprintEngine
 import dev.neekolor.appcanvasfaker.util.HashUtils
 import java.nio.ByteBuffer
 import java.nio.ByteOrder
@@ -26,23 +25,6 @@ object HardwareReaders {
             onSuccess = { HashUtils.ofBytes(flipRows(it, width, height)) },
             onFailure = { it.message ?: "未知错误" }
         )
-    }
-
-    /**
-     * D1 模拟值：Hook 对目标进程帧缓冲做的同款序号噪声搬到本进程算一遍
-     * （先扰动 bottom-up 原始字节再翻转行序，与消费侧看到的一致）。
-     * EGL 故障时回退未扰动读数（与基线同错，不编新错）。
-     */
-    fun glReadPixelsSimulated(seed: Long, width: Int = 128, height: Int = 128): String {
-        val frame = renderFrame(width, height)
-        val raw = frame.getOrNull() ?: return glReadPixels(width, height)
-        val buf = ByteBuffer.allocateDirect(raw.size).order(ByteOrder.nativeOrder())
-        buf.put(raw)
-        FingerprintEngine.applyGlPixels(buf, 0, width, height, seed)
-        buf.rewind()
-        val perturbed = ByteArray(raw.size)
-        buf.get(perturbed)
-        return HashUtils.ofBytes(flipRows(perturbed, width, height))
     }
 
     private fun flipRows(pixels: ByteArray, width: Int, height: Int): ByteArray {

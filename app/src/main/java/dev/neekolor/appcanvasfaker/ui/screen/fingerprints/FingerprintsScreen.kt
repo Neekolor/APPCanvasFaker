@@ -14,7 +14,8 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawing
 import androidx.compose.foundation.layout.systemBars
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.LargeFlexibleTopAppBar
@@ -55,6 +56,7 @@ import top.yukonga.miuix.kmp.basic.TopAppBar
 import top.yukonga.miuix.kmp.basic.Icon as MiuixIcon
 import top.yukonga.miuix.kmp.icon.MiuixIcons
 import top.yukonga.miuix.kmp.icon.extended.Back
+import top.yukonga.miuix.kmp.icon.extended.Refresh
 import top.yukonga.miuix.kmp.theme.MiuixTheme
 import top.yukonga.miuix.kmp.theme.MiuixTheme.colorScheme
 import top.yukonga.miuix.kmp.utils.overScrollVertical
@@ -78,13 +80,13 @@ fun FingerprintsScreen() {
     }
 
     when (LocalUiMode.current) {
-        UiMode.Miuix -> FingerprintsScreenMiuix(uiState, onBack)
-        UiMode.Material -> FingerprintsScreenMaterial(uiState, onBack)
+        UiMode.Miuix -> FingerprintsScreenMiuix(uiState, onBack, viewModel::refreshCache)
+        UiMode.Material -> FingerprintsScreenMaterial(uiState, onBack, viewModel::refreshCache)
     }
 }
 
 @Composable
-private fun FingerprintsScreenMiuix(uiState: FingerprintsUiState, onBack: () -> Unit) {
+private fun FingerprintsScreenMiuix(uiState: FingerprintsUiState, onBack: () -> Unit, onRefresh: () -> Unit) {
     val scrollBehavior = MiuixScrollBehavior()
     val layoutDirection = LocalLayoutDirection.current
 
@@ -105,6 +107,15 @@ private fun FingerprintsScreenMiuix(uiState: FingerprintsUiState, onBack: () -> 
                     }
                 },
                 scrollBehavior = scrollBehavior,
+                actions = {
+                    IconButton(onClick = onRefresh) {
+                        MiuixIcon(
+                            imageVector = MiuixIcons.Refresh,
+                            contentDescription = stringResource(R.string.fingerprints_refresh),
+                            tint = colorScheme.onSurface
+                        )
+                    }
+                },
             )
         },
         popupHost = { },
@@ -135,7 +146,7 @@ private fun FingerprintsScreenMiuix(uiState: FingerprintsUiState, onBack: () -> 
                         Column(Modifier.fillMaxWidth().padding(16.dp)) {
                             uiState.items.forEachIndexed { index, fingerprint ->
                                 Text(
-                                    text = fingerprint.displayTitle(),
+                                    text = fpDisplayTitle(fingerprint.method),
                                     fontSize = MiuixTheme.textStyles.headline1.fontSize,
                                     fontWeight = FontWeight.Medium,
                                     color = colorScheme.onSurface
@@ -150,14 +161,16 @@ private fun FingerprintsScreenMiuix(uiState: FingerprintsUiState, onBack: () -> 
                                     )
                                 )
                             }
-                            Text(
-                                text = stringResource(R.string.home_baseline_note),
-                                fontSize = MiuixTheme.textStyles.body2.fontSize,
-                                color = colorScheme.onSurfaceVariantSummary,
-                                modifier = Modifier.padding(top = 12.dp)
-                            )
                         }
                     }
+                }
+                item {
+                    Text(
+                        text = stringResource(R.string.home_baseline_note),
+                        fontSize = MiuixTheme.textStyles.body2.fontSize,
+                        color = colorScheme.onSurfaceVariantSummary,
+                        modifier = Modifier.padding(horizontal = 4.dp, vertical = 12.dp)
+                    )
                 }
             }
         }
@@ -165,12 +178,20 @@ private fun FingerprintsScreenMiuix(uiState: FingerprintsUiState, onBack: () -> 
 }
 
 @Composable
-private fun FingerprintsScreenMaterial(uiState: FingerprintsUiState, onBack: () -> Unit) {
+private fun FingerprintsScreenMaterial(uiState: FingerprintsUiState, onBack: () -> Unit, onRefresh: () -> Unit) {
     ExpressiveScaffold(
         topBar = {
             LargeFlexibleTopAppBar(
                 title = { Text(stringResource(R.string.fingerprints_title)) },
                 navigationIcon = { TopBarBackButton(onClick = onBack) },
+                actions = {
+                    androidx.compose.material3.IconButton(onClick = onRefresh) {
+                        Icon(
+                            imageVector = Icons.Filled.Refresh,
+                            contentDescription = stringResource(R.string.fingerprints_refresh),
+                        )
+                    }
+                },
                 colors = expressiveTopAppBarColors(),
                 windowInsets = WindowInsets.safeDrawing.only(WindowInsetsSides.Top + WindowInsetsSides.Horizontal),
             )
@@ -187,25 +208,14 @@ private fun FingerprintsScreenMaterial(uiState: FingerprintsUiState, onBack: () 
                 contentPadding = innerPadding,
             ) {
                 item {
-                    Text(
-                        text = stringResource(R.string.home_baseline_note),
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(horizontal = 20.dp, vertical = 10.dp)
-                    )
-                }
-                items(uiState.items, key = { it.method }) { fingerprint ->
                     SegmentedColumn(
                         modifier = Modifier
                             .fillMaxWidth()
                             .padding(horizontal = 16.dp, vertical = 4.dp),
-                        content = listOf(
+                        content = uiState.items.map { fingerprint ->
                             {
                                 SegmentedListItem(
-                                    onClick = {},
-                                    headlineContent = { Text(fingerprint.displayTitle()) },
+                                    headlineContent = { Text(fpDisplayTitle(fingerprint.method)) },
                                     supportingContent = {
                                         Text(
                                             fingerprint.hash,
@@ -215,7 +225,17 @@ private fun FingerprintsScreenMaterial(uiState: FingerprintsUiState, onBack: () 
                                     }
                                 )
                             }
-                        )
+                        }
+                    )
+                }
+                item {
+                    Text(
+                        text = stringResource(R.string.home_baseline_note),
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 20.dp, vertical = 10.dp)
                     )
                 }
             }

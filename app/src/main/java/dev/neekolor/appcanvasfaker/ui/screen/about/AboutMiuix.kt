@@ -23,6 +23,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.requiredSize
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.systemBars
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListState
@@ -55,6 +56,7 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
@@ -490,10 +492,19 @@ private fun AboutContent(
                             onClick = actions.onCheckUpdate
                         )
                     }
-                    // 两版不等长：定宽右对齐，切换时后缀位置不动。
-                    // 宽度取值：Roboto 实测长串 147dp，取 160.dp 留余量；余量走左边，不影响后缀。
+                    // 两版不等长：盒取两版实测大者，切换时后缀位置不动；
+                    // 实测随字号重走，系统字号放大也不折行。
                     // indication = null，避免整行按压背景。
                     var showAcfCopyright by remember { mutableStateOf(false) }
+                    val textMeasurer = rememberTextMeasurer()
+                    val miuixDensity = LocalDensity.current
+                    val copyrightWidth = remember(miuixDensity) {
+                        val wide = maxOf(
+                            textMeasurer.measure(buildCopyrightText(12.sp)).size.width,
+                            textMeasurer.measure(buildAcfCopyrightText(12.sp)).size.width
+                        )
+                        with(miuixDensity) { wide.toDp() }
+                    }
                     Box(
                         modifier = Modifier
                             .fillMaxWidth()
@@ -505,7 +516,8 @@ private fun AboutContent(
                         contentAlignment = Alignment.Center,
                     ) {
                         Text(
-                            modifier = Modifier.width(160.dp),
+                            // 盒比 160.dp 旧版宽出多少，整体左挪补回；offset 只动位置不动测量，不影响不断行
+                            modifier = Modifier.width(copyrightWidth).offset(x = (-8).dp),
                             text = if (showAcfCopyright) buildAcfCopyrightText(baseFontSize = 12.sp)
                                 else buildCopyrightText(baseFontSize = 12.sp),
                             color = colorScheme.onSurfaceVariantSummary,

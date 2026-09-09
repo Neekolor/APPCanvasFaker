@@ -487,14 +487,14 @@ private fun SsaidScreenMaterial(
                                         leadingContent = { SsaidIcon(item) },
                                         trailingContent = {
                                             Row(verticalAlignment = Alignment.CenterVertically) {
-                                                MaterialDeleteButton(
-                                                    enabled = buttonsEnabled(state.busyPkg),
-                                                    onClick = { actions.onDelete(item.packageName) },
-                                                )
-                                                Spacer(Modifier.width(8.dp))
                                                 MaterialRandomizeButton(
                                                     enabled = buttonsEnabled(state.busyPkg),
                                                     onClick = { actions.onRandomize(item.packageName) },
+                                                )
+                                                Spacer(Modifier.width(8.dp))
+                                                MaterialDeleteButton(
+                                                    enabled = buttonsEnabled(state.busyPkg),
+                                                    onClick = { actions.onDelete(item.packageName) },
                                                 )
                                             }
                                         },
@@ -611,14 +611,14 @@ private fun SsaidRowMiuix(
                 softWrap = false,
             )
         }
-        Column(horizontalAlignment = Alignment.End) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
             MiuixSsaidButton(
                 text = stringResource(R.string.action_randomize),
                 enabled = enabled,
                 isDelete = false,
                 onClick = onRandomize,
             )
-            Spacer(Modifier.height(6.dp))
+            Spacer(Modifier.width(8.dp))
             MiuixSsaidButton(
                 text = stringResource(R.string.delete),
                 enabled = enabled,

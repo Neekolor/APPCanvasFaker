@@ -1,9 +1,11 @@
 package dev.neekolor.appcanvasfaker.core
 
-enum class ProtectionMode(val title: String) {
-    NOISE("噪声模式"),
+import dev.neekolor.appcanvasfaker.R
+
+enum class ProtectionMode(val titleRes: Int) {
+    NOISE(R.string.mode_noise),
     /** 全替换模式：功能未实现（实验性功能页置灰不可选），引擎恒按噪声执行，见 FingerprintEngine。 */
-    FULL_REPLACE("全替换模式"),
+    FULL_REPLACE(R.string.mode_full_replace),
 }
 
 enum class AppSortMode(val title: String) {
@@ -72,9 +74,8 @@ data class LogEntry(
     val mode: String? = null,
 )
 
-/** 固定方法计算的标准化指纹：method 为路径编号（A1/A3/A4/A4b），title 为中文名。 */
+/** 固定方法计算的标准化指纹：method 为路径编号（A1/A3/A4/A2/E1/D1，A4b 并入 A4 行）；展示名按 method 取双语串。 */
 data class FingerprintValue(
     val method: String,
-    val title: String,
     val hash: String
 )

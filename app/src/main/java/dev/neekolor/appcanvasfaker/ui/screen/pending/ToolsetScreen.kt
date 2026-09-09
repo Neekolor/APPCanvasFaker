@@ -164,6 +164,7 @@ private fun ToolsetScreenMiuix(
                     SwitchPreference(
                         title = "$textMetrics（E1）",
                         summary = stringResource(id = R.string.settings_hook_text_metrics_summary),
+                        insideMargin = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
                         startAction = {
                             MiuixIcon(
                                 Icons.Rounded.TextFields,
@@ -179,6 +180,7 @@ private fun ToolsetScreenMiuix(
                     SwitchPreference(
                         title = "$glReadPixels（D1）",
                         summary = stringResource(id = R.string.settings_hook_glreadpixels_summary),
+                        insideMargin = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
                         startAction = {
                             MiuixIcon(
                                 Icons.Rounded.ViewInAr,
@@ -194,6 +196,7 @@ private fun ToolsetScreenMiuix(
                     SwitchPreference(
                         title = "$pixelCopy（C2）",
                         summary = stringResource(id = R.string.settings_hook_pixelcopy_summary),
+                        insideMargin = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
                         startAction = {
                             MiuixIcon(
                                 Icons.Rounded.ContentCopy,
@@ -204,29 +207,6 @@ private fun ToolsetScreenMiuix(
                         },
                         checked = uiState.hookPixelCopy,
                         onCheckedChange = viewModel::setHookPixelCopy
-                    )
-                }
-            }
-            item {
-                Card(
-                    modifier = Modifier
-                        .padding(top = 8.dp)
-                        .fillMaxWidth(),
-                ) {
-                    val ssaidSwitch = stringResource(id = R.string.tools_ssaid_switch)
-                    SwitchPreference(
-                        title = ssaidSwitch,
-                        summary = stringResource(id = R.string.tools_ssaid_switch_summary),
-                        startAction = {
-                            MiuixIcon(
-                                Icons.Rounded.Badge,
-                                modifier = Modifier.padding(end = 6.dp),
-                                contentDescription = ssaidSwitch,
-                                tint = colorScheme.onBackground
-                            )
-                        },
-                        checked = uiState.ssaidEnabled,
-                        onCheckedChange = viewModel::setSsaidEnabled
                     )
                 }
             }
@@ -337,22 +317,6 @@ private fun ToolsetScreenMaterial(
                             summary = stringResource(id = R.string.settings_hook_pixelcopy_summary),
                             checked = uiState.hookPixelCopy,
                             onCheckedChange = viewModel::setHookPixelCopy
-                        )
-                    }
-                )
-            )
-            SegmentedColumn(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 16.dp, vertical = 4.dp),
-                content = listOf(
-                    {
-                        SegmentedSwitchItem(
-                            icon = Icons.Filled.Badge,
-                            title = stringResource(id = R.string.tools_ssaid_switch),
-                            summary = stringResource(id = R.string.tools_ssaid_switch_summary),
-                            checked = uiState.ssaidEnabled,
-                            onCheckedChange = viewModel::setSsaidEnabled
                         )
                     }
                 )

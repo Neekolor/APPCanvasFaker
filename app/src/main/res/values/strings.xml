@@ -39,17 +39,45 @@
     <string name="lab_noise_summary">Applies deterministic noise to read pixels. Current production mode.</string>
     <string name="lab_full_unavailable">Not implemented yet.</string>
     <string name="lab_note">Switch the protection mode. Restart target apps to take effect.</string>
+    <string name="mode_noise">Noise</string>
+    <string name="mode_full_replace">Full replacement</string>
+    <string name="fp_zh_a1" translatable="false">像素直读</string>
+    <string name="fp_zh_a3" translatable="false">缓冲拷贝</string>
+    <string name="fp_zh_a4" translatable="false">压缩编码</string>
+    <string name="fp_zh_a2" translatable="false">单点读取</string>
+    <string name="fp_zh_e1" translatable="false">文本度量</string>
+    <string name="fp_zh_d1" translatable="false">GL 直读</string>
+    <string name="fp_en_a1" translatable="false">Pixel Read</string>
+    <string name="fp_en_a3" translatable="false">Buffer Copy</string>
+    <string name="fp_en_a4" translatable="false">Compression Encode</string>
+    <string name="fp_en_a2" translatable="false">Single-pixel Read</string>
+    <string name="fp_en_e1" translatable="false">Text Metrics</string>
+    <string name="fp_en_d1" translatable="false">GL Framebuffer Read</string>
+    <string name="chain_a1" translatable="false">Pixel Read</string>
+    <string name="chain_a3" translatable="false">Buffer Copy</string>
+    <string name="chain_a4" translatable="false">Compression Encode</string>
+    <string name="chain_a2" translatable="false">Single-pixel Read</string>
+    <string name="chain_e1" translatable="false">Text Metrics</string>
+    <string name="chain_d1" translatable="false">GL Framebuffer Read</string>
+    <string name="chain_c2" translatable="false">PixelCopy Wrapper</string>
+    <string name="fp_unknown">Unknown</string>
+    <string name="fp_cov_a1">A1|A5,A5b,A6,A7,B1,B2,C1,E4</string>
+    <string name="fp_cov_a3">A3</string>
+    <string name="fp_cov_a4">A4|A4b,B1b,A7,C1,E4</string>
+    <string name="fp_cov_a2">A2</string>
+    <string name="fp_cov_e1">E1</string>
+    <string name="fp_cov_d1">D1</string>
     <string name="settings_enable_predictive_back">Predictive back gesture</string>
     <string name="settings_enable_predictive_back_summary">Enable predictive back gesture support.</string>
     <string name="action">Action</string>
     <string name="delete">Delete</string>
     <string name="settings_sulog">Enable log recording</string>
     <string name="settings_sulog_summary">Record hook and randomization activity for the log page and troubleshooting.</string>
-    <string name="settings_hook_text_metrics">Randomize text metrics</string>
+    <string name="settings_hook_text_metrics">Text Metrics</string>
     <string name="settings_hook_text_metrics_summary">Apply ≤0.7% deterministic perturbation to Paint text metrics; turn off if layouts look off</string>
-    <string name="settings_hook_glreadpixels">Randomize GPU framebuffer reads</string>
-    <string name="settings_hook_glreadpixels_summary">Hook GLES20/30 glReadPixels direct read; may affect recording or streaming, off by default</string>
-    <string name="settings_hook_pixelcopy">Randomize screen copies</string>
+    <string name="settings_hook_glreadpixels">GL Framebuffer Read</string>
+    <string name="settings_hook_glreadpixels_summary">Hook GLES20/30/31/32 glReadPixels direct read; may affect recording or streaming, off by default</string>
+    <string name="settings_hook_pixelcopy">PixelCopy Wrapper</string>
     <string name="settings_hook_pixelcopy_summary">Perturb the target bitmap when a copy completes; covers delayed reads. Turn off if screenshots look wrong</string>
     <string name="settings_preset">Behavior preset</string>
     <string name="settings_preset_summary">Switch overall disguise strength in one tap (core protection always stays on)</string>
@@ -70,6 +98,7 @@
     <string name="reboot_now">Reboot</string>
     <string name="reboot_failed">Failed to send reboot command, please reboot manually</string>
     <string name="fingerprints_title">Fingerprint baseline</string>
+    <string name="fingerprints_refresh">Recalculate</string>
     <string name="fingerprints_summary">View untainted baseline fingerprints of this device</string>
     <string name="processing">Processing…</string>
     <string name="refresh_pulling">Pull down to refresh</string>
@@ -125,7 +154,9 @@
     <string name="home_channel_bad">Remote config channel unavailable. Hooked apps cannot receive rules; check LSPosed status and restart this app.</string>
     <string name="app_version">App Version</string>
     <string name="home_hook_mode">Hook Mode</string>
-    <string name="home_hooked_baselines">Hooked Baselines</string>
+    <string name="home_hooked_chains">Default Hook Chains</string>
+    <string name="home_ext_chains">Extended Hook Chains</string>
+    <string name="home_chains_none">All off</string>
     <string name="home_impl">Implementation</string>
     <string name="hooked_apps">Hooked Apps</string>
     <string name="hook_count">Hook Count</string>
@@ -133,10 +164,13 @@
     <string name="tag_hook" translatable="false">HOOK</string>
     <string name="tag_inactive" translatable="false">INACTIVE</string>
     <string name="randomize_fingerprint">Randomize Fingerprint</string>
-    <string name="randomize_seed_label">Randomize this app\'s hash seed, effective after app restart</string>
+    <string name="randomize_seed_label">Randomize hash seed, effective after restart</string>
+    <string name="reseed_title">This change</string>
+    <string name="reseed_changed">Replaced</string>
+    <string name="reseed_trial_note">Local trial on the standard canvas, algorithm demo only.</string>
+    <string name="reseed_open_log">View real hits in logs</string>
     <string name="randomize_confirm_message">Are you sure you want to randomize this app\'s hash seed? The fingerprint will be changed after the next read.</string>
     <string name="randomize_success">Hash seed randomized</string>
-    <string name="randomized_values">Randomized Fingerprint Values</string>
     <string name="action_randomize">Randomize</string>
     <string name="ssaid_title">SSAID Manager</string>
     <string name="ssaid_list_empty">No SSAID entries found</string>
@@ -170,7 +204,7 @@
     <string name="app_search_hint">Search apps</string>
     <string name="search_no_result">No matching apps</string>
     <string name="nav_pending">Tools</string>
-    <string name="home_checking">{}</string>
+    <string name="home_checking">Detecting…</string>
     <string name="ssaid_count_title">%d entries</string>
     <string name="ssaid_copied">SSAID copied to clipboard</string>
     <string name="log_disabled_banner">Logging is disabled. Hook activity is not being recorded.</string>

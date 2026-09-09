@@ -69,7 +69,7 @@ class SsaidViewModel(application: Application) : AndroidViewModel(application) {
             return@withContext false to false
         }
         // 强停失败即中止：目标若在运行，其缓存稍后写盘会覆盖本次修改
-        if (!RootShell.exec("am force-stop '$packageName'").isSuccess) {
+        if (!RootShell.exec("am force-stop ${RootShell.shellQuote(packageName)}").isSuccess) {
             return@withContext false to false
         }
         val result = runCatching { action() }

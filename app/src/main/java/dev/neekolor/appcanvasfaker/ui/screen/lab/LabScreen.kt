@@ -17,6 +17,8 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.systemBars
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Badge
+import androidx.compose.material.icons.rounded.Badge
 import androidx.compose.material.icons.rounded.Check
 import androidx.compose.material3.LargeFlexibleTopAppBar
 import androidx.compose.material3.MaterialTheme
@@ -43,6 +45,7 @@ import dev.neekolor.appcanvasfaker.ui.UiMode
 import dev.neekolor.appcanvasfaker.ui.component.material.ExpressiveScaffold
 import dev.neekolor.appcanvasfaker.ui.component.material.SegmentedColumn
 import dev.neekolor.appcanvasfaker.ui.component.material.SegmentedRadioItem
+import dev.neekolor.appcanvasfaker.ui.component.material.SegmentedSwitchItem
 import dev.neekolor.appcanvasfaker.ui.component.material.TopBarBackButton
 import dev.neekolor.appcanvasfaker.ui.component.material.expressiveTopAppBarColors
 import dev.neekolor.appcanvasfaker.ui.navigation3.LocalNavigator
@@ -56,6 +59,7 @@ import top.yukonga.miuix.kmp.basic.Icon as MiuixIcon
 import top.yukonga.miuix.kmp.basic.Text as MiuixText
 import top.yukonga.miuix.kmp.icon.MiuixIcons
 import top.yukonga.miuix.kmp.icon.extended.Back
+import top.yukonga.miuix.kmp.preference.SwitchPreference
 import top.yukonga.miuix.kmp.theme.MiuixTheme
 import top.yukonga.miuix.kmp.theme.MiuixTheme.colorScheme
 import top.yukonga.miuix.kmp.utils.overScrollVertical
@@ -71,6 +75,7 @@ fun LabScreen() {
     val navigator = LocalNavigator.current
     val viewModel = viewModel<LabViewModel>()
     val mode by viewModel.mode.collectAsStateWithLifecycle()
+    val ssaidEnabled by viewModel.ssaidEnabled.collectAsStateWithLifecycle()
 
     LifecycleResumeEffect(Unit) {
         viewModel.refresh()
@@ -81,11 +86,15 @@ fun LabScreen() {
         UiMode.Miuix -> LabScreenMiuix(
             mode = mode,
             onSelectMode = viewModel::setMode,
+            ssaidEnabled = ssaidEnabled,
+            onSetSsaidEnabled = viewModel::setSsaidEnabled,
             onBack = dropUnlessResumed { navigator.pop() },
         )
         UiMode.Material -> LabScreenMaterial(
             mode = mode,
             onSelectMode = viewModel::setMode,
+            ssaidEnabled = ssaidEnabled,
+            onSetSsaidEnabled = viewModel::setSsaidEnabled,
             onBack = dropUnlessResumed { navigator.pop() },
         )
     }
@@ -95,6 +104,8 @@ fun LabScreen() {
 private fun LabScreenMiuix(
     mode: ProtectionMode,
     onSelectMode: (ProtectionMode) -> Unit,
+    ssaidEnabled: Boolean,
+    onSetSsaidEnabled: (Boolean) -> Unit,
     onBack: () -> Unit,
 ) {
     val scrollBehavior = MiuixScrollBehavior()
@@ -141,14 +152,14 @@ private fun LabScreenMiuix(
                 Card(modifier = Modifier.fillMaxWidth()) {
                     Column(Modifier.fillMaxWidth().padding(vertical = 4.dp)) {
                         LabModeRowMiuix(
-                            title = ProtectionMode.NOISE.title,
+                            title = stringResource(ProtectionMode.NOISE.titleRes),
                             summary = stringResource(R.string.lab_noise_summary),
                             selected = mode == ProtectionMode.NOISE,
                             enabled = true,
                             onClick = { onSelectMode(ProtectionMode.NOISE) },
                         )
                         LabModeRowMiuix(
-                            title = ProtectionMode.FULL_REPLACE.title,
+                            title = stringResource(ProtectionMode.FULL_REPLACE.titleRes),
                             summary = stringResource(R.string.lab_full_unavailable),
                             selected = false,
                             enabled = false,
@@ -164,6 +175,25 @@ private fun LabScreenMiuix(
                     color = colorScheme.onSurfaceVariantSummary,
                     modifier = Modifier.padding(horizontal = 4.dp, vertical = 12.dp),
                 )
+            }
+            item {
+                Card(modifier = Modifier.fillMaxWidth()) {
+                    val ssaidSwitch = stringResource(R.string.tools_ssaid_switch)
+                    SwitchPreference(
+                        title = ssaidSwitch,
+                        summary = stringResource(R.string.tools_ssaid_switch_summary),
+                        startAction = {
+                            MiuixIcon(
+                                Icons.Rounded.Badge,
+                                modifier = Modifier.padding(end = 6.dp),
+                                contentDescription = ssaidSwitch,
+                                tint = colorScheme.onBackground
+                            )
+                        },
+                        checked = ssaidEnabled,
+                        onCheckedChange = onSetSsaidEnabled
+                    )
+                }
             }
         }
     }
@@ -214,6 +244,8 @@ private fun LabModeRowMiuix(
 private fun LabScreenMaterial(
     mode: ProtectionMode,
     onSelectMode: (ProtectionMode) -> Unit,
+    ssaidEnabled: Boolean,
+    onSetSsaidEnabled: (Boolean) -> Unit,
     onBack: () -> Unit,
 ) {
     ExpressiveScaffold(
@@ -239,7 +271,7 @@ private fun LabScreenMaterial(
                     content = listOf(
                         {
                             SegmentedRadioItem(
-                                title = ProtectionMode.NOISE.title,
+                                title = stringResource(ProtectionMode.NOISE.titleRes),
                                 summary = stringResource(R.string.lab_noise_summary),
                                 selected = mode == ProtectionMode.NOISE,
                                 enabled = true,
@@ -248,7 +280,7 @@ private fun LabScreenMaterial(
                         },
                         {
                             SegmentedRadioItem(
-                                title = ProtectionMode.FULL_REPLACE.title,
+                                title = stringResource(ProtectionMode.FULL_REPLACE.titleRes),
                                 summary = stringResource(R.string.lab_full_unavailable),
                                 selected = false,
                                 enabled = false,
@@ -266,6 +298,24 @@ private fun LabScreenMaterial(
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(horizontal = 20.dp, vertical = 10.dp)
+                )
+            }
+            item {
+                SegmentedColumn(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp, vertical = 4.dp),
+                    content = listOf(
+                        {
+                            SegmentedSwitchItem(
+                                icon = Icons.Filled.Badge,
+                                title = stringResource(R.string.tools_ssaid_switch),
+                                summary = stringResource(R.string.tools_ssaid_switch_summary),
+                                checked = ssaidEnabled,
+                                onCheckedChange = onSetSsaidEnabled
+                            )
+                        }
+                    )
                 )
             }
         }

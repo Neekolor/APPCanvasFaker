@@ -58,25 +58,33 @@ class HomeViewModel(
         hookedAppCount = configRepository.hookedAppCountQuick(),
         totalHookCount = configRepository.totalHookCount(),
         isLoading = true,
-        modeTitle = configRepository.mode().title,
-        baselineText = hookedBaselines(configRepository),
+        modeTitle = acfApp.getString(configRepository.mode().titleRes),
+        mainChains = mainChains(),
+        extChains = extChains(configRepository),
     )
 
     /**
-     * 已 Hook 基线展示串：A1/A3/A4 主防线恒开；A2/E1/C2/D1 跟各自开关，
-     * 关掉的不显示。全部读本地配置，无 IO。
+     * 默认四链英文名恒显（getPixels/copyPixelsToBuffer/compress/getPixel，常驻常开无界面开关）；
+     * 扩展项跟各自开关。值恒为英文（用户指定），分隔符跟随系统语言。全部读本地配置，无 IO。
      */
-    private fun hookedBaselines(repo: ConfigRepository): String {
-        val out = ArrayList<String>(7)
-        out.add("A1")
-        out.add("A3")
-        out.add("A4")
-        if (repo.hookGetPixel()) out.add("A2")
-        if (repo.hookTextMetrics()) out.add("E1")
-        if (repo.hookPixelCopy()) out.add("C2")
-        if (repo.hookGlReadPixels()) out.add("D1")
-        return out.joinToString("、")
+    private fun mainChains(): String = listOf(
+        acfApp.getString(dev.neekolor.appcanvasfaker.R.string.chain_a1),
+        acfApp.getString(dev.neekolor.appcanvasfaker.R.string.chain_a3),
+        acfApp.getString(dev.neekolor.appcanvasfaker.R.string.chain_a4),
+        acfApp.getString(dev.neekolor.appcanvasfaker.R.string.chain_a2),
+    ).joinToString(separator())
+
+    private fun extChains(repo: ConfigRepository): String {
+        val out = ArrayList<String>(3)
+        if (repo.hookTextMetrics()) out.add(acfApp.getString(dev.neekolor.appcanvasfaker.R.string.chain_e1))
+        if (repo.hookGlReadPixels()) out.add(acfApp.getString(dev.neekolor.appcanvasfaker.R.string.chain_d1))
+        if (repo.hookPixelCopy()) out.add(acfApp.getString(dev.neekolor.appcanvasfaker.R.string.chain_c2))
+        if (out.isEmpty()) out.add(acfApp.getString(dev.neekolor.appcanvasfaker.R.string.home_chains_none))
+        return out.joinToString(separator())
     }
+
+    private fun separator(): String =
+        if (acfApp.resources.configuration.locales[0].language == "zh") "、" else ", "
 
     fun refresh() {
         viewModelScope.launch {
@@ -89,7 +97,8 @@ class HomeViewModel(
                     totalHookCount = newState.totalHookCount,
                     remoteChannelOk = newState.remoteChannelOk,
                     modeTitle = newState.modeTitle,
-                    baselineText = newState.baselineText,
+                    mainChains = newState.mainChains,
+                    extChains = newState.extChains,
                 )
             }
         }
@@ -104,8 +113,9 @@ class HomeViewModel(
             totalHookCount = snapshot.totalHookCount,
             isLoading = false,
             remoteChannelOk = probeRemoteChannel(),
-            modeTitle = configRepository.mode().title,
-            baselineText = hookedBaselines(configRepository),
+            modeTitle = acfApp.getString(configRepository.mode().titleRes),
+            mainChains = mainChains(),
+            extChains = extChains(configRepository),
         )
     }
 

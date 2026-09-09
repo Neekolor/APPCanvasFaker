@@ -298,11 +298,26 @@ private fun StatsScreenMaterial(uiState: StatsUiState, onBack: () -> Unit) {
                                 SegmentedListItem(
                                     onClick = {},
                                     headlineContent = { Text(row.label) },
-                                    supportingContent = { Text("${row.packageName} · ${formatTime(row.lastTime)}") },
+                                    supportingContent = {
+                                        Column {
+                                            Text(
+                                                row.packageName,
+                                                fontSize = 12.sp,
+                                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                                maxLines = 1,
+                                                overflow = TextOverflow.Ellipsis
+                                            )
+                                            Text(
+                                                formatTime(row.lastTime),
+                                                fontSize = 12.sp,
+                                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                                            )
+                                        }
+                                    },
                                     leadingContent = {
                                         if (row.info != null) {
                                             AppIconImage(
-                                                modifier = Modifier.size(40.dp),
+                                                modifier = Modifier.size(48.dp),
                                                 applicationInfo = row.info,
                                                 label = row.label
                                             )
@@ -327,7 +342,7 @@ private fun StatsScreenMaterial(uiState: StatsUiState, onBack: () -> Unit) {
                         text = stringResource(R.string.stats_footnote),
                         modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 12.dp),
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        fontSize = 14.sp
+                        fontSize = 12.sp
                     )
                 }
             }

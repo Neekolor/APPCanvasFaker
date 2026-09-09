@@ -13,8 +13,10 @@ data class HomeUiState(
     val remoteChannelOk: Boolean = false,
     /** 当前 Hook 模式展示名（如"噪声模式"）。 */
     val modeTitle: String = "",
-    /** 已 Hook 基线动态拼串：A1/A3/A4 恒开 + A2/E1/C2/D1 跟各自开关。 */
-    val baselineText: String = "",
+    /** 默认链英文名恒显（A1/A3/A4/A4b）。 */
+    val mainChains: String = "",
+    /** 扩展链英文名跟开关；全关显示"全关"。 */
+    val extChains: String = "",
 )
 
 @Immutable

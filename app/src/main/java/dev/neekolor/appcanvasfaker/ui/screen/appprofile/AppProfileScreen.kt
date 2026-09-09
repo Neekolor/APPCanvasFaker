@@ -77,11 +77,14 @@ fun AppProfileScreen(packageName: String) {
         onBack = dropUnlessResumed { navigator.pop() },
         onSetEnabled = { enabled -> viewModel.setEnabled(packageName, enabled) },
         onRandomize = {
-            confirmDialog.showConfirm(
-                title = confirmTitle,
-                content = confirmMessage,
-                confirm = actionText,
-            )
+            // 未启用时按动无效果：连确认弹窗都不弹
+            if (viewModel.uiState.value.enabled) {
+                confirmDialog.showConfirm(
+                    title = confirmTitle,
+                    content = confirmMessage,
+                    confirm = actionText,
+                )
+            }
         },
         // 菜单操作同样给反馈：后台 shell 失败前台无感知，用户会以为没点上
         onLaunchApp = {
@@ -109,6 +112,7 @@ fun AppProfileScreen(packageName: String) {
                 confirm = actionText,
             )
         },
+        onOpenLogs = dropUnlessResumed { navigator.push(dev.neekolor.appcanvasfaker.ui.navigation3.Route.Log) },
     )
 
     when (uiMode) {

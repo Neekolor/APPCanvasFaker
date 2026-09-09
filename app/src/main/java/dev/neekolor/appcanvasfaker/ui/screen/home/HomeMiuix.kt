@@ -348,15 +348,19 @@ private fun InfoCard(state: HomeUiState) {
                 content = state.modeTitle
             )
             InfoText(
-                title = stringResource(R.string.home_hooked_baselines),
-                content = state.baselineText
+                title = stringResource(R.string.home_hooked_chains),
+                content = state.mainChains
+            )
+            InfoText(
+                title = stringResource(R.string.home_ext_chains),
+                content = state.extChains
             )
             InfoText(
                 title = stringResource(R.string.home_impl),
                 content = "libxposed",
                 bottomPadding = 0.dp
             )
-            // 标准指纹值已移至"工具"页指纹基准二级页；首页只保留版本，避免两处重复展示
+            // 标准指纹值已移至"工具"页指纹基准二级页，避免两处重复展示
             if (state.moduleActive && !state.remoteChannelOk) {
                 Text(
                     text = stringResource(R.string.home_channel_bad),
@@ -396,7 +400,8 @@ private val previewState = HomeUiState(
     hookedAppCount = 3,
     totalHookCount = 128L,
     modeTitle = "噪声模式",
-    baselineText = "A1、A3、A4、A2、E1、C2",
+    mainChains = "Pixel Read, Buffer Copy, Compression Encode, Single-pixel Read",
+    extChains = "Text Metrics, GL Framebuffer Read, PixelCopy Wrapper",
 )
 
 @Preview(name = "Home Activated", showBackground = true)
