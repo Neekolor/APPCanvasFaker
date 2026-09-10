@@ -12,6 +12,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.lifecycle.compose.LifecycleResumeEffect
 import androidx.lifecycle.compose.dropUnlessResumed
 import androidx.lifecycle.viewmodel.compose.viewModel
 import dev.neekolor.appcanvasfaker.R
@@ -33,6 +34,11 @@ fun AppProfileScreen(packageName: String) {
     LaunchedEffect(packageName) {
         viewModel.load(packageName)
     }
+    // 管理器里勾完回来即重查门禁，否则警告条滞留
+    LifecycleResumeEffect(packageName) {
+        viewModel.refreshScope(packageName)
+        onPauseOrDispose { }
+    }
 
     val state by viewModel.uiState.collectAsStateWithLifecycle()
 
@@ -43,6 +49,8 @@ fun AppProfileScreen(packageName: String) {
     val actionText = stringResource(R.string.action)
     val successText = stringResource(R.string.randomize_success)
     val failedText = stringResource(R.string.operation_failed)
+    val scopeApprovedText = stringResource(R.string.scope_approved)
+    val scopeFailedText = stringResource(R.string.scope_failed)
 
     fun showResult(message: String) {
         if (uiMode == UiMode.Material) {
@@ -113,6 +121,11 @@ fun AppProfileScreen(packageName: String) {
             )
         },
         onOpenLogs = dropUnlessResumed { navigator.push(dev.neekolor.appcanvasfaker.ui.navigation3.Route.Log) },
+        onRequestScope = {
+            viewModel.requestScope(packageName) { approved ->
+                showResult(if (approved) scopeApprovedText else scopeFailedText)
+            }
+        },
     )
 
     when (uiMode) {

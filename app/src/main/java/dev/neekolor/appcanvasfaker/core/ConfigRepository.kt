@@ -149,8 +149,10 @@ class ConfigRepository(private val context: Context) {
         // 广播发送方可伪造：包名/哈希格式不对直接丢，时间戳钳位，键空间才有界
         if (pkg.length > 224 || !PKG_PATTERN.matches(pkg)) return
         if (fingerprint.length != 64 || !fingerprint.all { it in '0'..'9' || it in 'a'..'f' }) return
-        // 路径只收自家三条链；无规则（未启用）包不记：真流量恒有启用规则，误伤不了
-        if (path != "A1" && path != "A3" && path != "A4") return
+        // 路径只收自家六条链；无规则（未启用）包不记：真流量恒有启用规则，误伤不了
+        if (path != "A1" && path != "A3" && path != "A4" &&
+            path != "A2" && path != "D1" && path != "C2"
+        ) return
         val cfg = config()
         if (cfg.optJSONObject("rules")?.optJSONObject(pkg)?.optBoolean("enabled", false) != true) return
         val now = System.currentTimeMillis()

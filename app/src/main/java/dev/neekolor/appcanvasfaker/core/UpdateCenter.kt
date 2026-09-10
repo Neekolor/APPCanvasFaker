@@ -26,7 +26,7 @@ import java.net.URL
  */
 object UpdateCenter {
 
-    const val RELEASES_API = "https://api.github.com/Neekolor/APPCanvasFaker/releases/latest"
+    const val RELEASES_API = "https://api.github.com/repos/Neekolor/APPCanvasFaker/releases/latest"
     private const val CONNECT_TIMEOUT_MS = 10_000
     private const val READ_TIMEOUT_MS = 20_000
 

@@ -142,6 +142,19 @@ private fun FingerprintsScreenMiuix(uiState: FingerprintsUiState, onBack: () -> 
                 overscrollEffect = null,
             ) {
                 item {
+                    if (uiState.items.isEmpty()) {
+                        Box(
+                            modifier = Modifier.fillParentMaxSize(),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Text(
+                                text = stringResource(R.string.fingerprints_empty),
+                                fontSize = 17.sp,
+                                fontWeight = FontWeight(550),
+                                color = colorScheme.onSurfaceVariantSummary,
+                            )
+                        }
+                    } else {
                     Card(modifier = Modifier.fillMaxWidth()) {
                         Column(Modifier.fillMaxWidth().padding(16.dp)) {
                             uiState.items.forEachIndexed { index, fingerprint ->
@@ -162,6 +175,7 @@ private fun FingerprintsScreenMiuix(uiState: FingerprintsUiState, onBack: () -> 
                                 )
                             }
                         }
+                    }
                     }
                 }
                 item {
@@ -208,6 +222,18 @@ private fun FingerprintsScreenMaterial(uiState: FingerprintsUiState, onBack: () 
                 contentPadding = innerPadding,
             ) {
                 item {
+                    if (uiState.items.isEmpty()) {
+                        Box(
+                            modifier = Modifier.fillParentMaxSize(),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Text(
+                                text = stringResource(R.string.fingerprints_empty),
+                                style = MaterialTheme.typography.bodyLarge,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                        }
+                    } else {
                     SegmentedColumn(
                         modifier = Modifier
                             .fillMaxWidth()
@@ -227,6 +253,7 @@ private fun FingerprintsScreenMaterial(uiState: FingerprintsUiState, onBack: () 
                             }
                         }
                     )
+                    }
                 }
                 item {
                     Text(

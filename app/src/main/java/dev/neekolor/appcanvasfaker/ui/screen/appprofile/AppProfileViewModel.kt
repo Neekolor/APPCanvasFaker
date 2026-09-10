@@ -4,6 +4,7 @@ import android.app.Application
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import dev.neekolor.appcanvasfaker.core.ConfigRepository
+import dev.neekolor.appcanvasfaker.core.ScopeGate
 import dev.neekolor.appcanvasfaker.util.RootShell
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
@@ -45,6 +46,7 @@ class AppProfileViewModel(application: Application) : AndroidViewModel(applicati
             if (gen == generation && loadedPackageName == packageName) {
                 // 切包：旧包的对照卡不带过来
                 _uiState.value = quick.copy(reseed = null)
+                refreshScope(packageName)
             }
         }
     }
@@ -80,6 +82,31 @@ class AppProfileViewModel(application: Application) : AndroidViewModel(applicati
         }
     }
 
+    /** 作用域门禁重查（binder，IO 线程）：未知时保持 null，UI 不误报。 */
+    fun refreshScope(packageName: String) {
+        if (loadedPackageName != packageName) return
+        viewModelScope.launch(Dispatchers.IO) {
+            val inScope = runCatching { ScopeGate.scopedPackages()?.contains(packageName) }.getOrNull()
+            if (loadedPackageName == packageName) {
+                _uiState.update { it.copy(scopeInScope = inScope) }
+            }
+        }
+    }
+
+    /**
+     * 申请加作用域：结果回调在 binder 线程，切回主线程后刷新门禁并回执。
+     * 获批≠即时生效，目标应用需重启（提示文案会讲）。
+     */
+    fun requestScope(packageName: String, onDone: (Boolean) -> Unit) {
+        viewModelScope.launch(Dispatchers.IO) {
+            ScopeGate.requestScope(packageName) { approved ->
+                viewModelScope.launch {
+                    if (approved) refreshScope(packageName)
+                    onDone(approved)
+                }
+            }
+        }
+    }
     /** 菜单操作：启动应用（root，与 KSU 同路径）。返回是否成功。 */
     suspend fun launchApp(packageName: String): Boolean = withContext(Dispatchers.IO) {
         if (!isValidPackageName(packageName)) return@withContext false

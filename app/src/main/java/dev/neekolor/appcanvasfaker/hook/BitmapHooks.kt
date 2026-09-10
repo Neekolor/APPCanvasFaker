@@ -21,6 +21,7 @@ import java.util.Collections
 import java.util.WeakHashMap
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.Executors
+import org.lsposed.hiddenapibypass.HiddenApiBypass
 
 /**
  * Hook 链实现：
@@ -31,8 +32,9 @@ import java.util.concurrent.Executors
  *   GLES30 同签重载与 GLES20 同策略，PBO/native/Vulkan 路径维持不动）
  * - C2 PixelCopy.request 监听器包装（scanner C2 延迟持有例外，默认开）
  * 递归保护：ThreadLocal 标志，compress 内层 fake.compress 直接 proceed 放行。
- * 新增三链均为热路径：不做跨进程统计、不加锁、不逐次打日志，
- * 仅做纯数学扰动；原生异常语义与宿主一致（proceed 失败原样上抛）。
+ * A2/C2/D1 命中沿用像素三链同一套上报（1 秒节流 + 去重 + 后台线程），
+ * 热路径只做窗口抢占 + 封顶拷贝，不加锁、不逐次打日志；
+ * 原生异常语义与宿主一致（proceed 失败原样上抛）。
  */
 object BitmapHooks {
 
@@ -49,6 +51,8 @@ object BitmapHooks {
 
     // 统计节流：每包距上次记录 <1s 跳过（哈希 + 广播上报放后台，允许轻度丢失）
     private const val STATS_MIN_INTERVAL_MS = 1000L
+    /** 统计哈希采样上限：D1 字节拷贝封顶，避免大帧缓冲在 hook 线程停留过久。 */
+    private const val STATS_HASH_BYTES_CAP = 1_000_000L
     private val lastStatsTime = ConcurrentHashMap<String, Long>()
     /** 去重：同包同状态（seed:hash）只上报一次（见 recordStats）。 */
     private val lastSentHash = ConcurrentHashMap<String, String>()
@@ -71,6 +75,20 @@ object BitmapHooks {
         hookGlReadPixels: Boolean,
         hookPixelCopy: Boolean
     ) {
+        // 本机 ROM hidden 黑名单激进（breakText 某重载 / GLES30-32 glReadPixels /
+        // PixelCopy 监听器类均在公开 API 下反射失败）：先加豁免再反射。
+        // 2026-09-10 实测：豁免调用成功但 ROM 不认（硬黑名单），三处依旧失败，
+        // 保底（缺失静默跳过）继续生效；调用保留给其他 ROM 用，零成本。
+        // UI 侧 AppIconCache 同库先例。
+        runCatching {
+            HiddenApiBypass.addHiddenApiExemptions(
+                "Landroid/view/PixelCopy",
+                "Landroid/graphics/Paint",
+                "Landroid/opengl/GLES30",
+                "Landroid/opengl/GLES31",
+                "Landroid/opengl/GLES32"
+            )
+        }.onFailure { Log.w(TAG, "hiddenapi exemptions failed for $packageName", it) }
         val bitmapClass = runCatching {
             param.defaultClassLoader.loadClass("android.graphics.Bitmap")
         }.onFailure { Log.w(TAG, "bitmap hooks unavailable", it) }.getOrNull() ?: return
@@ -138,7 +156,7 @@ object BitmapHooks {
 
         // C2 PixelCopy.request 系列：拷贝完成监听器包装（scanner C2 延迟持有例外）
         if (hookPixelCopy) {
-            installPixelCopyHooks(module, packageName, param)
+            installPixelCopyHooks(module, packageName, seed, param)
         }
     }
 
@@ -322,8 +340,13 @@ object BitmapHooks {
             val y = chain.getArg(1) as Int
             proceeded = true
             val original = chain.proceed() as Int
-            // 热路径：纯数学扰动，不做统计/加锁/逐次日志
-            return FingerprintEngine.perturbPoint(original, x, y, seed)
+            // 热路径：纯数学扰动；统计先抢窗口再分配载荷，抢不到零开销返回
+            val perturbed = FingerprintEngine.perturbPoint(original, x, y, seed)
+            val claimed = tryClaimStatsWindow(packageName)
+            if (claimed >= 0) {
+                recordStatsClaimed(packageName, seed, intArrayOf(perturbed), "A2", claimed)
+            }
+            return perturbed
         } catch (t: Throwable) {
             if (!proceeded) runCatching { chain.proceed() }
             throw t
@@ -351,9 +374,16 @@ object BitmapHooks {
             // 原生异常（非直接缓冲等）不吞——保持宿主语义
             chain.proceed()
             if (format == GL_RGBA && type == GL_UNSIGNED_BYTE && buffer is java.nio.ByteBuffer) {
-                runCatching {
+                val done = runCatching {
                     FingerprintEngine.applyGlPixels(buffer, startPos, width, height, seed)
                 }.onFailure { Log.e(TAG, "D1 glReadPixels apply failed for $packageName", it) }
+                    .getOrDefault(0)
+                // 真处理了才记一次 D1 命中（沿用 1 秒节流 + 去重）
+                if (done > 0) {
+                    runCatching {
+                        recordStatsGl(packageName, seed, buffer, startPos, width, height)
+                    }.onFailure { Log.e(TAG, "D1 recordStats failed for $packageName", it) }
+                }
             }
             return null
         } catch (t: Throwable) {
@@ -568,6 +598,7 @@ object BitmapHooks {
     private fun installPixelCopyHooks(
         module: XposedInterface,
         packageName: String,
+        seed: Long,
         param: XposedModuleInterface.PackageLoadedParam
     ) {
         val pixelCopyClass = runCatching {
@@ -594,7 +625,7 @@ object BitmapHooks {
             runCatching {
                 val m = pixelCopyClass.getDeclaredMethod("request", *types)
                 module.hook(m).intercept { chain ->
-                    handlePixelCopy(chain, packageName, listenerClass)
+                    handlePixelCopy(chain, packageName, seed, listenerClass)
                 }
             }.onFailure { Log.w(TAG, "C2 hook PixelCopy.request unavailable", it) }
         }
@@ -604,6 +635,7 @@ object BitmapHooks {
     private fun handlePixelCopy(
         chain: XposedInterface.Chain,
         packageName: String,
+        seed: Long,
         listenerClass: Class<*>
     ): Any? {
         val args = chain.getArgs().toMutableList()
@@ -622,7 +654,7 @@ object BitmapHooks {
                 if (method.name == "onPixelCopied") {
                     val result = (proxyArgs?.getOrNull(0) as? Int) ?: -1
                     if (result == android.view.PixelCopy.SUCCESS) {
-                        runCatching { poisonPixelCopyTarget(bitmap) }
+                        runCatching { poisonPixelCopyTarget(bitmap, packageName, seed) }
                             .onFailure { Log.e(TAG, "C2 poison failed for $packageName", it) }
                     }
                 }
@@ -637,18 +669,29 @@ object BitmapHooks {
      * C2 存毒：经标准 getPixels 读出（触发 A1 链，附带一层同源噪声）再
      * setPixels 写回，使延迟读取/跨进程传递等非标准消费同样拿到假像素。
      * 超限位图直接放过；同位图内容未变跳过（generationId 比对），变了重毒；
-     * 任何失败 fail-open，只转发原回调。
+     * 真下毒时记一次 C2 命中（沿用 1 秒节流 + 去重）；任何失败 fail-open，只转发原回调。
      */
-    private fun poisonPixelCopyTarget(bitmap: android.graphics.Bitmap) {
+    private fun poisonPixelCopyTarget(
+        bitmap: android.graphics.Bitmap,
+        packageName: String,
+        seed: Long,
+    ) {
         val w = bitmap.width
         val h = bitmap.height
         if (w <= 0 || h <= 0 || w.toLong() * h > MAX_FAKE_PIXELS) return
         synchronized(poisonedBitmaps) {
             if (poisonedBitmaps[bitmap] == bitmap.generationId) return
             val pixels = IntArray(w * h)
-            bitmap.getPixels(pixels, 0, w, 0, 0, w, h)
+            // 存毒读出的 getPixels 会回灌 A1 链：挂 insideFake 只在最外层记一次 C2
+            insideFake.set(true)
+            try {
+                bitmap.getPixels(pixels, 0, w, 0, 0, w, h)
+            } finally {
+                insideFake.remove()
+            }
             bitmap.setPixels(pixels, 0, w, 0, 0, w, h)
             poisonedBitmaps[bitmap] = bitmap.generationId
+            recordStats(packageName, seed, pixels, "C2")
         }
     }
 
@@ -897,28 +940,92 @@ object BitmapHooks {
         pixels: IntArray,
         path: String,
     ) {
+        val claimed = tryClaimStatsWindow(packageName)
+        if (claimed < 0) return
+        recordStatsClaimed(packageName, seed, pixels, path, claimed)
+    }
+
+    /** 窗口已抢占的上报体：哈希 + 去重 + 广播，全在共享后台线程。 */
+    private fun recordStatsClaimed(
+        packageName: String,
+        seed: Long,
+        pixels: IntArray,
+        path: String,
+        claimed: Long,
+    ) {
+        runCatching {
+            statsExecutor.execute {
+                runCatching {
+                    reportClaimed(packageName, seed, fingerprintOf(pixels), path, claimed)
+                }.onFailure { Log.e(TAG, "recordStats failed", it) }
+            }
+        }
+    }
+
+    /**
+     * D1 上报：GL 侧只有 ByteBuffer、无 IntArray 载荷。
+     * 抢到窗口后在 hook 线程按绝对位置拷贝 capped 字节（不碰 position），
+     * 哈希与去重仍在后台线程；抢不到零拷贝直接返回。
+     */
+    private fun recordStatsGl(
+        packageName: String,
+        seed: Long,
+        buffer: ByteBuffer,
+        startPos: Int,
+        width: Int,
+        height: Int,
+    ) {
+        val claimed = tryClaimStatsWindow(packageName)
+        if (claimed < 0) return
+        val need = width.toLong() * height * 4
+        if (need <= 0 || need > Int.MAX_VALUE) return
+        val take = minOf(need, STATS_HASH_BYTES_CAP).toInt()
+        val bytes = ByteArray(take)
+        runCatching {
+            for (i in 0 until take) bytes[i] = buffer.get(startPos + i)
+        }.onFailure { return }
+        runCatching {
+            statsExecutor.execute {
+                runCatching {
+                    reportClaimed(packageName, seed, HashUtils.ofBytes(bytes), "D1", claimed)
+                }.onFailure { Log.e(TAG, "recordStats failed", it) }
+            }
+        }
+    }
+
+    /** 上报尾巴：同包同状态去重，命中只发一次广播；去重命中时收回本次窗口。 */
+    private fun reportClaimed(
+        packageName: String,
+        seed: Long,
+        fp: String,
+        path: String,
+        claimed: Long,
+    ) {
+        val key = "$seed:$fp"
+        if (lastSentHash.put(packageName, key) == key) {
+            lastStatsTime.remove(packageName, claimed)
+            return
+        }
+        sendHookHit(packageName, seed, fp, path)
+    }
+
+    /**
+     * 统计窗口抢占（hook 线程，无锁 CAS）：每包 1 秒只放行一次。
+     * 被跳过的调用不许推移窗口，否则高频流下统计永久停摆。
+     * A2 等热路径先抢占再分配上报载荷，抢不到零分配直接返回。
+     *
+     * @return 抢到的窗口时间戳；抢不到返回 -1
+     */
+    private fun tryClaimStatsWindow(packageName: String): Long {
         val now = SystemClock.elapsedRealtime()
         // 先读后写：被跳过的调用不许推移窗口，否则高频流下统计永久停摆；
         // 窗口同步预占：突发调用在 hook 线程先落败，不进 executor 排队
         while (true) {
             val last = lastStatsTime[packageName]
-            if (last != null && now - last < STATS_MIN_INTERVAL_MS) return
+            if (last != null && now - last < STATS_MIN_INTERVAL_MS) return -1
             val claimed = if (last == null) lastStatsTime.putIfAbsent(packageName, now) == null
             else lastStatsTime.replace(packageName, last, now)
-            if (claimed) break
-        }
-        runCatching {
-            statsExecutor.execute {
-                runCatching {
-                    val fp = fingerprintOf(pixels)
-                    val key = "$seed:$fp"
-                    if (lastSentHash.put(packageName, key) == key) {
-                        lastStatsTime.remove(packageName, now)
-                        return@execute
-                    }
-                    sendHookHit(packageName, seed, fp, path)
-                }.onFailure { Log.e(TAG, "recordStats failed", it) }
-            }
+            if (claimed) return now
         }
     }
 

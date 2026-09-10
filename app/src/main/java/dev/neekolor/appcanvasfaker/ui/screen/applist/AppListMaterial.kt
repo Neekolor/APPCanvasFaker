@@ -25,6 +25,7 @@ import androidx.compose.material.icons.automirrored.filled.Sort
 import androidx.compose.material.icons.automirrored.outlined.Article
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.MoreVert
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DropdownMenuGroup
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.DropdownMenuPopup
@@ -349,6 +350,15 @@ fun AppListPagerMaterial(
                             onClick = { actions.onOpenProfile(app.packageName) },
                         )
                     }
+                }
+            }
+            // 首载居中转圈（对齐 KSU）：后续下拉刷新走顶部 indicator，不进这里
+            if (!uiState.hasLoaded && uiState.isRefreshing) {
+                Box(
+                    modifier = Modifier.fillMaxSize(),
+                    contentAlignment = Alignment.Center
+                ) {
+                    CircularProgressIndicator()
                 }
             }
         }

@@ -75,10 +75,11 @@ fun logDetailText(item: LogItem): String {
         lines.add("hit=#${item.hitCount ?: "?"} mode=${item.mode ?: "?"}")
     }
     if (item.newHash != null || item.moved != null) {
+        // 英文短词：false 易被误读为出错，用 Stable/Changed/First 三态直述画像状态
         val movedText = when (item.moved) {
-            true -> "moved=true"
-            false -> "moved=false"
-            null -> "moved=first"
+            true -> "Changed"
+            false -> "Stable"
+            null -> "First"
         }
         val hashText = if (item.oldHash != null) "${item.oldHash} -> ${item.newHash}"
             else item.newHash.orEmpty()

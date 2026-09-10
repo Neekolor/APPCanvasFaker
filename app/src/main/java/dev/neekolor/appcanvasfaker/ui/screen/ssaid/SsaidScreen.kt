@@ -487,14 +487,14 @@ private fun SsaidScreenMaterial(
                                         leadingContent = { SsaidIcon(item) },
                                         trailingContent = {
                                             Row(verticalAlignment = Alignment.CenterVertically) {
-                                                MaterialRandomizeButton(
-                                                    enabled = buttonsEnabled(state.busyPkg),
-                                                    onClick = { actions.onRandomize(item.packageName) },
-                                                )
-                                                Spacer(Modifier.width(8.dp))
                                                 MaterialDeleteButton(
                                                     enabled = buttonsEnabled(state.busyPkg),
                                                     onClick = { actions.onDelete(item.packageName) },
+                                                )
+                                                Spacer(Modifier.width(8.dp))
+                                                MaterialRandomizeButton(
+                                                    enabled = buttonsEnabled(state.busyPkg),
+                                                    onClick = { actions.onRandomize(item.packageName) },
                                                 )
                                             }
                                         },
@@ -613,17 +613,17 @@ private fun SsaidRowMiuix(
         }
         Row(verticalAlignment = Alignment.CenterVertically) {
             MiuixSsaidButton(
-                text = stringResource(R.string.action_randomize),
-                enabled = enabled,
-                isDelete = false,
-                onClick = onRandomize,
-            )
-            Spacer(Modifier.width(8.dp))
-            MiuixSsaidButton(
                 text = stringResource(R.string.delete),
                 enabled = enabled,
                 isDelete = true,
                 onClick = onDelete,
+            )
+            Spacer(Modifier.width(8.dp))
+            MiuixSsaidButton(
+                text = stringResource(R.string.action_randomize),
+                enabled = enabled,
+                isDelete = false,
+                onClick = onRandomize,
             )
         }
     }

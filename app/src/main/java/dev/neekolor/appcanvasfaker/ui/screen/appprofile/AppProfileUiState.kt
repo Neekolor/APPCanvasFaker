@@ -11,6 +11,11 @@ data class AppProfileUiState(
     val versionCode: Long = 0L,
     val applicationInfo: ApplicationInfo? = null,
     val enabled: Boolean = false,
+    /**
+     * LSPosed 作用域内是否勾选本包；null = 未知（服务未绑定/接口缺失），
+     * 未知时不显示警告、不误报。
+     */
+    val scopeInScope: Boolean? = null,
     /** 本次随机化的新旧对照；null = 本次进页尚未执行过。 */
     val reseed: ReseedPreview? = null,
 ) {
@@ -36,4 +41,5 @@ data class AppProfileActions(
     val onForceStopApp: () -> Unit,
     val onRestartApp: () -> Unit,
     val onOpenLogs: () -> Unit,
+    val onRequestScope: () -> Unit,
 )

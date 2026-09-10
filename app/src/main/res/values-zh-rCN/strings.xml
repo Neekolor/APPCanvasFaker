@@ -123,11 +123,16 @@
     <string name="fingerprints_title">指纹基准</string>
     <string name="fingerprints_refresh">重新测算</string>
     <string name="fingerprints_summary">查看本机未污染的标准指纹值</string>
+    <string name="fingerprints_empty">暂无指纹数据</string>
     <string name="nav_rail_expand">展开导航栏</string>
     <string name="nav_rail_collapse">收起导航栏</string>
     <string name="home_not_activated">模块未激活</string>
     <string name="home_baseline_note">模块无法 Hook 自身，以上为本机未污染基准值。</string>
     <string name="home_channel_bad">远端配置通道不可用，被 Hook 应用收不到规则；请检查 LSPosed 状态并重启本应用。</string>
+    <string name="scope_missing_warn">LSPosed 作用域未勾选此应用，规则无法生效。</string>
+    <string name="scope_grant">去勾选</string>
+    <string name="scope_approved">作用域已获批，重启目标应用后生效</string>
+    <string name="scope_failed">作用域申请失败</string>
     <string name="app_version">应用版本</string>
     <string name="home_hook_mode">Hook模式</string>
     <string name="home_hooked_chains">默认Hook链</string>

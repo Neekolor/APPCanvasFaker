@@ -19,9 +19,11 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 
-/** 指纹行展示名："中文名英文名（覆盖串）"，覆盖串小一号。 */
+/** 指纹行展示名：中文环境"中文名英文名（覆盖串）"，非中文环境只显示英文名，覆盖串小一号。 */
 @Composable
 internal fun fpDisplayTitle(method: String): AnnotatedString {
+    // 与主页链分隔符同口径：locales[0] 语言判定
+    val isZh = acfApp.resources.configuration.locales[0].language == "zh"
     val zh = stringResource(when (method) {
         "A1" -> R.string.fp_zh_a1
         "A3" -> R.string.fp_zh_a3
@@ -50,7 +52,7 @@ internal fun fpDisplayTitle(method: String): AnnotatedString {
         else -> R.string.fp_unknown
     })
     return buildAnnotatedString {
-        append(zh)
+        if (isZh) append(zh)
         append(en)
         withStyle(SpanStyle(fontSize = 12.sp)) { append("($cov)") }
     }

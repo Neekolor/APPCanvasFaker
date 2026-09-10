@@ -361,7 +361,8 @@ private fun InfoCard(state: HomeUiState) {
                 bottomPadding = 0.dp
             )
             // 标准指纹值已移至"工具"页指纹基准二级页，避免两处重复展示
-            if (state.moduleActive && !state.remoteChannelOk) {
+            // 首轮探测未完成（null）不显示，防冷启动闪现
+            if (state.moduleActive && state.remoteChannelOk == false) {
                 Text(
                     text = stringResource(R.string.home_channel_bad),
                     fontSize = MiuixTheme.textStyles.body2.fontSize,

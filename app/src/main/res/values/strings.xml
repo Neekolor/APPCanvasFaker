@@ -93,13 +93,14 @@
     <string name="ssaid_deleted">SSAID deleted, please reboot the device</string>
     <string name="ssaid_reboot_title">Reboot device</string>
     <string name="ssaid_reboot_content">SSAID has been written. A reboot is required to take effect. Reboot now?</string>
-    <string name="ssaid_user0_note">Only the primary user (user 0) is supported.</string>
+    <string name="ssaid_user0_note">Only the primary user (user 0) is supported. Work profile / app clones are not supported.</string>
     <string name="reboot_later">Later</string>
     <string name="reboot_now">Reboot</string>
     <string name="reboot_failed">Failed to send reboot command, please reboot manually</string>
     <string name="fingerprints_title">Fingerprint baseline</string>
     <string name="fingerprints_refresh">Recalculate</string>
     <string name="fingerprints_summary">View untainted baseline fingerprints of this device</string>
+    <string name="fingerprints_empty">No fingerprint data yet</string>
     <string name="processing">Processing…</string>
     <string name="refresh_pulling">Pull down to refresh</string>
     <string name="refresh_release">Release to refresh</string>
@@ -152,6 +153,10 @@
     <string name="home_not_activated">Module Not Activated</string>
     <string name="home_baseline_note">The module cannot hook itself; values above are this device\'s unmodified baseline.</string>
     <string name="home_channel_bad">Remote config channel unavailable. Hooked apps cannot receive rules; check LSPosed status and restart this app.</string>
+    <string name="scope_missing_warn">This app is not checked in the LSPosed scope, so rules cannot take effect.</string>
+    <string name="scope_grant">Grant scope</string>
+    <string name="scope_approved">Scope approved, restart the target app to take effect</string>
+    <string name="scope_failed">Scope request failed</string>
     <string name="app_version">App Version</string>
     <string name="home_hook_mode">Hook Mode</string>
     <string name="home_hooked_chains">Default Hook Chains</string>

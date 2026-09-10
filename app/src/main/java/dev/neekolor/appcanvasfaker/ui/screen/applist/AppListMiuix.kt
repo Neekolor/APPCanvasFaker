@@ -31,6 +31,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
@@ -398,6 +399,15 @@ fun AppListPagerMiuix(
                         }
                         item {
                             Spacer(Modifier.height(bottomInnerPadding))
+                        }
+                    }
+                    // 首载居中转圈（对齐 KSU）：后续下拉刷新走顶部 indicator，不进这里
+                    if (!uiState.hasLoaded && uiState.isRefreshing) {
+                        Box(
+                            modifier = Modifier.fillMaxSize(),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            CircularProgressIndicator()
                         }
                     }
                 }

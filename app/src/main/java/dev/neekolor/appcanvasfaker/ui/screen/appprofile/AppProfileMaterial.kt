@@ -23,6 +23,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Security
+import androidx.compose.material.icons.filled.WarningAmber
 import androidx.compose.material.icons.outlined.Casino
 import androidx.compose.material.icons.outlined.PlayArrow
 import androidx.compose.material3.Button
@@ -161,7 +162,7 @@ private fun AppProfileContent(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(horizontal = 16.dp),
-            content = listOf(
+            content = listOfNotNull(
                 header,
                 {
                     SegmentedSwitchItem(
@@ -172,6 +173,32 @@ private fun AppProfileContent(
                         onCheckedChange = actions.onSetEnabled,
                     )
                 },
+                // 作用域门禁：规则开了但 LSPosed 没勾此包；未知/已勾选时整项消失不占位
+                if (state.enabled && state.scopeInScope == false) {
+                    {
+                        SegmentedListItem(
+                            headlineContent = {
+                                Text(
+                                    text = stringResource(R.string.scope_missing_warn),
+                                    color = MaterialTheme.colorScheme.error,
+                                )
+                            },
+                            leadingContent = {
+                                Icon(
+                                    Icons.Filled.WarningAmber,
+                                    contentDescription = null,
+                                    tint = MaterialTheme.colorScheme.error,
+                                )
+                            },
+                            trailingContent = {
+                                ExecuteButton(
+                                    onClick = actions.onRequestScope,
+                                    label = stringResource(R.string.scope_grant),
+                                )
+                            },
+                        )
+                    }
+                } else null,
                 {
                     SegmentedListItem(
                         headlineContent = {
@@ -299,6 +326,7 @@ private fun ProfileOverflowMenu(actions: AppProfileActions) {
 @Composable
 private fun ExecuteButton(
     onClick: () -> Unit,
+    label: String = stringResource(R.string.action),
 ) {
     Button(
         onClick = onClick,
@@ -317,7 +345,7 @@ private fun ExecuteButton(
         )
         Text(
             modifier = Modifier.padding(start = 7.dp),
-            text = stringResource(R.string.action),
+            text = label,
             fontFamily = MaterialTheme.typography.labelMedium.fontFamily,
             fontSize = MaterialTheme.typography.labelMedium.fontSize,
         )

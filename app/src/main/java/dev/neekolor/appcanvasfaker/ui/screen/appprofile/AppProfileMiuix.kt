@@ -32,6 +32,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Casino
 import androidx.compose.material.icons.rounded.PlayArrow
 import androidx.compose.material.icons.rounded.Security
+import androidx.compose.material.icons.rounded.WarningAmber
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
@@ -234,6 +235,40 @@ private fun AppProfileContent(
                 checked = state.enabled,
                 onCheckedChange = actions.onSetEnabled,
             )
+        }
+
+        // 作用域门禁：规则开了但 LSPosed 没勾此包，规则下不去；未知时不显示不误报
+        if (state.enabled && state.scopeInScope == false) {
+            Card(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 12.dp)
+                    .padding(bottom = 12.dp),
+            ) {
+                Row(
+                    modifier = Modifier.padding(start = 16.dp, end = 16.dp, top = 12.dp, bottom = 12.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Icon(
+                        imageVector = Icons.Rounded.WarningAmber,
+                        contentDescription = null,
+                        modifier = Modifier.padding(end = 6.dp),
+                        tint = colorScheme.error
+                    )
+                    Text(
+                        text = stringResource(R.string.scope_missing_warn),
+                        color = colorScheme.error,
+                        fontWeight = FontWeight.Medium,
+                        fontSize = 14.sp,
+                        modifier = Modifier.weight(1f),
+                    )
+                    Spacer(Modifier.width(12.dp))
+                    ExecuteButton(
+                        onClick = actions.onRequestScope,
+                        label = stringResource(R.string.scope_grant),
+                    )
+                }
+            }
         }
 
         Card(
@@ -440,6 +475,7 @@ private fun ProfileOverflowMenu(actions: AppProfileActions) {
 @Composable
 private fun ExecuteButton(
     onClick: () -> Unit,
+    label: String = stringResource(R.string.action),
 ) {
     val isDark = isInDarkTheme()
     val tint = colorScheme.onSurface.copy(alpha = if (isDark) 0.7f else 0.9f)
@@ -462,7 +498,7 @@ private fun ExecuteButton(
         )
         Text(
             modifier = Modifier.padding(start = 3.dp, end = 4.dp),
-            text = stringResource(R.string.action),
+            text = label,
             color = tint,
             fontWeight = FontWeight.Medium,
             fontSize = 15.sp,
