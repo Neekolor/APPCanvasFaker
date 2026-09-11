@@ -14,7 +14,9 @@ import android.graphics.RectF
 object StandardCanvas {
     const val WIDTH = 320
     const val HEIGHT = 160
-    const val TEXT = "CanvasFingerprintScanner 0.1.0"
+    // TEXT 永不带版本号：画布像素与 E1 输入都依赖它，带版本则每次发版基线全变；
+    // 改这里必须同步改 scanner，反之亦然。
+    const val TEXT = "CanvasFingerprintScanner"
     const val DENSITY = 1f
 
     fun createBitmap(): Bitmap =

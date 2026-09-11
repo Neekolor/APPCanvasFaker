@@ -120,16 +120,22 @@ object HardwareReaders {
         GLES20.glClearColor(18f / 255f, 20f / 255f, 32f / 255f, 1f)
         GLES20.glClear(GLES20.GL_COLOR_BUFFER_BIT)
 
-        // 与 StandardCanvas 近似的图形：蓝色圆角矩形 + 珊瑚色圆形（D1 为独立指纹，不与其他项比对）
-        drawRect(
-            left = width * 0.06f, top = height * 0.11f,
-            right = width * 0.48f, bottom = height * 0.53f,
-            color = floatArrayOf(130f / 255f, 177f / 255f, 255f / 255f, 1f)
-        )
-        drawCircle(
-            cx = width * 0.74f, cy = height * 0.34f, radius = height * 0.21f,
-            color = floatArrayOf(255f / 255f, 171f / 255f, 145f / 255f, 1f)
-        )
+        // 复用单一 program，避免两次编译链接（约省 15-30ms）
+        val program = createProgram(VS, FS)
+        if (program == 0) throw GlStatusError(-1)
+        try {
+            GLES20.glUseProgram(program)
+            val posHandle = GLES20.glGetAttribLocation(program, "aPos")
+            val colorHandle = GLES20.glGetUniformLocation(program, "uColor")
+            GLES20.glEnableVertexAttribArray(posHandle)
+
+            drawRectWithProgram(posHandle, colorHandle, width, height)
+            drawCircleWithProgram(posHandle, colorHandle, width, height)
+
+            GLES20.glDisableVertexAttribArray(posHandle)
+        } finally {
+            GLES20.glDeleteProgram(program)
+        }
 
         GLES20.glFinish()
 
@@ -145,62 +151,59 @@ object HardwareReaders {
         return pixels
     }
 
-    private fun drawRect(left: Float, top: Float, right: Float, bottom: Float, color: FloatArray) {
-        val vs = "attribute vec4 aPos; void main(){ gl_Position = aPos; }"
-        val fs = "precision mediump float; uniform vec4 uColor; void main(){ gl_FragColor = uColor; }"
-        val program = createProgram(vs, fs)
-        if (program == 0) return
-        val posHandle = GLES20.glGetAttribLocation(program, "aPos")
-        val colorHandle = GLES20.glGetUniformLocation(program, "uColor")
-        val verts = floatArrayOf(
-            left, bottom, 0f,
-            right, bottom, 0f,
-            left, top, 0f,
-            right, top, 0f
-        )
+    // 归一化顶点：把像素坐标转 NDC (-1..1)。与 scanner 源实现逐字对齐
+    // （含圆半径沿用像素值混算——单位虽怪，但是两边一致的依据；改这里必须同步改 scanner）。
+    private fun toNdc(v: Float, size: Float): Float = (v / size) * 2f - 1f
+
+    private fun drawRectWithProgram(posHandle: Int, colorHandle: Int, width: Int, height: Int) {
+        // 修正：统一用 toNdc 翻Y
+        fun ny(y: Float) = 1f - y / height * 2f
+        val topN = ny(height * 0.11f)
+        val botN = ny(height * 0.53f)
+        val leftN = toNdc(width * 0.06f, width.toFloat())
+        val rightN = toNdc(width * 0.48f, width.toFloat())
+        val verts = floatArrayOf(leftN, botN, 0f, rightN, botN, 0f, leftN, topN, 0f, rightN, topN, 0f)
         val vbuf = ByteBuffer.allocateDirect(verts.size * 4).order(ByteOrder.nativeOrder())
-        vbuf.asFloatBuffer().put(verts)
+        vbuf.asFloatBuffer().put(verts).position(0)
         vbuf.position(0)
-        GLES20.glUseProgram(program)
-        GLES20.glEnableVertexAttribArray(posHandle)
         GLES20.glVertexAttribPointer(posHandle, 3, GLES20.GL_FLOAT, false, 12, vbuf)
-        GLES20.glUniform4f(colorHandle, color[0], color[1], color[2], color[3])
+        GLES20.glUniform4f(colorHandle, 130f/255f, 177f/255f, 255f/255f, 1f)
         GLES20.glDrawArrays(GLES20.GL_TRIANGLE_STRIP, 0, 4)
-        GLES20.glDisableVertexAttribArray(posHandle)
-        GLES20.glDeleteProgram(program)
     }
 
-    private fun drawCircle(cx: Float, cy: Float, radius: Float, color: FloatArray) {
+    private fun drawCircleWithProgram(posHandle: Int, colorHandle: Int, width: Int, height: Int) {
         val segments = 48
+        val cxP = width * 0.74f
+        val cyP = height * 0.34f
+        val radius = height * 0.21f
         val verts = FloatArray((segments + 2) * 3)
-        verts[0] = cx; verts[1] = cy; verts[2] = 0f
+        verts[0] = toNdc(cxP, width.toFloat())
+        verts[1] = 1f - cyP / height * 2f
+        verts[2] = 0f
         for (i in 0..segments) {
             val angle = Math.PI * 2 * i / segments
-            verts[(i + 1) * 3] = cx + (Math.cos(angle) * radius).toFloat()
-            verts[(i + 1) * 3 + 1] = cy + (Math.sin(angle) * radius).toFloat()
+            val x = cxP + (Math.cos(angle) * radius).toFloat()
+            val y = cyP + (Math.sin(angle) * radius).toFloat()
+            verts[(i + 1) * 3] = toNdc(x, width.toFloat())
+            verts[(i + 1) * 3 + 1] = 1f - y / height * 2f
             verts[(i + 1) * 3 + 2] = 0f
         }
-        val vs = "attribute vec4 aPos; void main(){ gl_Position = aPos; }"
-        val fs = "precision mediump float; uniform vec4 uColor; void main(){ gl_FragColor = uColor; }"
-        val program = createProgram(vs, fs)
-        if (program == 0) return
-        val posHandle = GLES20.glGetAttribLocation(program, "aPos")
-        val colorHandle = GLES20.glGetUniformLocation(program, "uColor")
         val vbuf = ByteBuffer.allocateDirect(verts.size * 4).order(ByteOrder.nativeOrder())
-        vbuf.asFloatBuffer().put(verts)
+        vbuf.asFloatBuffer().put(verts).position(0)
         vbuf.position(0)
-        GLES20.glUseProgram(program)
-        GLES20.glEnableVertexAttribArray(posHandle)
         GLES20.glVertexAttribPointer(posHandle, 3, GLES20.GL_FLOAT, false, 12, vbuf)
-        GLES20.glUniform4f(colorHandle, color[0], color[1], color[2], color[3])
+        GLES20.glUniform4f(colorHandle, 255f/255f, 171f/255f, 145f/255f, 1f)
         GLES20.glDrawArrays(GLES20.GL_TRIANGLE_FAN, 0, segments + 2)
-        GLES20.glDisableVertexAttribArray(posHandle)
-        GLES20.glDeleteProgram(program)
     }
+
+    private const val VS = "attribute vec4 aPos; void main(){ gl_Position = aPos; }"
+    private const val FS = "precision mediump float; uniform vec4 uColor; void main(){ gl_FragColor = uColor; }"
 
     private fun createProgram(vsSrc: String, fsSrc: String): Int {
         val vs = compileShader(GLES20.GL_VERTEX_SHADER, vsSrc)
+        if (vs == 0) return 0
         val fs = compileShader(GLES20.GL_FRAGMENT_SHADER, fsSrc)
+        if (fs == 0) { GLES20.glDeleteShader(vs); return 0 }
         val program = GLES20.glCreateProgram()
         GLES20.glAttachShader(program, vs)
         GLES20.glAttachShader(program, fs)
@@ -217,12 +220,15 @@ object HardwareReaders {
 
     private fun compileShader(type: Int, source: String): Int {
         val shader = GLES20.glCreateShader(type)
+        if (shader == 0) return 0
         GLES20.glShaderSource(shader, source)
         GLES20.glCompileShader(shader)
         val status = IntArray(1)
         GLES20.glGetShaderiv(shader, GLES20.GL_COMPILE_STATUS, status, 0)
         if (status[0] != GLES20.GL_TRUE) {
             Log.w(TAG, "shader compile failed: ${GLES20.glGetShaderInfoLog(shader)}")
+            GLES20.glDeleteShader(shader)
+            return 0
         }
         return shader
     }

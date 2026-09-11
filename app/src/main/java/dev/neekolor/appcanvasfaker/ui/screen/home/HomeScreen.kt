@@ -8,6 +8,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.unit.Dp
+import androidx.lifecycle.compose.LifecycleResumeEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import dev.neekolor.appcanvasfaker.ui.LocalMainPagerState
@@ -37,6 +38,14 @@ fun HomePager(
         LaunchedEffect(isCurrentPage) {
             if (isCurrentPage) viewModel.refresh()
         }
+    }
+    // 从 LSPosed 管理器授权回来不经过切页：每次恢复都重探一次，否则通道红字滞留。
+    // 首帧由上面的 LaunchedEffect 负责，这里跳过第一次（避免冷启动双刷）。
+    var resumedOnce by remember { mutableStateOf(false) }
+    LifecycleResumeEffect(Unit) {
+        if (resumedOnce && isCurrentPage) viewModel.refresh()
+        resumedOnce = true
+        onPauseOrDispose { }
     }
 
     val actions = HomeActions(

@@ -17,22 +17,30 @@ import java.io.ByteArrayOutputStream
  */
 object NonPixelSignals {
 
-    /** E1: Paint.measureText() / breakText() / getFontMetrics() 字体度量指纹 */
+    /**
+     * E1: Paint.measureText() / breakText() / getFontMetrics() 字体度量指纹。
+     * 输入组合与 scanner 源实现逐字对齐（含 FontMetricsInt 四字段与前 6 宽度），
+     * 改这里必须同步改 scanner，否则两边 E1 永不对齐。
+     */
     fun fontMetrics(): String {
         val paint = Paint(Paint.ANTI_ALIAS_FLAG).apply { textSize = 24f * StandardCanvas.DENSITY }
         val metrics = paint.fontMetrics
+        val fmInt = paint.fontMetricsInt
         val text = StandardCanvas.TEXT
         val advance = paint.measureText(text)
         val breakCount = paint.breakText(text, true, 150f, null)
-        val raw = listOf(
-            advance,
-            breakCount.toFloat(),
-            metrics.ascent,
-            metrics.descent,
-            metrics.top,
-            metrics.bottom,
-            paint.getFontMetricsInt().toString()
-        ).joinToString("|")
+        val widths = FloatArray(text.length)
+        paint.getTextWidths(text, widths)
+        val raw = buildString {
+            append(advance); append('|')
+            append(breakCount); append('|')
+            append(metrics.ascent); append('|')
+            append(metrics.descent); append('|')
+            append(metrics.top); append('|')
+            append(metrics.bottom); append('|')
+            append(fmInt.ascent); append(','); append(fmInt.descent); append(','); append(fmInt.top); append(','); append(fmInt.bottom); append('|')
+            append(widths.take(6).joinToString(","))
+        }
         return HashUtils.ofString(raw)
     }
 
